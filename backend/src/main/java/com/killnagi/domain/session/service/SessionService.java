@@ -4,6 +4,8 @@ import com.killnagi.common.exception.KillnagiException;
 import com.killnagi.domain.rule.entity.Rule;
 import com.killnagi.domain.rule.repository.RuleRepository;
 import com.killnagi.domain.session.dto.SessionDto;
+import com.killnagi.domain.session.dto.SessionDto.CreateRequest;
+import com.killnagi.domain.session.dto.SessionDto.RuleRequest;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.session.repository.SessionRepository;
 import com.killnagi.domain.team.entity.Team;
@@ -31,34 +33,39 @@ public class SessionService {
         User host = userRepository.findById(hostUserId)
                 .orElseThrow(() -> KillnagiException.notFound("사용자를 찾을 수 없습니다."));
 
-        Session session = Session.builder()
-                .name(request.name())
-                .host(host)
-                .targetKills(request.targetKills())
-                .timeLimitMinutes(request.timeLimitMinutes())
-                .build();
-
-        Session saved = sessionRepository.save(session);
+        Session saved = sessionRepository.save(buildSession(request, host));
 
         // 규칙 저장
         if (request.rules() != null) {
             request.rules().forEach(ruleReq -> {
-                Rule rule = Rule.builder()
-                        .session(saved)
-                        .ruleType(ruleReq.ruleType())
-                        .killValue(ruleReq.killValue())
-                        .build();
-                ruleRepository.save(rule);
+                ruleRepository.save(buildRule(ruleReq, saved));
             });
         }
 
         return toResponse(saved);
     }
 
+    private Rule buildRule(RuleRequest ruleReq, Session saved) {
+        return Rule.builder()
+                .session(saved)
+                .ruleType(ruleReq.ruleType())
+                .killValue(ruleReq.killValue())
+                .build();
+    }
+
+    private Session buildSession(CreateRequest request, User host) {
+        return Session.builder()
+                .name(request.name())
+                .host(host)
+                .targetKills(request.targetKills())
+                .timeLimitMinutes(request.timeLimitMinutes())
+                .build();
+    }
+
     @Transactional
     public void startSession(Long sessionId, Long userId) {
         Session session = getSessionOrThrow(sessionId);
-        if (!session.getHost().getId().equals(userId)) {
+        if (!session.isHostedBy(userId)) {
             throw KillnagiException.forbidden("세션 호스트만 시작할 수 있습니다.");
         }
         List<Team> teams = teamRepository.findBySessionId(sessionId);
@@ -82,8 +89,8 @@ public class SessionService {
                         team.getEffectiveKills(),
                         team.getMembers().stream()
                                 .map(m -> new SessionDto.MemberScoreDto(
-                                        m.getUser().getId(),
-                                        m.getUser().getNickname(),
+                                        m.getUserId(),
+                                        m.getUserNickname(),
                                         m.getTotalKills()
                                 )).toList()
                 )).toList();
@@ -111,7 +118,7 @@ public class SessionService {
         return new SessionDto.SessionResponse(
                 session.getId(),
                 session.getName(),
-                session.getHost().getNickname(),
+                session.getHostNickname(),
                 session.getStatus(),
                 session.getTargetKills(),
                 session.getTimeLimitMinutes(),

@@ -76,6 +76,14 @@ public class Session {
         this.endedAt = LocalDateTime.now();
     }
 
+    public boolean isHostedBy(Long userId) {
+        return this.host.hasId(userId);
+    }
+
+    public String getHostNickname() {
+        return this.host.getNickname();
+    }
+
     public enum SessionStatus {
         WAITING, IN_PROGRESS, ENDED
     }

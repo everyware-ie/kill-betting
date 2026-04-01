@@ -35,7 +35,7 @@ public class TeamService {
         Session session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> KillnagiException.notFound("세션을 찾을 수 없습니다."));
 
-        if (!session.getHost().getId().equals(hostUserId)) {
+        if (!session.isHostedBy(hostUserId)) {
             throw KillnagiException.forbidden("세션 호스트만 팀을 생성할 수 있습니다.");
         }
         if (session.getStatus() != Session.SessionStatus.WAITING) {
@@ -84,7 +84,7 @@ public class TeamService {
 
     private TeamResponse toResponse(Team team) {
         List<String> nicknames = team.getMembers().stream()
-                .map(m -> m.getUser().getNickname())
+                .map(TeamMember::getUserNickname)
                 .toList();
         return new TeamResponse(team.getId(), team.getName(), team.getEffectiveKills(), nicknames);
     }

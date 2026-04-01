@@ -34,4 +34,12 @@ public class TeamMember {
     public void addKills(int kills) {
         this.totalKills += kills;
     }
+
+    public Long getUserId() {
+        return this.user.getId();
+    }
+
+    public String getUserNickname() {
+        return this.user.getNickname();
+    }
 }
