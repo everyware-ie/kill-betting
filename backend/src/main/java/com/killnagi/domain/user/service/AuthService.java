@@ -3,6 +3,7 @@ package com.killnagi.domain.user.service;
 import com.killnagi.common.exception.KillnagiException;
 import com.killnagi.common.security.JwtTokenProvider;
 import com.killnagi.domain.user.dto.AuthDto;
+import com.killnagi.domain.user.dto.AuthDto.SignUpRequest;
 import com.killnagi.domain.user.entity.User;
 import com.killnagi.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,23 +22,29 @@ public class AuthService {
 
     @Transactional
     public AuthDto.TokenResponse signUp(AuthDto.SignUpRequest request) {
+        checkDuplicatedEmailAndPassword(request);
+
+        User saved = userRepository.save(buildUser(request));
+        String token = jwtTokenProvider.generateToken(saved.getId(), saved.getEmail());
+        return AuthDto.TokenResponse.of(token, saved.getId(), saved.getNickname());
+    }
+
+    private void checkDuplicatedEmailAndPassword(SignUpRequest request) {
         if (userRepository.existsByEmail(request.email())) {
             throw KillnagiException.badRequest("이미 사용 중인 이메일입니다.");
         }
         if (userRepository.existsByNickname(request.nickname())) {
             throw KillnagiException.badRequest("이미 사용 중인 닉네임입니다.");
         }
+    }
 
-        User user = User.builder()
+    private User buildUser(SignUpRequest request) {
+        return User.builder()
                 .nickname(request.nickname())
                 .email(request.email())
                 .password(passwordEncoder.encode(request.password()))
                 .pubgNickname(request.pubgNickname())
                 .build();
-
-        User saved = userRepository.save(user);
-        String token = jwtTokenProvider.generateToken(saved.getId(), saved.getEmail());
-        return AuthDto.TokenResponse.of(token, saved.getId(), saved.getNickname());
     }
 
     public AuthDto.TokenResponse login(AuthDto.LoginRequest request) {
