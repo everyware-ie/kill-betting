@@ -80,4 +80,8 @@ public class User {
         if (totalSessions == 0) return 0.0;
         return (double) wins / totalSessions * 100;
     }
+
+    public boolean hasId(Long userId) {
+        return this.id.equals(userId);
+    }
 }
