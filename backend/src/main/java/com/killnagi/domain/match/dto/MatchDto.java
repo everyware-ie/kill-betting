@@ -6,4 +6,9 @@ public class MatchDto {
             Long matchId,
             String screenshotUrl
     ) {}
+
+    public record ReflectResponse(
+            Long matchId,
+            String status
+    ) {}
 }
