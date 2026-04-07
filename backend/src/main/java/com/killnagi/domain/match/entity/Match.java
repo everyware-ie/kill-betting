@@ -53,6 +53,10 @@ public class Match {
         this.status = MatchStatus.CONFIRMED;
     }
 
+    public void updateScreenshotUrl(String screenshotUrl) {
+        this.screenshotUrl = screenshotUrl;
+    }
+
     public enum MatchStatus {
         PENDING, CONFIRMED
     }
