@@ -8,4 +8,5 @@ import java.util.Optional;
 public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
     Optional<TeamMember> findByTeamIdAndUserId(Long teamId, Long userId);
     boolean existsByTeam_Session_IdAndUserId(Long sessionId, Long userId);
+    boolean existsByTeam_Session_IdAndUserIdAndIsUploaderTrue(Long sessionId, Long userId);
 }
