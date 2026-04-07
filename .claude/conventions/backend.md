@@ -26,6 +26,33 @@ com.[패키지명]/
 
 ---
 
+## Import 스타일
+
+JDK·라이브러리·프레임워크가 제공하는 클래스는 최종 클래스명만 import한다. 구현부에서 패키지 경로를 직접 쓰지 않는다.
+
+```java
+// Bad
+java.util.List<String> names = new java.util.ArrayList<>();
+
+// Good
+import java.util.List;
+import java.util.ArrayList;
+List<String> names = new ArrayList<>();
+```
+
+중첩 클래스(nested class)는 외부클래스.내부클래스 형태로 참조하지 않고, 직접 import해서 내부 클래스명만 사용한다.
+
+```java
+// Bad
+if (match.getStatus() == Match.MatchStatus.CONFIRMED) { ... }
+
+// Good
+import com.killnagi.domain.match.entity.Match.MatchStatus;
+if (match.getStatus() == MatchStatus.CONFIRMED) { ... }
+```
+
+---
+
 ## 네이밍
 
 | 대상 | 규칙 | 예시 |
@@ -84,6 +111,31 @@ int kills = session.getParticipantKills(participantId);
 ```
 
 적용 기준: 메서드 체인이 `.` 2개를 초과하면 중간 객체에 위임 메서드를 추가하는 것을 검토한다.
+
+### Tell, Don't Ask — 엔티티 상태 판단
+
+서비스에서 엔티티의 내부 상태값을 꺼내 직접 비교하지 않는다.
+상태 판단 책임은 엔티티에 있으며, 서비스는 엔티티에 의미 있는 질문만 던진다.
+
+```java
+// Bad - 서비스가 엔티티 내부 상태를 알아야 함
+if (match.getStatus() == MatchStatus.PENDING) {
+    throw KillnagiException.badRequest("...");
+}
+
+// Good - 엔티티가 상태 판단을 스스로 처리
+// Match.java
+public boolean isReflectable() {
+    return this.status == MatchStatus.CONFIRMED;
+}
+
+// MatchReflectService.java
+if (!match.isReflectable()) {
+    throw KillnagiException.badRequest("...");
+}
+```
+
+새로운 상태가 추가되더라도 서비스 코드는 건드리지 않고 엔티티 내부에서만 수정한다.
 
 ---
 
@@ -299,4 +351,19 @@ void 킬수가_음수일때_예외를_던진다() { }
 
 @Test
 void 파일크기가_10MB_초과시_예외를_던진다() { }
+```
+
+### 구현 변경 시 테스트 자동 동기화
+
+구현 코드가 변경되면 반드시 대응하는 테스트 파일을 함께 확인하고 반영한다.
+사용자 지시 없이도 자동으로 수행한다.
+
+대상 변경 유형:
+- 메서드 시그니처 변경 (파라미터, 반환 타입)
+- 상태 판단 방식 변경 (예: `getStatus() == X` → `isX()`)
+- 검증 로직 추출 / 이동
+- 예외 메시지 변경
+
+```
+구현 변경 → 해당 테스트 파일 열기 → 영향받는 테스트 확인 → 수정
 ```
