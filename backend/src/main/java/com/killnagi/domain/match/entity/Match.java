@@ -57,7 +57,19 @@ public class Match {
         this.screenshotUrl = screenshotUrl;
     }
 
+    public boolean isReflectable() {
+        return this.status == MatchStatus.CONFIRMED;
+    }
+
+    public boolean isReflected() {
+        return this.status == MatchStatus.REFLECTED;
+    }
+
+    public void reflect() {
+        this.status = MatchStatus.REFLECTED;
+    }
+
     public enum MatchStatus {
-        PENDING, CONFIRMED
+        PENDING, CONFIRMED, REFLECTED
     }
 }
