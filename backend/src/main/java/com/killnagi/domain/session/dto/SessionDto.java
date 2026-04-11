@@ -3,6 +3,7 @@ package com.killnagi.domain.session.dto;
 import com.killnagi.domain.rule.entity.Rule;
 import com.killnagi.domain.session.entity.Session;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDateTime;
@@ -20,13 +21,17 @@ public class SessionDto {
     ) {}
 
     public record RuleRequest(
+            @NotNull(message = "룰 타입을 입력해주세요")
             Rule.RuleType ruleType,
-            int killValue
+            @NotNull(message = "연산자를 입력해주세요")
+            Rule.Operator operator,
+            int value
     ) {}
 
     public record SessionResponse(
             Long id,
             String name,
+            String roomUrl,
             String hostNickname,
             Session.SessionStatus status,
             Integer targetKills,

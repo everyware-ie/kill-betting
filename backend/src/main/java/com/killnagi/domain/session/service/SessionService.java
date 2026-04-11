@@ -2,10 +2,10 @@ package com.killnagi.domain.session.service;
 
 import com.killnagi.common.exception.KillnagiException;
 import com.killnagi.domain.rule.entity.Rule;
+import com.killnagi.domain.rule.entity.RuleSet;
 import com.killnagi.domain.rule.repository.RuleRepository;
+import com.killnagi.domain.rule.repository.RuleSetRepository;
 import com.killnagi.domain.session.dto.SessionDto;
-import com.killnagi.domain.session.dto.SessionDto.CreateRequest;
-import com.killnagi.domain.session.dto.SessionDto.RuleRequest;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.session.repository.SessionRepository;
 import com.killnagi.domain.team.entity.Team;
@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -27,39 +28,38 @@ public class SessionService {
     private final UserRepository userRepository;
     private final TeamRepository teamRepository;
     private final RuleRepository ruleRepository;
+    private final RuleSetRepository ruleSetRepository;
 
     @Transactional
     public SessionDto.SessionResponse createSession(Long hostUserId, SessionDto.CreateRequest request) {
         User host = userRepository.findById(hostUserId)
                 .orElseThrow(() -> KillnagiException.notFound("사용자를 찾을 수 없습니다."));
 
-        Session saved = sessionRepository.save(buildSession(request, host));
-
-        // 규칙 저장
-        if (request.rules() != null) {
-            request.rules().forEach(ruleReq -> {
-                ruleRepository.save(buildRule(ruleReq, saved));
-            });
-        }
-
-        return toResponse(saved);
-    }
-
-    private Rule buildRule(RuleRequest ruleReq, Session saved) {
-        return Rule.builder()
-                .session(saved)
-                .ruleType(ruleReq.ruleType())
-                .killValue(ruleReq.killValue())
-                .build();
-    }
-
-    private Session buildSession(CreateRequest request, User host) {
-        return Session.builder()
+        Session session = sessionRepository.save(Session.builder()
                 .name(request.name())
+                .roomUrl(generateUniqueRoomUrl())
                 .host(host)
                 .targetKills(request.targetKills())
                 .timeLimitMinutes(request.timeLimitMinutes())
-                .build();
+                .build());
+
+        RuleSet ruleSet = ruleSetRepository.save(RuleSet.builder()
+                .session(session)
+                .build());
+
+        if (request.rules() != null) {
+            request.rules().forEach(ruleReq ->
+                    ruleRepository.save(Rule.builder()
+                            .ruleSet(ruleSet)
+                            .ruleType(ruleReq.ruleType())
+                            .operator(ruleReq.operator())
+                            .value(ruleReq.value())
+                            .build()));
+        }
+
+        session.assignCurrentRuleSet(ruleSet);
+
+        return toResponse(session);
     }
 
     @Transactional
@@ -103,10 +103,24 @@ public class SessionService {
         );
     }
 
+    public SessionDto.SessionResponse getSessionByRoomUrl(String roomUrl) {
+        Session session = sessionRepository.findByRoomUrl(roomUrl)
+                .orElseThrow(() -> KillnagiException.notFound("세션을 찾을 수 없습니다."));
+        return toResponse(session);
+    }
+
     public List<SessionDto.SessionResponse> getMySessions(Long userId) {
         return sessionRepository.findSessionsByUserId(userId).stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    private String generateUniqueRoomUrl() {
+        String roomUrl;
+        do {
+            roomUrl = UUID.randomUUID().toString();
+        } while (sessionRepository.existsByRoomUrl(roomUrl));
+        return roomUrl;
     }
 
     private Session getSessionOrThrow(Long sessionId) {
@@ -118,6 +132,7 @@ public class SessionService {
         return new SessionDto.SessionResponse(
                 session.getId(),
                 session.getName(),
+                session.getRoomUrl(),
                 session.getHostNickname(),
                 session.getStatus(),
                 session.getTargetKills(),

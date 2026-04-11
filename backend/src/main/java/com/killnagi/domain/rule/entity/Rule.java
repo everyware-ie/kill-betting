@@ -1,6 +1,5 @@
 package com.killnagi.domain.rule.entity;
 
-import com.killnagi.domain.session.entity.Session;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -15,30 +14,43 @@ public class Rule {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "session_id", nullable = false)
-    private Session session;
+    @JoinColumn(name = "rule_set_id", nullable = false)
+    private RuleSet ruleSet;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "rule_type", nullable = false, length = 50)
     private RuleType ruleType;
 
-    @Column(name = "kill_value", nullable = false)
-    private int killValue;  // +N 또는 -N
+    @Enumerated(EnumType.STRING)
+    @Column(name = "operator", nullable = false, length = 10)
+    private Operator operator;
+
+    @Column(nullable = false)
+    private int value;
 
     @Column(nullable = false)
     private boolean enabled = true;
 
     @Builder
-    public Rule(Session session, RuleType ruleType, int killValue) {
-        this.session = session;
+    public Rule(RuleSet ruleSet, RuleType ruleType, Operator operator, int value) {
+        this.ruleSet = ruleSet;
         this.ruleType = ruleType;
-        this.killValue = killValue;
+        this.operator = operator;
+        this.value = value;
     }
 
     public enum RuleType {
-        CHICKEN_BONUS,          // 치킨 달성 시 팀 전체 킬 수 +N
-        SURVIVAL_PENALTY,       // TOP10 진입 실패 시 킬 수 -N
-        CONSECUTIVE_DEATH_PENALTY, // 연속 사망 패널티
-        PLACEMENT_BONUS         // 특정 순위 달성 보너스
+        CHICKEN_BONUS,              // 치킨 달성 시 보너스
+        SURVIVAL_PENALTY,           // TOP10 진입 실패 시 패널티
+        CONSECUTIVE_DEATH_PENALTY,  // 연속 사망 패널티
+        PLACEMENT_BONUS             // 특정 순위 달성 보너스
+    }
+
+    public enum Operator {
+        EQ,   // ==
+        GTE,  // >=
+        LTE,  // <=
+        GT,   // >
+        LT    // <
     }
 }

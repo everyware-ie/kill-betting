@@ -29,6 +29,12 @@ public class SessionController {
                 .body(ApiResponse.ok("세션이 생성되었습니다.", sessionService.createSession(userId, request)));
     }
 
+    @GetMapping("/join/{roomUrl}")
+    public ResponseEntity<ApiResponse<SessionDto.SessionResponse>> getSessionByRoomUrl(
+            @PathVariable String roomUrl) {
+        return ResponseEntity.ok(ApiResponse.ok(sessionService.getSessionByRoomUrl(roomUrl)));
+    }
+
     @PostMapping("/{sessionId}/start")
     public ResponseEntity<ApiResponse<Void>> startSession(
             @AuthenticationPrincipal UserDetails userDetails,
