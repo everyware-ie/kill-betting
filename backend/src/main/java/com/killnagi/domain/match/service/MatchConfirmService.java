@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class MatchReflectService {
+public class MatchConfirmService {
 
     private final MatchRepository matchRepository;
     private final MatchResultRepository matchResultRepository;
@@ -27,16 +27,16 @@ public class MatchReflectService {
     private final TeamMemberRepository teamMemberRepository;
 
     @Transactional
-    public MatchDto.ReflectResponse reflect(Long matchId, Long requesterId) {
+    public MatchDto.ConfirmResponse confirm(Long matchId, Long requesterId) {
         Match match = findMatch(matchId);
-        validateReflectable(match);
+        validateConfirmable(match);
 
         Long sessionId = match.getSession().getId();
         validateUploader(sessionId, requesterId);
         applyResults(match, ruleRepository.findBySessionIdAndEnabled(sessionId, true));
 
-        match.reflect();
-        return new MatchDto.ReflectResponse(matchId, match.getStatus().name());
+        match.confirm();
+        return new MatchDto.ConfirmResponse(matchId, match.getStatus().name());
     }
 
     private Match findMatch(Long matchId) {
@@ -46,26 +46,26 @@ public class MatchReflectService {
 
     private void validateUploader(Long sessionId, Long requesterId) {
         if (!teamMemberRepository.existsByTeam_Session_IdAndUserIdAndIsUploaderTrue(sessionId, requesterId)) {
-            throw KillnagiException.forbidden("업로더 권한이 있는 사용자만 반영할 수 있습니다.");
+            throw KillnagiException.forbidden("업로더 권한이 있는 사용자만 확정할 수 있습니다.");
         }
     }
 
     private void applyResults(Match match, List<Rule> rules) {
         List<MatchResult> results = matchResultRepository.findByMatch(match);
         if (results.isEmpty()) {
-            throw KillnagiException.badRequest("반영할 매치 결과가 없습니다.");
+            throw KillnagiException.badRequest("확정할 매치 결과가 없습니다.");
         }
         results.stream()
                 .collect(Collectors.groupingBy(r -> r.getTeamMember().getTeam()))
                 .forEach((team, teamResults) -> applyTeamResults(team, teamResults, rules));
     }
 
-    private void validateReflectable(Match match) {
-        if (match.isReflected()) {
-            throw KillnagiException.badRequest("이미 반영된 매치입니다.");
+    private void validateConfirmable(Match match) {
+        if (match.isConfirmed()) {
+            throw KillnagiException.badRequest("이미 확정된 매치입니다.");
         }
-        if (!match.isReflectable()) {
-            throw KillnagiException.badRequest("확정되지 않은 매치는 반영할 수 없습니다.");
+        if (!match.isConfirmable()) {
+            throw KillnagiException.badRequest("확정할 수 없는 상태의 매치입니다.");
         }
     }
 

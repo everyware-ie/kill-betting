@@ -49,27 +49,23 @@ public class Match {
         this.screenshotUrl = screenshotUrl;
     }
 
-    public void confirm() {
-        this.status = MatchStatus.CONFIRMED;
-    }
-
     public void updateScreenshotUrl(String screenshotUrl) {
         this.screenshotUrl = screenshotUrl;
     }
 
-    public boolean isReflectable() {
+    public boolean isConfirmable() {
+        return this.status == MatchStatus.PENDING;
+    }
+
+    public boolean isConfirmed() {
         return this.status == MatchStatus.CONFIRMED;
     }
 
-    public boolean isReflected() {
-        return this.status == MatchStatus.REFLECTED;
-    }
-
-    public void reflect() {
-        this.status = MatchStatus.REFLECTED;
+    public void confirm() {
+        this.status = MatchStatus.CONFIRMED;
     }
 
     public enum MatchStatus {
-        PENDING, CONFIRMED, REFLECTED
+        PENDING, CONFIRMED
     }
 }

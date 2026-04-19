@@ -30,20 +30,20 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("MatchReflectService 매치 결과 반영 테스트")
-class MatchReflectServiceTest {
+@DisplayName("MatchConfirmService 매치 결과 확정 테스트")
+class MatchConfirmServiceTest {
 
     @Mock private MatchRepository matchRepository;
     @Mock private MatchResultRepository matchResultRepository;
     @Mock private RuleRepository ruleRepository;
     @Mock private TeamMemberRepository teamMemberRepository;
-    @InjectMocks private MatchReflectService matchReflectService;
+    @InjectMocks private MatchConfirmService matchConfirmService;
 
     private static final Long MATCH_ID = 1L;
     private static final Long SESSION_ID = 1L;
     private static final Long USER_ID = 1L;
 
-    private Match confirmedMatch;
+    private Match pendingMatch;
     private Team team;
     private TeamMember member;
     private MatchResult result;
@@ -64,12 +64,11 @@ class MatchReflectServiceTest {
 
         member = TeamMember.builder().team(team).user(user).build();
 
-        confirmedMatch = Match.builder().session(session).matchNumber(1).build();
-        ReflectionTestUtils.setField(confirmedMatch, "id", MATCH_ID);
-        confirmedMatch.confirm();
+        pendingMatch = Match.builder().session(session).matchNumber(1).build();
+        ReflectionTestUtils.setField(pendingMatch, "id", MATCH_ID);
 
         result = MatchResult.builder()
-                .match(confirmedMatch)
+                .match(pendingMatch)
                 .teamMember(member)
                 .kills(5)
                 .placement(3)
@@ -83,96 +82,81 @@ class MatchReflectServiceTest {
         given(matchRepository.findById(MATCH_ID)).willReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> matchReflectService.reflect(MATCH_ID, USER_ID))
+        assertThatThrownBy(() -> matchConfirmService.confirm(MATCH_ID, USER_ID))
                 .isInstanceOf(KillnagiException.class)
                 .hasMessage("매치를 찾을 수 없습니다.");
     }
 
     @Test
-    @DisplayName("PENDING 상태인 매치는 반영할 수 없다")
-    void should_ThrowBadRequest_when_MatchIsNotConfirmed() {
+    @DisplayName("이미 확정된 매치는 다시 확정할 수 없다")
+    void should_ThrowBadRequest_when_MatchAlreadyConfirmed() {
         // given
-        Match pendingMatch = Match.builder()
-                .session(confirmedMatch.getSession()).matchNumber(2)
-                .build(); // 기본값 PENDING
+        pendingMatch.confirm();
         given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
 
         // when & then
-        assertThatThrownBy(() -> matchReflectService.reflect(MATCH_ID, USER_ID))
+        assertThatThrownBy(() -> matchConfirmService.confirm(MATCH_ID, USER_ID))
                 .isInstanceOf(KillnagiException.class)
-                .hasMessage("확정되지 않은 매치는 반영할 수 없습니다.");
+                .hasMessage("이미 확정된 매치입니다.");
     }
 
     @Test
-    @DisplayName("이미 반영된 매치는 다시 반영할 수 없다")
-    void should_ThrowBadRequest_when_MatchAlreadyReflected() {
-        // given
-        confirmedMatch.reflect();
-        given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(confirmedMatch));
-
-        // when & then
-        assertThatThrownBy(() -> matchReflectService.reflect(MATCH_ID, USER_ID))
-                .isInstanceOf(KillnagiException.class)
-                .hasMessage("이미 반영된 매치입니다.");
-    }
-
-    @Test
-    @DisplayName("매치 결과 데이터가 없으면 반영할 수 없다")
+    @DisplayName("매치 결과 데이터가 없으면 확정할 수 없다")
     void should_ThrowBadRequest_when_MatchHasNoResults() {
         // given
-        given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(confirmedMatch));
-        given(matchResultRepository.findByMatch(confirmedMatch)).willReturn(List.of());
+        given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
+        given(matchResultRepository.findByMatch(pendingMatch)).willReturn(List.of());
 
         // when & then
-        assertThatThrownBy(() -> matchReflectService.reflect(MATCH_ID, USER_ID))
+        assertThatThrownBy(() -> matchConfirmService.confirm(MATCH_ID, USER_ID))
                 .isInstanceOf(KillnagiException.class)
-                .hasMessage("반영할 매치 결과가 없습니다.");
+                .hasMessage("확정할 매치 결과가 없습니다.");
     }
 
     @Test
-    @DisplayName("업로더 권한이 없는 사용자는 반영할 수 없다")
+    @DisplayName("업로더 권한이 없는 사용자는 확정할 수 없다")
     void should_ThrowForbidden_when_RequesterIsNotUploader() {
         // given
-        given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(confirmedMatch));
-        given(matchResultRepository.findByMatch(confirmedMatch)).willReturn(List.of(result));
+        given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
+        given(matchResultRepository.findByMatch(pendingMatch)).willReturn(List.of(result));
         given(teamMemberRepository.existsByTeam_Session_IdAndUserIdAndIsUploaderTrue(SESSION_ID, USER_ID))
                 .willReturn(false);
 
         // when & then
-        assertThatThrownBy(() -> matchReflectService.reflect(MATCH_ID, USER_ID))
+        assertThatThrownBy(() -> matchConfirmService.confirm(MATCH_ID, USER_ID))
                 .isInstanceOf(KillnagiException.class)
-                .hasMessage("업로더 권한이 있는 사용자만 반영할 수 있습니다.");
+                .hasMessage("업로더 권한이 있는 사용자만 확정할 수 있습니다.");
     }
 
     @Test
-    @DisplayName("반영 성공 시 팀의 총 킬 수가 누적된다")
-    void should_AddKillsToTeam_when_MatchIsReflected() {
+    @DisplayName("확정 성공 시 팀의 총 킬 수가 누적된다")
+    void should_AddKillsToTeam_when_MatchIsConfirmed() {
         // given
-        given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(confirmedMatch));
-        given(matchResultRepository.findByMatch(confirmedMatch)).willReturn(List.of(result));
+        given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
+        given(matchResultRepository.findByMatch(pendingMatch)).willReturn(List.of(result));
         given(teamMemberRepository.existsByTeam_Session_IdAndUserIdAndIsUploaderTrue(SESSION_ID, USER_ID))
                 .willReturn(true);
         given(ruleRepository.findBySessionIdAndEnabled(SESSION_ID, true)).willReturn(List.of());
 
         // when
-        matchReflectService.reflect(MATCH_ID, USER_ID);
+        matchConfirmService.confirm(MATCH_ID, USER_ID);
 
         // then
         assertThat(team.getTotalKills()).isEqualTo(5);
     }
 
     @Test
-    @DisplayName("반영 성공 시 팀 멤버의 총 킬 수가 업데이트된다")
-    void should_UpdateTeamMemberKills_when_MatchIsReflected() {
+    @DisplayName("확정 성공 시 팀 멤버의 총 킬 수가 업데이트된다")
+    void should_UpdateTeamMemberKills_when_MatchIsConfirmed() {
         // given
-        given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(confirmedMatch));
-        given(matchResultRepository.findByMatch(confirmedMatch)).willReturn(List.of(result));
+        given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
+        given(matchResultRepository.findByMatch(pendingMatch)).willReturn(List.of(result));
         given(teamMemberRepository.existsByTeam_Session_IdAndUserIdAndIsUploaderTrue(SESSION_ID, USER_ID))
                 .willReturn(true);
         given(ruleRepository.findBySessionIdAndEnabled(SESSION_ID, true)).willReturn(List.of());
 
         // when
-        matchReflectService.reflect(MATCH_ID, USER_ID);
+        matchConfirmService.confirm(MATCH_ID, USER_ID);
 
         // then
         assertThat(member.getTotalKills()).isEqualTo(5);
@@ -183,26 +167,26 @@ class MatchReflectServiceTest {
     void should_ApplyChickenBonus_when_TeamGetsChicken() {
         // given
         MatchResult chickenResult = MatchResult.builder()
-                .match(confirmedMatch)
+                .match(pendingMatch)
                 .teamMember(member)
                 .kills(3)
                 .placement(1) // 치킨
                 .build();
 
         Rule chickenBonus = Rule.builder()
-                .session(confirmedMatch.getSession())
+                .session(pendingMatch.getSession())
                 .ruleType(Rule.RuleType.CHICKEN_BONUS)
                 .killValue(3)
                 .build();
 
-        given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(confirmedMatch));
-        given(matchResultRepository.findByMatch(confirmedMatch)).willReturn(List.of(chickenResult));
+        given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
+        given(matchResultRepository.findByMatch(pendingMatch)).willReturn(List.of(chickenResult));
         given(teamMemberRepository.existsByTeam_Session_IdAndUserIdAndIsUploaderTrue(SESSION_ID, USER_ID))
                 .willReturn(true);
         given(ruleRepository.findBySessionIdAndEnabled(SESSION_ID, true)).willReturn(List.of(chickenBonus));
 
         // when
-        matchReflectService.reflect(MATCH_ID, USER_ID);
+        matchConfirmService.confirm(MATCH_ID, USER_ID);
 
         // then
         assertThat(team.getBonusKills()).isEqualTo(3);
@@ -213,45 +197,45 @@ class MatchReflectServiceTest {
     void should_ApplySurvivalPenalty_when_TeamFailsTop10() {
         // given
         MatchResult lateResult = MatchResult.builder()
-                .match(confirmedMatch)
+                .match(pendingMatch)
                 .teamMember(member)
                 .kills(2)
                 .placement(11) // TOP10 실패
                 .build();
 
         Rule penalty = Rule.builder()
-                .session(confirmedMatch.getSession())
+                .session(pendingMatch.getSession())
                 .ruleType(Rule.RuleType.SURVIVAL_PENALTY)
                 .killValue(2)
                 .build();
 
-        given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(confirmedMatch));
-        given(matchResultRepository.findByMatch(confirmedMatch)).willReturn(List.of(lateResult));
+        given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
+        given(matchResultRepository.findByMatch(pendingMatch)).willReturn(List.of(lateResult));
         given(teamMemberRepository.existsByTeam_Session_IdAndUserIdAndIsUploaderTrue(SESSION_ID, USER_ID))
                 .willReturn(true);
         given(ruleRepository.findBySessionIdAndEnabled(SESSION_ID, true)).willReturn(List.of(penalty));
 
         // when
-        matchReflectService.reflect(MATCH_ID, USER_ID);
+        matchConfirmService.confirm(MATCH_ID, USER_ID);
 
         // then
         assertThat(team.getPenaltyKills()).isEqualTo(2);
     }
 
     @Test
-    @DisplayName("반영 성공 시 매치 상태가 REFLECTED로 변경된다")
-    void should_MarkMatchAsReflected_when_ReflectSucceeds() {
+    @DisplayName("확정 성공 시 매치 상태가 CONFIRMED로 변경된다")
+    void should_MarkMatchAsConfirmed_when_ConfirmSucceeds() {
         // given
-        given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(confirmedMatch));
-        given(matchResultRepository.findByMatch(confirmedMatch)).willReturn(List.of(result));
+        given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
+        given(matchResultRepository.findByMatch(pendingMatch)).willReturn(List.of(result));
         given(teamMemberRepository.existsByTeam_Session_IdAndUserIdAndIsUploaderTrue(SESSION_ID, USER_ID))
                 .willReturn(true);
         given(ruleRepository.findBySessionIdAndEnabled(SESSION_ID, true)).willReturn(List.of());
 
         // when
-        matchReflectService.reflect(MATCH_ID, USER_ID);
+        matchConfirmService.confirm(MATCH_ID, USER_ID);
 
         // then
-        assertThat(confirmedMatch.isReflected()).isTrue();
+        assertThat(pendingMatch.isConfirmed()).isTrue();
     }
 }

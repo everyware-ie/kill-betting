@@ -7,7 +7,7 @@ public class MatchDto {
             String screenshotUrl
     ) {}
 
-    public record ReflectResponse(
+    public record ConfirmResponse(
             Long matchId,
             String status
     ) {}
