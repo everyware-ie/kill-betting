@@ -1,5 +1,6 @@
 package com.killnagi.domain.session.entity;
 
+import com.killnagi.domain.team.entity.Team;
 import com.killnagi.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -41,7 +42,7 @@ public class Session {
     // 세션 결과
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "winner_team_id")
-    private com.killnagi.domain.team.entity.Team winnerTeam;
+    private Team winnerTeam;
 
     @Column(name = "started_at")
     private LocalDateTime startedAt;
@@ -70,10 +71,14 @@ public class Session {
         this.startedAt = LocalDateTime.now();
     }
 
-    public void end(com.killnagi.domain.team.entity.Team winnerTeam) {
+    public void end(Team winnerTeam) {
         this.status = SessionStatus.ENDED;
         this.winnerTeam = winnerTeam;
         this.endedAt = LocalDateTime.now();
+    }
+
+    public boolean isWaiting() {
+        return this.status == SessionStatus.WAITING;
     }
 
     public boolean isHostedBy(Long userId) {
