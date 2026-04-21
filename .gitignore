@@ -11,11 +11,14 @@ backend/.gradle/
 backend/build/
 backend/out/
 
-# Node
+# Node / Next.js
 frontend/node_modules/
 frontend/dist/
+frontend/.next/
+frontend/out/
 frontend/.env
 frontend/.env.*
+frontend/.env.local
 
 # Spring Boot
 backend/src/main/resources/application-local.yml
