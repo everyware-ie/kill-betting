@@ -254,6 +254,8 @@ export default function SetupPage() {
   const addPlayer = async (teamId) => {
     const nick = (inputs[teamId] || '').trim();
     if (!nick) return;
+    // 배그 닉네임 정책: 공백 불가
+    if (/\s/.test(nick)) { setError('배그 닉네임에는 공백을 사용할 수 없습니다'); return; }
     const maxPerTeam = MAX_PLAYERS_PER_TEAM[room.rule.gameMode] || 4;
     const team = room.teams.find((t) => t.id === teamId);
     const allNicks = room.teams.flatMap((t) => t.players);
@@ -452,7 +454,7 @@ export default function SetupPage() {
                   <div style={{ padding: '8px 14px', borderTop: '1px solid rgba(200,155,0,0.08)', display: 'flex', gap: 8 }}>
                     <input
                       value={inputs[team.id] || ''}
-                      onChange={(e) => setInputs((p) => ({ ...p, [team.id]: e.target.value }))}
+                      onChange={(e) => setInputs((p) => ({ ...p, [team.id]: e.target.value.replace(/\s/g, '') }))}
                       onKeyDown={(e) => e.key === 'Enter' && addPlayer(team.id)}
                       placeholder="배그 닉네임..."
                       style={{ flex: 1, background: '#141200', border: '1px solid rgba(200,155,0,0.22)', color: '#E8DFC0', padding: '7px 10px', borderRadius: 4, fontSize: 12, outline: 'none', fontFamily: 'inherit' }}
