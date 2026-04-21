@@ -1,6 +1,9 @@
 package com.killnagi.domain.session.service;
 
 import com.killnagi.common.exception.KillnagiException;
+import com.killnagi.domain.match.entity.Match;
+import com.killnagi.domain.match.entity.MatchResult;
+import com.killnagi.domain.match.repository.MatchRepository;
 import com.killnagi.domain.rule.entity.Rule;
 import com.killnagi.domain.rule.entity.RuleSet;
 import com.killnagi.domain.rule.repository.RuleRepository;
@@ -9,6 +12,7 @@ import com.killnagi.domain.session.dto.SessionDto;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.session.repository.SessionRepository;
 import com.killnagi.domain.team.entity.Team;
+import com.killnagi.domain.team.entity.TeamMember;
 import com.killnagi.domain.team.repository.TeamRepository;
 import com.killnagi.domain.user.entity.User;
 import com.killnagi.domain.user.repository.UserRepository;
@@ -29,6 +33,7 @@ public class SessionService {
     private final TeamRepository teamRepository;
     private final RuleRepository ruleRepository;
     private final RuleSetRepository ruleSetRepository;
+    private final MatchRepository matchRepository;
 
     @Transactional
     public SessionDto.SessionResponse createSession(Long hostUserId, SessionDto.CreateRequest request) {
@@ -58,7 +63,6 @@ public class SessionService {
         }
 
         session.assignCurrentRuleSet(ruleSet);
-
         return toResponse(session);
     }
 
@@ -68,8 +72,7 @@ public class SessionService {
         if (!session.isHostedBy(userId)) {
             throw KillnagiException.forbidden("세션 호스트만 시작할 수 있습니다.");
         }
-        List<Team> teams = teamRepository.findBySessionId(sessionId);
-        if (teams.size() < 2) {
+        if (teamRepository.findBySessionId(sessionId).size() < 2) {
             throw KillnagiException.badRequest("최소 2팀이 필요합니다.");
         }
         session.start();
@@ -77,30 +80,19 @@ public class SessionService {
 
     public SessionDto.ScoreboardResponse getScoreboard(Long sessionId) {
         Session session = getSessionOrThrow(sessionId);
-        List<Team> teams = teamRepository.findBySessionId(sessionId);
+        List<SessionDto.TeamScoreDto> teamScores = teamRepository.findBySessionId(sessionId).stream()
+                .map(this::toTeamScoreDto)
+                .toList();
+        return new SessionDto.ScoreboardResponse(session.getId(), session.getName(), session.getStatus(), teamScores);
+    }
 
-        List<SessionDto.TeamScoreDto> teamScores = teams.stream()
-                .map(team -> new SessionDto.TeamScoreDto(
-                        team.getId(),
-                        team.getName(),
-                        team.getTotalKills(),
-                        team.getBonusKills(),
-                        team.getPenaltyKills(),
-                        team.getEffectiveKills(),
-                        team.getMembers().stream()
-                                .map(m -> new SessionDto.MemberScoreDto(
-                                        m.getUserId(),
-                                        m.getUserNickname(),
-                                        m.getTotalKills()
-                                )).toList()
-                )).toList();
-
-        return new SessionDto.ScoreboardResponse(
-                session.getId(),
-                session.getName(),
-                session.getStatus(),
-                teamScores
-        );
+    public SessionDto.MatchHistoryResponse getMatchHistory(Long sessionId) {
+        Session session = getSessionOrThrow(sessionId);
+        List<Match> matches = matchRepository.findConfirmedMatchesWithResults(sessionId, Match.MatchStatus.CONFIRMED);
+        List<SessionDto.MatchSummary> summaries = matches.stream()
+                .map(this::toMatchSummary)
+                .toList();
+        return new SessionDto.MatchHistoryResponse(session.getId(), session.getName(), matches.size(), summaries);
     }
 
     public SessionDto.SessionResponse getSessionByRoomUrl(String roomUrl) {
@@ -113,6 +105,42 @@ public class SessionService {
         return sessionRepository.findSessionsByUserId(userId).stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    private SessionDto.TeamScoreDto toTeamScoreDto(Team team) {
+        List<SessionDto.MemberScoreDto> members = team.getMembers().stream()
+                .map(this::toMemberScoreDto)
+                .toList();
+        return new SessionDto.TeamScoreDto(
+                team.getId(), team.getName(),
+                team.getTotalKills(), team.getBonusKills(), team.getPenaltyKills(), team.getEffectiveKills(),
+                members
+        );
+    }
+
+    private SessionDto.MemberScoreDto toMemberScoreDto(TeamMember member) {
+        return new SessionDto.MemberScoreDto(
+                member.getUserId(), member.getUserNickname(),
+                member.getTotalKills(), member.getBonusKills(), member.getPenaltyKills(), member.getEffectiveKills()
+        );
+    }
+
+    private SessionDto.MatchSummary toMatchSummary(Match match) {
+        List<SessionDto.MemberMatchResult> memberResults = match.getResults().stream()
+                .map(this::toMemberMatchResult)
+                .toList();
+        return new SessionDto.MatchSummary(
+                match.getId(), match.getMatchNumber(), match.getMapName(), match.getCreatedAt(), memberResults
+        );
+    }
+
+    private SessionDto.MemberMatchResult toMemberMatchResult(MatchResult result) {
+        TeamMember member = result.getTeamMember();
+        return new SessionDto.MemberMatchResult(
+                member.getId(), member.getTeamId(), member.getTeamName(), member.getUserNickname(),
+                result.getKills(), result.getBonusKills(), result.getPenaltyKills(), result.getEffectiveKills(),
+                result.getPlacement(), result.isChicken()
+        );
     }
 
     private String generateUniqueRoomUrl() {
@@ -130,14 +158,9 @@ public class SessionService {
 
     private SessionDto.SessionResponse toResponse(Session session) {
         return new SessionDto.SessionResponse(
-                session.getId(),
-                session.getName(),
-                session.getRoomUrl(),
-                session.getHostNickname(),
-                session.getStatus(),
-                session.getTargetKills(),
-                session.getTimeLimitMinutes(),
-                session.getCreatedAt()
+                session.getId(), session.getName(), session.getRoomUrl(),
+                session.getHostNickname(), session.getStatus(),
+                session.getTargetKills(), session.getTimeLimitMinutes(), session.getCreatedAt()
         );
     }
 }

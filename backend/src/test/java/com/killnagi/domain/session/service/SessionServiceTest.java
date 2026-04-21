@@ -3,6 +3,7 @@ package com.killnagi.domain.session.service;
 import com.killnagi.common.exception.KillnagiException;
 import com.killnagi.domain.rule.entity.Rule;
 import com.killnagi.domain.rule.entity.RuleSet;
+import com.killnagi.domain.match.repository.MatchRepository;
 import com.killnagi.domain.rule.repository.RuleRepository;
 import com.killnagi.domain.rule.repository.RuleSetRepository;
 import com.killnagi.domain.session.dto.SessionDto;
@@ -36,6 +37,7 @@ class SessionServiceTest {
     @Mock private TeamRepository teamRepository;
     @Mock private RuleRepository ruleRepository;
     @Mock private RuleSetRepository ruleSetRepository;
+    @Mock private MatchRepository matchRepository;
     @InjectMocks private SessionService sessionService;
 
     @Test

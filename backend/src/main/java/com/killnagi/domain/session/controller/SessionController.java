@@ -50,6 +50,12 @@ public class SessionController {
         return ResponseEntity.ok(ApiResponse.ok(sessionService.getScoreboard(sessionId)));
     }
 
+    @GetMapping("/{sessionId}/match-history")
+    public ResponseEntity<ApiResponse<SessionDto.MatchHistoryResponse>> getMatchHistory(
+            @PathVariable Long sessionId) {
+        return ResponseEntity.ok(ApiResponse.ok(sessionService.getMatchHistory(sessionId)));
+    }
+
     @GetMapping("/my")
     public ResponseEntity<ApiResponse<List<SessionDto.SessionResponse>>> getMySessions(
             @AuthenticationPrincipal UserDetails userDetails) {

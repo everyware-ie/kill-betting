@@ -31,6 +31,9 @@ public class Match {
     @Column(name = "screenshot_url")
     private String screenshotUrl;
 
+    @Column(name = "map_name", length = 50)
+    private String mapName;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private MatchStatus status = MatchStatus.PENDING;
@@ -49,7 +52,8 @@ public class Match {
         this.screenshotUrl = screenshotUrl;
     }
 
-    public void confirm() {
+    public void confirm(String mapName) {
+        this.mapName = mapName;
         this.status = MatchStatus.CONFIRMED;
     }
 

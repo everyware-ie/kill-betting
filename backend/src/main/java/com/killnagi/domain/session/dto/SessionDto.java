@@ -39,6 +39,7 @@ public class SessionDto {
             LocalDateTime createdAt
     ) {}
 
+    // 팀별 누적 스코어 스냅샷 (스코어보드 초기 로드용)
     public record ScoreboardResponse(
             Long sessionId,
             String sessionName,
@@ -59,6 +60,38 @@ public class SessionDto {
     public record MemberScoreDto(
             Long userId,
             String nickname,
-            int totalKills
+            int totalKills,
+            int bonusKills,
+            int penaltyKills,
+            int effectiveKills
+    ) {}
+
+    // 매치별 결과 히스토리 (판 단위 조회용)
+    public record MatchHistoryResponse(
+            Long sessionId,
+            String sessionName,
+            int confirmedMatchCount,
+            List<MatchSummary> matches
+    ) {}
+
+    public record MatchSummary(
+            Long matchId,
+            int matchNumber,
+            String mapName,
+            LocalDateTime playedAt,
+            List<MemberMatchResult> memberResults
+    ) {}
+
+    public record MemberMatchResult(
+            Long memberId,
+            Long teamId,
+            String teamName,
+            String nickname,
+            int kills,
+            int bonusKills,
+            int penaltyKills,
+            int effectiveKills,
+            Integer placement,
+            boolean isChicken
     ) {}
 }
