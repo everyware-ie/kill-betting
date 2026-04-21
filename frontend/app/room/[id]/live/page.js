@@ -847,17 +847,18 @@ export default function LivePage() {
     const res = await RoomAPI.addTeamMatch(roomId, selectedTeamId, results, claimsChicken);
     if (!res.ok) { setMatchError(res.error); return; }
 
-    setShowTeamModal(false);
-    setMatchError('');
-
     let match = res.match;
 
-    // 스크린샷이 있으면 업로드 후 match에 URL 반영
+    // 스크린샷이 있으면 업로드 완료까지 모달을 유지 (버튼 로딩 상태 표시됨)
     // 업로드 실패해도 매치 결과 자체는 정상 등록됨
     if (screenshotFile) {
       const uploadRes = await RoomAPI.uploadMatchScreenshot(roomId, match.id, screenshotFile);
       if (uploadRes.ok) match = { ...match, screenshotUrl: uploadRes.screenshotUrl };
     }
+
+    // 업로드까지 완료된 후 모달 닫기
+    setShowTeamModal(false);
+    setMatchError('');
 
     // 제출 즉시 로컬 상태에 반영 (폴링 전에 바로 화면에 보임)
     setMatches((prev) => [...prev, match]);
