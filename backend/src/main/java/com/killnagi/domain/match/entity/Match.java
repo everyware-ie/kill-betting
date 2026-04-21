@@ -35,9 +35,6 @@ public class Match {
     @Column(nullable = false, length = 20)
     private MatchStatus status = MatchStatus.PENDING;
 
-    @OneToMany(mappedBy = "match", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<MatchResult> results = new ArrayList<>();
-
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -65,7 +62,4 @@ public class Match {
         this.status = MatchStatus.CONFIRMED;
     }
 
-    public enum MatchStatus {
-        PENDING, CONFIRMED
-    }
 }
