@@ -788,6 +788,7 @@ export default function LivePage() {
   const [adjs,           setAdjs]           = useState([]);
   const [elapsed,        setElapsed]        = useState(0);
   const [loading,        setLoading]        = useState(true);
+  const [pollError,      setPollError]      = useState(false);  // 폴링 실패 여부 (연결 오류 배너용)
   const [showTeamModal,   setShowTeamModal]   = useState(false);  // 팀 결과 입력 모달
   const [selectedTeamId,  setSelectedTeamId]  = useState(null);  // 모달에서 입력할 팀 ID
   const [modalMatchNum,   setModalMatchNum]   = useState(1);      // 모달 타이틀용 팀 매치 순번
@@ -821,10 +822,17 @@ export default function LivePage() {
 
   // ── 폴링 (5초마다 매치 목록 갱신) ──
   // 다른 팀이 결과를 제출하면 폴링을 통해 내 화면에도 반영됨
+  // 실패 시 화면 상단에 오류 배너 표시, 복구되면 자동으로 사라짐
+  // ※ 추후 WebSocket 전환 시 이 useEffect를 교체하고 setPollError 호출 위치만 바꾸면 됨
   useEffect(() => {
     const id = setInterval(async () => {
       const matchRes = await RoomAPI.getMatches(roomId);
-      if (matchRes.ok) setMatches(matchRes.matches);
+      if (matchRes.ok) {
+        setMatches(matchRes.matches);
+        setPollError(false);  // 복구되면 배너 제거
+      } else {
+        setPollError(true);   // 실패하면 배너 표시
+      }
     }, 5000);
     return () => clearInterval(id);
   }, [roomId]);
@@ -917,6 +925,19 @@ export default function LivePage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#12100A', display: 'flex', flexDirection: 'column' }}>
+
+      {/* ── 연결 오류 배너 ── */}
+      {/* 폴링 실패 시 표시. WebSocket 전환 후에는 ws.onerror / ws.onclose 에서 setPollError(true) 호출로 교체 */}
+      {pollError && (
+        <div style={{
+          background: '#3B1111', borderBottom: '1px solid rgba(229,57,53,0.4)',
+          padding: '8px 22px', display: 'flex', alignItems: 'center', gap: 8,
+          fontSize: 12, color: '#E53935', flexShrink: 0,
+        }}>
+          <span>⚠</span>
+          <span>서버와의 연결이 불안정합니다. 점수가 실시간으로 반영되지 않을 수 있습니다.</span>
+        </div>
+      )}
 
       {/* ── 헤더 ── */}
       <div style={{ background: '#1C1A0C', borderBottom: '1px solid rgba(200,155,0,0.18)', padding: '0 22px', height: 64, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
