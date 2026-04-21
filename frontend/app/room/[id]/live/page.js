@@ -463,7 +463,7 @@ function TeamResultModal({ room, teamId, matchNumber, onSubmit, onClose }) {
  */
 function ScreenshotModal({ info, onClose }) {
   const { url, match, team } = info;
-  const totalKills = match.results.reduce((s, r) => s + r.kills, 0);
+  const totalKills = (match.results || []).reduce((s, r) => s + r.kills, 0);
   const hasChicken = match.chickenTeamId === match.teamId;
 
   return (
@@ -999,7 +999,8 @@ export default function LivePage() {
           <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(teamScores.length, 4)}, 1fr)`, gap: 12 }}>
             {teamScores.map((t, idx) => {
               const isFirst       = idx === 0;
-              const progress      = Math.min(100, Math.round((t.kills / rule.targetKills) * 100));
+              const safeTarget    = rule.targetKills > 0 ? rule.targetKills : 1;
+              const progress      = Math.min(100, Math.round((t.kills / safeTarget) * 100));
               const isTargetDone  = t.kills >= rule.targetKills;  // 이 팀이 목표 킬 달성했는지
               return (
                 <div key={t.id} style={{
@@ -1124,7 +1125,7 @@ export default function LivePage() {
               ) : (
                 [...matches].reverse().map((m) => {
                   const team       = teams.find((t) => t.id === m.teamId);
-                  const totalKills = m.results.reduce((s, r) => s + r.kills, 0);
+                  const totalKills = (m.results || []).reduce((s, r) => s + r.kills, 0);
                   const hasChicken = m.chickenTeamId === m.teamId;
                   const hasShot    = !!m.screenshotUrl;
                   return (
