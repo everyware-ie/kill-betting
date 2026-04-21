@@ -37,22 +37,30 @@ import Button from '@/components/ui/Button';
 // ── 초대 코드 배지 (클릭하면 클립보드 복사) ──
 function CopyCodeBadge({ code }) {
   const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
 
   const handleCopy = async () => {
     if (!code) return;
+    let success = false;
     try {
       await navigator.clipboard.writeText(code);
+      success = true;
     } catch {
-      // clipboard API 미지원 시 fallback
+      // clipboard API 미지원 시 fallback (execCommand는 성공 여부를 boolean으로 반환)
       const el = document.createElement('input');
       el.value = code;
       document.body.appendChild(el);
       el.select();
-      document.execCommand('copy');
+      success = document.execCommand('copy');
       document.body.removeChild(el);
     }
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (success) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } else {
+      setCopyFailed(true);
+      setTimeout(() => setCopyFailed(false), 2000);
+    }
   };
 
   return (
@@ -61,20 +69,20 @@ function CopyCodeBadge({ code }) {
       title="클릭하면 코드를 복사합니다"
       style={{
         background: '#141200',
-        border: `1px solid ${copied ? 'rgba(76,175,80,0.5)' : 'rgba(200,155,0,0.25)'}`,
+        border: `1px solid ${copied ? 'rgba(76,175,80,0.5)' : copyFailed ? 'rgba(229,57,53,0.5)' : 'rgba(200,155,0,0.25)'}`,
         borderRadius: 4, padding: '4px 12px',
         textAlign: 'center', cursor: 'pointer',
         transition: 'border-color .2s',
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
       }}
     >
-      <div style={{ fontSize: 9, color: copied ? '#4CAF50' : '#8A8060', letterSpacing: 1.5 }}>
-        {copied ? '✓ 복사됨' : '초대 코드  📋'}
+      <div style={{ fontSize: 9, color: copied ? '#4CAF50' : copyFailed ? '#E53935' : '#8A8060', letterSpacing: 1.5 }}>
+        {copied ? '✓ 복사됨' : copyFailed ? '✕ 복사 실패' : '초대 코드  📋'}
       </div>
       <div style={{
         fontSize: 13, fontWeight: 700,
         fontFamily: "'Share Tech Mono', monospace",
-        color: copied ? '#4CAF50' : '#F5A623',
+        color: copied ? '#4CAF50' : copyFailed ? '#E53935' : '#F5A623',
         letterSpacing: 2,
       }}>
         {code ?? '—'}
