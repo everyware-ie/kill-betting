@@ -1,7 +1,7 @@
 package com.killnagi.domain.match.service;
 
 import com.killnagi.common.exception.KillnagiException;
-import com.killnagi.domain.match.dto.MatchDto;
+import com.killnagi.domain.match.dto.MatchDto.ConfirmResponse;
 import com.killnagi.domain.match.entity.Match;
 import com.killnagi.domain.match.entity.MatchResult;
 import com.killnagi.domain.match.repository.MatchRepository;
@@ -27,27 +27,21 @@ public class MatchConfirmService {
     private final TeamMemberRepository teamMemberRepository;
 
     @Transactional
-    public MatchDto.ConfirmResponse confirm(Long matchId, Long requesterId) {
-        Match match = findMatch(matchId);
+    public ConfirmResponse confirm(Long matchId, Long requesterId) {
+        Match match = matchRepository.findById(matchId)
+                .orElseThrow(() -> KillnagiException.notFound("매치를 찾을 수 없습니다."));
         validateConfirmable(match);
 
         Long sessionId = match.getSession().getId();
-        validateUploader(sessionId, requesterId);
-        applyResults(match, ruleRepository.findBySessionIdAndEnabled(sessionId, true));
+        if (!teamMemberRepository.existsByTeam_Session_IdAndUserIdAndIsUploaderTrue(sessionId, requesterId)) {
+            throw KillnagiException.forbidden("업로더 권한이 있는 사용자만 결과를 확정할 수 있습니다.");
+        }
+
+        List<Rule> rules = ruleRepository.findBySessionIdAndEnabled(sessionId, true);
+        applyResults(match, rules);
 
         match.confirm();
-        return new MatchDto.ConfirmResponse(matchId, match.getStatus().name());
-    }
-
-    private Match findMatch(Long matchId) {
-        return matchRepository.findById(matchId)
-                .orElseThrow(() -> KillnagiException.notFound("매치를 찾을 수 없습니다."));
-    }
-
-    private void validateUploader(Long sessionId, Long requesterId) {
-        if (!teamMemberRepository.existsByTeam_Session_IdAndUserIdAndIsUploaderTrue(sessionId, requesterId)) {
-            throw KillnagiException.forbidden("업로더 권한이 있는 사용자만 확정할 수 있습니다.");
-        }
+        return new ConfirmResponse(matchId, match.getStatus().name());
     }
 
     private void applyResults(Match match, List<Rule> rules) {
@@ -55,6 +49,7 @@ public class MatchConfirmService {
         if (results.isEmpty()) {
             throw KillnagiException.badRequest("확정할 매치 결과가 없습니다.");
         }
+
         results.stream()
                 .collect(Collectors.groupingBy(r -> r.getTeamMember().getTeam()))
                 .forEach((team, teamResults) -> applyTeamResults(team, teamResults, rules));
