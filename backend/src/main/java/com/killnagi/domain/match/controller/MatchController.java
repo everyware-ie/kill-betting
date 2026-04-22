@@ -1,8 +1,8 @@
 package com.killnagi.domain.match.controller;
 
 import com.killnagi.common.response.ApiResponse;
-import com.killnagi.domain.match.dto.MatchDto.ConfirmResponse;
-import com.killnagi.domain.match.dto.MatchDto.ScreenshotUploadResponse;
+import com.killnagi.domain.match.dto.response.ConfirmResponse;
+import com.killnagi.domain.match.dto.response.ScreenshotUploadResponse;
 import com.killnagi.domain.match.service.MatchConfirmService;
 import com.killnagi.domain.match.service.MatchService;
 import lombok.RequiredArgsConstructor;

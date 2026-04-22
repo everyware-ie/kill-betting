@@ -1,12 +1,12 @@
 package com.killnagi.domain.match.service;
 
 import com.killnagi.common.exception.KillnagiException;
-import com.killnagi.domain.match.dto.MatchDto;
 import com.killnagi.domain.match.entity.Match;
 import com.killnagi.domain.match.entity.MatchResult;
 import com.killnagi.domain.match.repository.MatchRepository;
 import com.killnagi.domain.match.repository.MatchResultRepository;
 import com.killnagi.domain.rule.entity.Rule;
+import com.killnagi.domain.rule.entity.RuleType;
 import com.killnagi.domain.rule.repository.RuleRepository;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.team.entity.Team;
@@ -125,7 +125,7 @@ class MatchConfirmServiceTest {
         // when & then
         assertThatThrownBy(() -> matchConfirmService.confirm(MATCH_ID, USER_ID))
                 .isInstanceOf(KillnagiException.class)
-                .hasMessage("업로더 권한이 있는 사용자만 확정할 수 있습니다.");
+                .hasMessage("업로더 권한이 있는 사용자만 결과를 확정할 수 있습니다.");
     }
 
     @Test
@@ -175,7 +175,7 @@ class MatchConfirmServiceTest {
 
         Rule chickenBonus = Rule.builder()
                 .session(pendingMatch.getSession())
-                .ruleType(Rule.RuleType.CHICKEN_BONUS)
+                .ruleType(RuleType.CHICKEN_BONUS)
                 .killValue(3)
                 .build();
 
@@ -205,7 +205,7 @@ class MatchConfirmServiceTest {
 
         Rule penalty = Rule.builder()
                 .session(pendingMatch.getSession())
-                .ruleType(Rule.RuleType.SURVIVAL_PENALTY)
+                .ruleType(RuleType.SURVIVAL_PENALTY)
                 .killValue(2)
                 .build();
 

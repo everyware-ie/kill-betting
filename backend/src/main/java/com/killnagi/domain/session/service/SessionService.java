@@ -3,12 +3,12 @@ package com.killnagi.domain.session.service;
 import com.killnagi.common.exception.KillnagiException;
 import com.killnagi.domain.rule.entity.Rule;
 import com.killnagi.domain.rule.repository.RuleRepository;
-import com.killnagi.domain.session.dto.SessionDto.CreateRequest;
-import com.killnagi.domain.session.dto.SessionDto.MemberScoreDto;
-import com.killnagi.domain.session.dto.SessionDto.RuleRequest;
-import com.killnagi.domain.session.dto.SessionDto.ScoreboardResponse;
-import com.killnagi.domain.session.dto.SessionDto.SessionResponse;
-import com.killnagi.domain.session.dto.SessionDto.TeamScoreDto;
+import com.killnagi.domain.session.dto.request.CreateRequest;
+import com.killnagi.domain.session.dto.request.RuleRequest;
+import com.killnagi.domain.session.dto.response.MemberScoreResponse;
+import com.killnagi.domain.session.dto.response.ScoreboardResponse;
+import com.killnagi.domain.session.dto.response.SessionResponse;
+import com.killnagi.domain.session.dto.response.TeamScoreResponse;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.session.repository.SessionRepository;
 import com.killnagi.domain.team.entity.Team;
@@ -81,8 +81,8 @@ public class SessionService {
         Session session = getSessionOrThrow(sessionId);
         List<Team> teams = teamRepository.findBySessionId(sessionId);
 
-        List<TeamScoreDto> teamScores = teams.stream()
-                .map(team -> new TeamScoreDto(
+        List<TeamScoreResponse> teamScores = teams.stream()
+                .map(team -> new TeamScoreResponse(
                         team.getId(),
                         team.getName(),
                         team.getTotalKills(),
@@ -90,7 +90,7 @@ public class SessionService {
                         team.getPenaltyKills(),
                         team.getEffectiveKills(),
                         team.getMembers().stream()
-                                .map(m -> new MemberScoreDto(
+                                .map(m -> new MemberScoreResponse(
                                         m.getUserId(),
                                         m.getUserNickname(),
                                         m.getTotalKills()

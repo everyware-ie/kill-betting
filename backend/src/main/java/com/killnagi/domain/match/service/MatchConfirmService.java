@@ -1,7 +1,7 @@
 package com.killnagi.domain.match.service;
 
 import com.killnagi.common.exception.KillnagiException;
-import com.killnagi.domain.match.dto.MatchDto.ConfirmResponse;
+import com.killnagi.domain.match.dto.response.ConfirmResponse;
 import com.killnagi.domain.match.entity.Match;
 import com.killnagi.domain.match.entity.MatchResult;
 import com.killnagi.domain.match.repository.MatchRepository;

@@ -12,6 +12,8 @@ com.[패키지명]/
 │   │   ├── service/
 │   │   ├── repository/
 │   │   ├── dto/
+│   │   │   ├── response/
+│   │   │   └── request/
 │   │   └── entity/
 │   ├── score/
 │   └── user/
@@ -62,6 +64,30 @@ if (match.getStatus() == MatchStatus.CONFIRMED) { ... }
 | 상수 | UPPER_SNAKE_CASE | `MAX_KILL_SCORE` |
 | DB 테이블 / 컬럼 | snake_case | `session_result` |
 | API 경로 | kebab-case | `/api/session-results` |
+
+---
+
+## DTO 패키지 규칙
+
+DTO는 도메인별 `dto/request/`, `dto/response/` 하위에 파일로 분리한다.
+서비스 내부 클래스나 단일 파일 wrapper(예: `SessionDto.java`) 형태로 정의하지 않는다.
+
+```
+domain/session/dto/
+├── request/
+│   ├── CreateRequest.java
+│   └── RuleRequest.java
+└── response/
+    ├── SessionResponse.java
+    └── ScoreboardResponse.java
+```
+
+| 규칙 | 설명 |
+|------|------|
+| Request DTO | `dto/request/` 패키지, 클래스명은 `XxxRequest` |
+| Response DTO | `dto/response/` 패키지, 클래스명은 `XxxResponse` |
+| record 사용 | 불변 DTO는 `record`로 선언 |
+| 서비스 내부 클래스 금지 | `TeamService.CreateTeamRequest` 형태 금지 |
 
 ---
 

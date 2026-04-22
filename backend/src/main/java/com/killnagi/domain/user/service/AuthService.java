@@ -2,8 +2,10 @@ package com.killnagi.domain.user.service;
 
 import com.killnagi.common.exception.KillnagiException;
 import com.killnagi.common.security.JwtTokenProvider;
-import com.killnagi.domain.user.dto.AuthDto;
-import com.killnagi.domain.user.dto.AuthDto.SignUpRequest;
+import com.killnagi.domain.user.dto.request.LoginRequest;
+import com.killnagi.domain.user.dto.request.SignUpRequest;
+import com.killnagi.domain.user.dto.response.TokenResponse;
+import com.killnagi.domain.user.dto.response.UserInfoResponse;
 import com.killnagi.domain.user.entity.User;
 import com.killnagi.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,12 +23,12 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
 
     @Transactional
-    public AuthDto.TokenResponse signUp(AuthDto.SignUpRequest request) {
+    public TokenResponse signUp(SignUpRequest request) {
         checkDuplicatedEmailAndPassword(request);
 
         User saved = userRepository.save(buildUser(request));
         String token = jwtTokenProvider.generateToken(saved.getId(), saved.getEmail());
-        return AuthDto.TokenResponse.of(token, saved.getId(), saved.getNickname());
+        return TokenResponse.of(token, saved.getId(), saved.getNickname());
     }
 
     private void checkDuplicatedEmailAndPassword(SignUpRequest request) {
@@ -47,7 +49,7 @@ public class AuthService {
                 .build();
     }
 
-    public AuthDto.TokenResponse login(AuthDto.LoginRequest request) {
+    public TokenResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> KillnagiException.unauthorized("이메일 또는 비밀번호가 올바르지 않습니다."));
 
@@ -56,14 +58,14 @@ public class AuthService {
         }
 
         String token = jwtTokenProvider.generateToken(user.getId(), user.getEmail());
-        return AuthDto.TokenResponse.of(token, user.getId(), user.getNickname());
+        return TokenResponse.of(token, user.getId(), user.getNickname());
     }
 
-    public AuthDto.UserInfoResponse getMyInfo(Long userId) {
+    public UserInfoResponse getMyInfo(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> KillnagiException.notFound("사용자를 찾을 수 없습니다."));
 
-        return new AuthDto.UserInfoResponse(
+        return new UserInfoResponse(
                 user.getId(),
                 user.getNickname(),
                 user.getEmail(),

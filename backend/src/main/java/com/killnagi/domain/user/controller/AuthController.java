@@ -1,9 +1,10 @@
 package com.killnagi.domain.user.controller;
 
 import com.killnagi.common.response.ApiResponse;
-import com.killnagi.domain.user.dto.AuthDto;
-import com.killnagi.domain.user.dto.AuthDto.TokenResponse;
-import com.killnagi.domain.user.dto.AuthDto.UserInfoResponse;
+import com.killnagi.domain.user.dto.request.LoginRequest;
+import com.killnagi.domain.user.dto.request.SignUpRequest;
+import com.killnagi.domain.user.dto.response.TokenResponse;
+import com.killnagi.domain.user.dto.response.UserInfoResponse;
 import com.killnagi.domain.user.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,14 +27,14 @@ public class AuthController {
 
     @PostMapping("/signup")
     public ResponseEntity<ApiResponse<TokenResponse>> signUp(
-            @Valid @RequestBody AuthDto.SignUpRequest request) {
+            @Valid @RequestBody SignUpRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok("회원가입이 완료되었습니다.", authService.signUp(request)));
     }
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<TokenResponse>> login(
-            @Valid @RequestBody AuthDto.LoginRequest request) {
+            @Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(ApiResponse.ok(authService.login(request)));
     }
 

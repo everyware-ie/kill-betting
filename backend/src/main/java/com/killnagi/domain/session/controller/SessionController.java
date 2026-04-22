@@ -1,9 +1,9 @@
 package com.killnagi.domain.session.controller;
 
 import com.killnagi.common.response.ApiResponse;
-import com.killnagi.domain.session.dto.SessionDto.CreateRequest;
-import com.killnagi.domain.session.dto.SessionDto.ScoreboardResponse;
-import com.killnagi.domain.session.dto.SessionDto.SessionResponse;
+import com.killnagi.domain.session.dto.request.CreateRequest;
+import com.killnagi.domain.session.dto.response.ScoreboardResponse;
+import com.killnagi.domain.session.dto.response.SessionResponse;
 import com.killnagi.domain.session.service.SessionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
