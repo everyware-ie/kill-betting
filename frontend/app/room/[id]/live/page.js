@@ -658,18 +658,21 @@ function AdminModal({ room, onAdjust, onEnd, onRuleUpdate, onClose }) {
                 </div>
                 <div>
                   <div style={{ fontSize: 12, color: '#8A8060', marginBottom: 6 }}>조정 수치</div>
-                  <input type="number" min={0} value={adjAmount} onChange={(e) => setAdjAmount(parseInt(e.target.value)||0)}
+                  <input type="number" min={1} value={adjAmount} onChange={(e) => setAdjAmount(Math.max(1, parseInt(e.target.value) || 1))}
                     style={{ width: '100%', background: '#141200', border: '1px solid rgba(200,155,0,0.25)', color: '#F5A623', padding: '9px 12px', borderRadius: 4, fontSize: 14, fontWeight: 700, outline: 'none', fontFamily: 'inherit', textAlign: 'center' }} />
                 </div>
               </div>
               <div style={{ marginBottom: 14 }}>
                 <div style={{ fontSize: 12, color: '#8A8060', marginBottom: 6 }}>사유 (필수)</div>
                 <input value={adjReason} onChange={(e) => setAdjReason(e.target.value)} placeholder="예: 서버 오류로 인한 보상"
-                  style={{ width: '100%', background: '#141200', border: '1px solid rgba(200,155,0,0.25)', color: '#E8DFC0', padding: '9px 12px', borderRadius: 4, fontSize: 13, outline: 'none', fontFamily: 'inherit' }} />
+                  style={{ width: '100%', background: '#141200', border: `1px solid ${adjReason.trim() ? 'rgba(200,155,0,0.25)' : 'rgba(229,57,53,0.3)'}`, color: '#E8DFC0', padding: '9px 12px', borderRadius: 4, fontSize: 13, outline: 'none', fontFamily: 'inherit' }} />
+                {!adjReason.trim() && (
+                  <div style={{ fontSize: 11, color: '#E53935', marginTop: 4 }}>사유를 입력해야 반영할 수 있습니다</div>
+                )}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10 }}>
                 <Button variant="secondary" onClick={() => setView('menu')}>취소</Button>
-                <Button disabled={!adjReason.trim() || adjAmount === 0} onClick={() => { onAdjust(adjTeamId, adjSign === '+' ? adjAmount : -adjAmount, adjReason); onClose(); }}>반영하기</Button>
+                <Button disabled={!adjReason.trim()} onClick={() => { onAdjust(adjTeamId, adjSign === '+' ? adjAmount : -adjAmount, adjReason); onClose(); }}>반영하기</Button>
               </div>
             </div>
           )}
@@ -1140,12 +1143,17 @@ export default function LivePage() {
 
           {/* 매치 히스토리 */}
           <section>
-            <div style={{ fontSize: 11, color: '#8A8060', letterSpacing: 2, marginBottom: 10 }}>매치 히스토리</div>
+            <div style={{ fontSize: 11, color: '#8A8060', letterSpacing: 2, marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span>매치 히스토리</span>
+              {matches.length > 30 && (
+                <span style={{ fontSize: 10, color: '#555' }}>{matches.length}게임 중 최근 30개</span>
+              )}
+            </div>
             <div style={{ background: '#1C1A0C', border: '1px solid rgba(200,155,0,0.15)', borderRadius: 8, padding: '12px 14px', maxHeight: 340, overflowY: 'auto' }}>
               {matches.length === 0 ? (
                 <div style={{ color: '#555', fontSize: 12, textAlign: 'center', padding: '20px 0' }}>아직 결과 없음</div>
               ) : (
-                [...matches].reverse().map((m) => {
+                [...matches].reverse().slice(0, 30).map((m) => {
                   const team       = teams.find((t) => t.id === m.teamId);
                   const totalKills = (m.results || []).reduce((s, r) => s + r.kills, 0);
                   const hasChicken = m.chickenTeamId === m.teamId;
