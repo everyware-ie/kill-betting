@@ -121,7 +121,7 @@ class LocalFileStorageServiceTest {
         // when & then
         assertThatThrownBy(() -> storageService.store(file, "screenshots"))
                 .isInstanceOf(KillnagiException.class)
-                .hasMessage("JPG, PNG 형식의 이미지만 업로드 가능합니다.");
+                .hasMessage("JPEG, JPG, PNG 형식의 이미지만 업로드 가능합니다.");
     }
 
     @Test
