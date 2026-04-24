@@ -28,40 +28,50 @@ public class MatchConfirmService {
 
     @Transactional
     public ConfirmResponse confirm(Long matchId, Long requesterId) {
-        Match match = matchRepository.findById(matchId)
-                .orElseThrow(() -> KillnagiException.notFound("매치를 찾을 수 없습니다."));
-        validateConfirmable(match);
+        Match match = findValidMatch(matchId);
+        List<MatchResult> results = findConfirmableResults(match);
+        validateUploaderPermission(match.getSession().getId(), requesterId);
 
-        Long sessionId = match.getSession().getId();
-        if (!teamMemberRepository.existsByTeam_Session_IdAndUserIdAndIsUploaderTrue(sessionId, requesterId)) {
-            throw KillnagiException.forbidden("업로더 권한이 있는 사용자만 결과를 확정할 수 있습니다.");
-        }
-
-        List<Rule> rules = ruleRepository.findBySessionIdAndEnabled(sessionId, true);
-        applyResults(match, rules);
+        List<Rule> rules = ruleRepository.findBySessionIdAndEnabled(match.getSession().getId(), true);
+        applyResults(results, rules);
 
         match.confirm();
         return new ConfirmResponse(matchId, match.getStatus().name());
     }
 
-    private void applyResults(Match match, List<Rule> rules) {
+    private Match findValidMatch(Long matchId) {
+        Match match = matchRepository.findById(matchId)
+                .orElseThrow(() -> KillnagiException.notFound("매치를 찾을 수 없습니다."));
+
+        if (match.isConfirmed()) {
+            throw KillnagiException.badRequest("이미 확정된 매치입니다.");
+        }
+
+        if (!match.isConfirmable()) {
+            throw KillnagiException.badRequest("확정할 수 없는 상태의 매치입니다.");
+        }
+        return match;
+    }
+
+    private List<MatchResult> findConfirmableResults(Match match) {
         List<MatchResult> results = matchResultRepository.findByMatch(match);
         if (results.isEmpty()) {
             throw KillnagiException.badRequest("확정할 매치 결과가 없습니다.");
         }
 
+        return results;
+    }
+
+    private void validateUploaderPermission(Long sessionId, Long requesterId) {
+        if (!teamMemberRepository.existsByTeam_Session_IdAndUserIdAndIsUploaderTrue(sessionId, requesterId)) {
+            throw KillnagiException.forbidden("업로더 권한이 있는 사용자만 결과를 확정할 수 있습니다.");
+        }
+    }
+
+    private void applyResults(List<MatchResult> results, List<Rule> rules) {
         results.stream()
                 .collect(Collectors.groupingBy(r -> r.getTeamMember().getTeam()))
                 .forEach((team, teamResults) -> applyTeamResults(team, teamResults, rules));
-    }
-
-    private void validateConfirmable(Match match) {
-        if (match.isConfirmed()) {
-            throw KillnagiException.badRequest("이미 확정된 매치입니다.");
-        }
-        if (!match.isConfirmable()) {
-            throw KillnagiException.badRequest("확정할 수 없는 상태의 매치입니다.");
-        }
     }
 
     private void applyTeamResults(Team team, List<MatchResult> teamResults, List<Rule> rules) {
