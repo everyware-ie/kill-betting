@@ -26,7 +26,10 @@
 ### 4.2 동작
 
 - 업로드 버튼 클릭 시 서버로 이미지 전송
-- API: `POST /match/result/upload`
+- API: `POST /api/sessions/{sessionId}/matches`
+  - `sessionId`: 이미지가 속할 세션 ID (path variable)
+  - `image`: 업로드할 이미지 파일 (multipart/form-data)
+  - 서버가 match를 생성하고 `matchId`를 반환
 
 ### 4.3 결과
 
