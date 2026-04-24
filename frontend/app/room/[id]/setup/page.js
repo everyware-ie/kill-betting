@@ -235,6 +235,14 @@ export default function SetupPage() {
     else setError(res.error);
   };
 
+  // ── 대기석으로 이동 (팀 탈퇴) ──
+  const handleLeaveTeam = async () => {
+    if (!myTeam) return;
+    const res = await RoomAPI.leaveTeam(roomId, myTeam.id, user.id);
+    if (res.ok) setRoom((r) => ({ ...r, teams: res.teams }));
+    else setError(res.error);
+  };
+
   // ── 운영자 위임 ──
   const handleSetOperator = async (teamId, targetUserId) => {
     const res = await RoomAPI.setOperator(roomId, teamId, targetUserId);
@@ -430,8 +438,12 @@ export default function SetupPage() {
                     <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.5, color: isMyTeam ? '#F5A623' : '#8A8060' }}>{team.name}</span>
                     {isMyTeam && <span style={{ fontSize: 10, background: '#F5A623', color: '#1a1500', padding: '1px 6px', borderRadius: 2, fontWeight: 700 }}>MY TEAM</span>}
                   </div>
-                  {/* 팀 참여/이동 버튼 (내 팀 아닐 때) */}
-                  {!isMyTeam && (
+                  {/* 내 팀이면 대기석으로 이동 버튼, 아니면 참여/이동 버튼 */}
+                  {isMyTeam ? (
+                    <button onClick={handleLeaveTeam} style={{ background: 'none', border: '1px solid rgba(229,57,53,0.3)', color: '#E53935', fontSize: 11, padding: '3px 9px', borderRadius: 3, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      대기석으로
+                    </button>
+                  ) : (
                     teamHasMember ? (
                       <span style={{ fontSize: 10, color: '#555', padding: '3px 9px' }}>자리 없음</span>
                     ) : (
