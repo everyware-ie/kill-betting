@@ -306,7 +306,8 @@ export default function SetupPage() {
   };
 
   const totalPlayers = room?.teams.reduce((s, t) => s + t.players.length, 0) ?? 0;
-  const canStart = room?.teams.every((t) => t.players.length > 0) && totalPlayers >= 2;
+  // 시작 조건: 팀이 2개 이상 + 전체 닉네임 합계 2명 이상
+  const canStart = (room?.teams.length ?? 0) >= 2 && totalPlayers >= 2;
   const maxPerTeam = MAX_PLAYERS_PER_TEAM[room?.rule?.gameMode] || 4;
 
   if (loading) return <div style={{ minHeight: '100vh', background: '#12100A', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8A8060' }}>불러오는 중...</div>;
@@ -556,7 +557,11 @@ export default function SetupPage() {
       {/* ── 하단 시작 버튼 ── */}
       <div style={{ background: '#1C1A0C', borderTop: '1px solid rgba(200,155,0,0.18)', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <div style={{ fontSize: 12, color: '#8A8060' }}>
-          {canStart ? `✓ 준비 완료 — ${room?.teams.length}개 팀, ${totalPlayers}명` : '각 팀에 배그 닉네임 최소 1명 이상 입력해주세요'}
+          {canStart
+            ? `✓ 준비 완료 — ${room?.teams.length}개 팀, 총 ${totalPlayers}명`
+            : (room?.teams.length ?? 0) < 2
+              ? '팀이 2개 이상 필요합니다'
+              : `배그 닉네임을 팀 전체 합산 2명 이상 입력해주세요 (현재 ${totalPlayers}명)`}
         </div>
         <Button onClick={handleStart} loading={starting} disabled={!canStart} size="lg" style={{ minWidth: 160 }}>
           킬내기 시작 ▶
