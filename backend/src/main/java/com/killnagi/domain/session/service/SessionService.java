@@ -1,6 +1,8 @@
 package com.killnagi.domain.session.service;
 
 import com.killnagi.common.exception.KillnagiException;
+import com.killnagi.domain.match.dto.response.ScreenshotUploadResponse;
+import com.killnagi.domain.match.service.MatchService;
 import com.killnagi.domain.rule.entity.Rule;
 import com.killnagi.domain.rule.repository.RuleRepository;
 import com.killnagi.domain.session.dto.request.CreateRequest;
@@ -12,12 +14,14 @@ import com.killnagi.domain.session.dto.response.TeamScoreResponse;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.session.repository.SessionRepository;
 import com.killnagi.domain.team.entity.Team;
+import com.killnagi.domain.team.repository.TeamMemberRepository;
 import com.killnagi.domain.team.repository.TeamRepository;
 import com.killnagi.domain.user.entity.User;
 import com.killnagi.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -31,7 +35,9 @@ public class SessionService {
     private final SessionRepository sessionRepository;
     private final UserRepository userRepository;
     private final TeamRepository teamRepository;
+    private final TeamMemberRepository teamMemberRepository;
     private final RuleRepository ruleRepository;
+    private final MatchService matchService;
 
     @Transactional
     public SessionResponse createSession(Long hostUserId, CreateRequest request) {
@@ -109,6 +115,15 @@ public class SessionService {
         return sessionRepository.findSessionsByUserId(userId).stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @Transactional
+    public ScreenshotUploadResponse uploadMatchImage(Long sessionId, Long uploaderId, MultipartFile file) {
+        Session session = getSessionOrThrow(sessionId);
+        Team team = teamMemberRepository.findByTeam_SessionIdAndUserId(sessionId, uploaderId)
+                .orElseThrow(() -> KillnagiException.notFound("해당 세션에 속한 팀을 찾을 수 없습니다."))
+                .getTeam();
+        return matchService.uploadScreenshot(session, team, file);
     }
 
     private Session getSessionOrThrow(Long sessionId) {

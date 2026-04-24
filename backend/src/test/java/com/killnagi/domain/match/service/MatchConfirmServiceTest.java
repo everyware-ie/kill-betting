@@ -64,7 +64,7 @@ class MatchConfirmServiceTest {
 
         member = TeamMember.builder().team(team).user(user).build();
 
-        pendingMatch = Match.builder().session(session).matchNumber(1).build();
+        pendingMatch = Match.builder().session(session).team(team).matchNumber(1).build();
         ReflectionTestUtils.setField(pendingMatch, "id", MATCH_ID);
 
         result = MatchResult.builder()
