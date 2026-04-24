@@ -34,11 +34,4 @@ public class Rule {
         this.ruleType = ruleType;
         this.killValue = killValue;
     }
-
-    public enum RuleType {
-        CHICKEN_BONUS,          // 치킨 달성 시 팀 전체 킬 수 +N
-        SURVIVAL_PENALTY,       // TOP10 진입 실패 시 킬 수 -N
-        CONSECUTIVE_DEATH_PENALTY, // 연속 사망 패널티
-        PLACEMENT_BONUS         // 특정 순위 달성 보너스
-    }
 }

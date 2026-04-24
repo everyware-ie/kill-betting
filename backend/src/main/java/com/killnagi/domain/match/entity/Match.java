@@ -35,9 +35,6 @@ public class Match {
     @Column(nullable = false, length = 20)
     private MatchStatus status = MatchStatus.PENDING;
 
-    @OneToMany(mappedBy = "match", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<MatchResult> results = new ArrayList<>();
-
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -49,15 +46,20 @@ public class Match {
         this.screenshotUrl = screenshotUrl;
     }
 
-    public void confirm() {
-        this.status = MatchStatus.CONFIRMED;
-    }
-
     public void updateScreenshotUrl(String screenshotUrl) {
         this.screenshotUrl = screenshotUrl;
     }
 
-    public enum MatchStatus {
-        PENDING, CONFIRMED
+    public boolean isConfirmable() {
+        return this.status == MatchStatus.PENDING;
     }
+
+    public boolean isConfirmed() {
+        return this.status == MatchStatus.CONFIRMED;
+    }
+
+    public void confirm() {
+        this.status = MatchStatus.CONFIRMED;
+    }
+
 }

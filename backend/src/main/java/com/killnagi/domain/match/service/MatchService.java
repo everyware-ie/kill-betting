@@ -2,7 +2,7 @@ package com.killnagi.domain.match.service;
 
 import com.killnagi.common.exception.KillnagiException;
 import com.killnagi.common.storage.FileStorageService;
-import com.killnagi.domain.match.dto.MatchDto;
+import com.killnagi.domain.match.dto.response.ScreenshotUploadResponse;
 import com.killnagi.domain.match.entity.Match;
 import com.killnagi.domain.match.repository.MatchRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,13 +20,13 @@ public class MatchService {
     private final FileStorageService fileStorageService;
 
     @Transactional
-    public MatchDto.ScreenshotUploadResponse uploadScreenshot(Long matchId, MultipartFile file) {
+    public ScreenshotUploadResponse uploadScreenshot(Long matchId, MultipartFile file) {
         Match match = matchRepository.findById(matchId)
                 .orElseThrow(() -> KillnagiException.notFound("매치를 찾을 수 없습니다."));
 
         String url = fileStorageService.store(file, SCREENSHOT_DIR);
         match.updateScreenshotUrl(url);
 
-        return new MatchDto.ScreenshotUploadResponse(match.getId(), url);
+        return new ScreenshotUploadResponse(match.getId(), url);
     }
 }
