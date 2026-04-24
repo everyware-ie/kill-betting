@@ -22,13 +22,17 @@ public class TeamMember {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Column(name = "is_uploader", nullable = false)
+    private boolean isUploader = false;
+
     @Column(name = "total_kills", nullable = false)
     private int totalKills = 0;
 
     @Builder
-    public TeamMember(Team team, User user) {
+    public TeamMember(Team team, User user, boolean isUploader) {
         this.team = team;
         this.user = user;
+        this.isUploader = isUploader;
     }
 
     public void addKills(int kills) {

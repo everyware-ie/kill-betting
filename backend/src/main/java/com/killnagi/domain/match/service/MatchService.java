@@ -1,7 +1,7 @@
 package com.killnagi.domain.match.service;
 
 import com.killnagi.common.storage.FileStorageService;
-import com.killnagi.domain.match.dto.MatchDto;
+import com.killnagi.domain.match.dto.response.ScreenshotUploadResponse;
 import com.killnagi.domain.match.entity.Match;
 import com.killnagi.domain.match.repository.MatchRepository;
 import com.killnagi.domain.session.entity.Session;
@@ -21,7 +21,7 @@ public class MatchService {
     private final FileStorageService fileStorageService;
 
     @Transactional
-    public MatchDto.ScreenshotUploadResponse uploadScreenshot(Session session, Team team, MultipartFile file) {
+    public ScreenshotUploadResponse uploadScreenshot(Session session, Team team, MultipartFile file) {
         String url = fileStorageService.store(file, SCREENSHOT_DIR);
         int matchNumber = matchRepository.countBySessionId(session.getId()) + 1;
 
@@ -33,6 +33,6 @@ public class MatchService {
                 .build();
         matchRepository.save(match);
 
-        return new MatchDto.ScreenshotUploadResponse(match.getId(), url);
+        return new ScreenshotUploadResponse(match.getId(), url);
     }
 }
