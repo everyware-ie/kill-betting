@@ -1,0 +1,17 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: false
+
+jwt:
+  secret: test-secret-key-that-is-minimum-256-bits-long-for-hmac-sha256
+  expiration: 86400000
+
+file:
+  upload-dir: /tmp/test-uploads
+  base-url: http://localhost:8080/files
