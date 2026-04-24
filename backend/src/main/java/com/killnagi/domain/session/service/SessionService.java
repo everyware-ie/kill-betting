@@ -1,7 +1,7 @@
 package com.killnagi.domain.session.service;
 
 import com.killnagi.common.exception.KillnagiException;
-import com.killnagi.domain.match.dto.MatchDto;
+import com.killnagi.domain.match.dto.response.ScreenshotUploadResponse;
 import com.killnagi.domain.match.service.MatchService;
 import com.killnagi.domain.rule.entity.Rule;
 import com.killnagi.domain.rule.repository.RuleRepository;
@@ -118,7 +118,7 @@ public class SessionService {
     }
 
     @Transactional
-    public MatchDto.ScreenshotUploadResponse uploadMatchImage(Long sessionId, Long uploaderId, MultipartFile file) {
+    public ScreenshotUploadResponse uploadMatchImage(Long sessionId, Long uploaderId, MultipartFile file) {
         Session session = getSessionOrThrow(sessionId);
         Team team = teamMemberRepository.findByTeam_SessionIdAndUserId(sessionId, uploaderId)
                 .orElseThrow(() -> KillnagiException.notFound("해당 세션에 속한 팀을 찾을 수 없습니다."))

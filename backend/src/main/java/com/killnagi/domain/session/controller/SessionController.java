@@ -1,6 +1,7 @@
 package com.killnagi.domain.session.controller;
 
 import com.killnagi.common.response.ApiResponse;
+import com.killnagi.domain.match.dto.response.ScreenshotUploadResponse;
 import com.killnagi.domain.session.dto.request.CreateRequest;
 import com.killnagi.domain.session.dto.response.ScoreboardResponse;
 import com.killnagi.domain.session.dto.response.SessionResponse;
@@ -11,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -53,7 +55,7 @@ public class SessionController {
     }
 
     @PostMapping("/{sessionId}/matches")
-    public ResponseEntity<ApiResponse<MatchDto.ScreenshotUploadResponse>> uploadMatchImage(
+    public ResponseEntity<ApiResponse<ScreenshotUploadResponse>> uploadMatchImage(
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable Long sessionId,
             @RequestParam("image") MultipartFile file) {
