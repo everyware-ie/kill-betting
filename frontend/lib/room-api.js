@@ -117,26 +117,27 @@ export const RoomAPI = {
       const room = _runtimeRooms.find((r) => r.id === roomId);
       if (!room) return err('방을 찾을 수 없습니다');
 
+      // 이동할 팀에 이미 다른 유저가 있으면 불가 (팀당 1명 제한)
+      const targetTeam = room.teams.find((t) => t.id === teamId);
+      const alreadyOccupied = (targetTeam?.members || []).some((m) => m.userId !== user.id);
+      if (alreadyOccupied) return err('이미 다른 팀원이 있는 팀입니다');
+
       // 기존 팀에서 제거
       room.teams = room.teams.map((t) => ({
         ...t,
         members: (t.members || []).filter((m) => m.userId !== user.id),
       }));
 
-      // 새 팀에 추가
+      // 새 팀에 추가 — 팀당 1명이므로 항상 OPERATOR
       room.teams = room.teams.map((t) => {
         if (t.id !== teamId) return t;
-        const hasOperator = (t.members || []).some((m) => m.role === 'OPERATOR');
         return {
           ...t,
-          members: [
-            ...(t.members || []),
-            {
-              userId:   user.id,
-              username: user.username,
-              role:     hasOperator ? 'MEMBER' : 'OPERATOR',
-            },
-          ],
+          members: [{
+            userId:   user.id,
+            username: user.username,
+            role:     'OPERATOR',
+          }],
         };
       });
 

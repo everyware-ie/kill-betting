@@ -799,10 +799,10 @@ export default function LivePage() {
   const [matchError,      setMatchError]      = useState('');
   const [screenshotModal, setScreenshotModal] = useState(null);   // 열린 스크린샷 URL (null이면 닫힘)
 
-  // 내 팀 + 운영자 여부
+  // 내 팀 — 로그인 유저가 속한 팀 (있으면 해당 팀 OPERATOR)
   const myTeam = room?.teams.find((t) => t.members?.some((m) => m.userId === user?.id));
-  const myRole = myTeam?.members?.find((m) => m.userId === user?.id)?.role;
-  const isOperator = myRole === 'OPERATOR';
+  // 방장(HOST) 여부 — 닉네임 관리·점수조정·경기종료·룰변경 권한
+  const isHost = room?.participants?.some((p) => p.userId === user?.id && p.role === 'HOST');
 
   // ── 초기 로드 ──
   useEffect(() => {
@@ -953,7 +953,7 @@ export default function LivePage() {
               <span>{room.title}</span>
               <span>|</span>
               <span>매치 {matches.length}판</span>
-              {isOperator && <span style={{ color: '#F5A623', fontWeight: 700 }}>| ★ OP</span>}
+              {myTeam && <span style={{ color: '#F5A623', fontWeight: 700 }}>| ★ {myTeam.name} OP</span>}
             </div>
           </div>
         </div>
@@ -1006,8 +1006,8 @@ export default function LivePage() {
               )}
             </div>
           </div>
-          {/* 빠른 경기 종료 버튼 (OPERATOR만) */}
-          {isOperator && (
+          {/* 빠른 경기 종료 버튼 (방장만) */}
+          {isHost && (
             <Button onClick={handleEnd} style={{ fontSize: 13, background: '#E53935', color: '#fff', flexShrink: 0 }}>
               ⏻ 경기 종료
             </Button>
@@ -1076,13 +1076,13 @@ export default function LivePage() {
                     {(() => {
                       const teamMatchCount = matches.filter((m) => m.teamId === t.id).length;
                       return (
-                        <div style={{ fontSize: 10, color: '#8A8060', textAlign: 'center', marginBottom: myTeam?.id === t.id && isOperator ? 6 : 0 }}>
+                        <div style={{ fontSize: 10, color: '#8A8060', textAlign: 'center', marginBottom: myTeam?.id === t.id ? 6 : 0 }}>
                           {teamMatchCount > 0 ? `${teamMatchCount}게임 완료` : '아직 결과 없음'}
                         </div>
                       );
                     })()}
-                    {/* 내 팀 OPERATOR만 결과 입력 버튼 표시 */}
-                    {myTeam?.id === t.id && isOperator && (
+                    {/* 내 팀 유저면 누구나 결과 입력 가능 (각 팀 OPERATOR) */}
+                    {myTeam?.id === t.id && (
                       <button
                         onClick={() => openTeamModal(t.id)}
                         style={{ width: '100%', background: 'rgba(245,166,35,0.15)', border: '1px solid rgba(245,166,35,0.4)', color: '#F5A623', borderRadius: 4, padding: '7px 0', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
@@ -1230,9 +1230,9 @@ export default function LivePage() {
             </span>
           ) : (
             <span style={{ color: '#8A8060' }}>
-              {isOperator ? '★ OPERATOR' : 'MEMBER'} —&nbsp;
-              {isOperator
-                ? '게임이 끝날 때마다 팀 카드의 [결과 입력]으로 결과를 제출하세요'
+              {myTeam ? `★ ${myTeam.name} OPERATOR` : '관전자'} —&nbsp;
+              {myTeam
+                ? '게임이 끝날 때마다 내 팀 카드의 [결과 입력]으로 결과를 제출하세요'
                 : '각 팀 OPERATOR가 게임 결과를 입력합니다'}
             </span>
           )}
@@ -1244,8 +1244,8 @@ export default function LivePage() {
           {matchError && (
             <span style={{ fontSize: 11, color: '#E53935' }}>⚠ {matchError}</span>
           )}
-          {/* 운영 메뉴 (OPERATOR) */}
-          {isOperator && (
+          {/* 운영 메뉴 (방장만) — 점수 조정·룰 변경·경기 종료 */}
+          {isHost && (
             <Button variant="ghost" onClick={() => setShowAdminModal(true)} style={{ fontSize: 12 }}>⚙ 운영 메뉴</Button>
           )}
         </div>

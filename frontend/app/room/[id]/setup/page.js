@@ -210,9 +210,8 @@ export default function SetupPage() {
 
   // 현재 내가 속한 팀
   const myTeam = room?.teams.find((t) => t.members?.some((m) => m.userId === user?.id));
-  // 내 팀에서 내 role
-  const myRole = myTeam?.members?.find((m) => m.userId === user?.id)?.role;
-  const isOperator = myRole === 'OPERATOR';
+  // 방장(HOST) 여부 — participants에서 role: 'HOST'인 사람
+  const isHost = room?.participants?.some((p) => p.userId === user?.id && p.role === 'HOST');
 
   // ── 방 정보 불러오기 + 자동 팀 배정 ──
   useEffect(() => {
@@ -360,10 +359,11 @@ export default function SetupPage() {
         <div style={{ background: 'rgba(245,166,35,0.06)', borderBottom: '1px solid rgba(200,155,0,0.1)', padding: '8px 24px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
           <span style={{ color: '#8A8060' }}>나의 위치:</span>
           <span style={{ color: '#F5A623', fontWeight: 700 }}>{myTeam.name}</span>
-          <span style={{ padding: '1px 7px', borderRadius: 3, fontSize: 10, fontWeight: 700, background: isOperator ? '#F5A623' : 'rgba(200,155,0,0.15)', color: isOperator ? '#1a1500' : '#8A8060' }}>
-            {isOperator ? '★ OPERATOR' : 'MEMBER'}
+          <span style={{ padding: '1px 7px', borderRadius: 3, fontSize: 10, fontWeight: 700, background: '#F5A623', color: '#1a1500' }}>
+            ★ OPERATOR
           </span>
-          {isOperator && <span style={{ fontSize: 11, color: '#8A8060' }}>— OCR 업로드 및 수치 조절 권한 있음</span>}
+          <span style={{ fontSize: 11, color: '#8A8060' }}>— 내 팀 OCR 업로드 및 결과 입력 권한 있음</span>
+          {isHost && <span style={{ fontSize: 11, color: '#F5A623' }}>| 방장 — 닉네임 관리 · 게임 시작 가능</span>}
           <span style={{ marginLeft: 'auto', fontSize: 11, color: '#8A8060' }}>
             💡 배그 닉네임은 아래에서 별도 입력 필요
           </span>
@@ -388,7 +388,8 @@ export default function SetupPage() {
             const isFull = team.players.length >= maxPerTeam;
             const isMyTeam = team.id === myTeam?.id;
             const teamMembers = team.members || [];
-            const operator = teamMembers.find((m) => m.role === 'OPERATOR');
+            // 팀에 이미 로그인 유저가 있으면 이동 불가 (팀당 1명 제한)
+            const teamHasMember = teamMembers.length > 0;
 
             return (
               <div key={team.id} style={{ background: '#1C1A0C', border: `1px solid ${isMyTeam ? 'rgba(245,166,35,0.45)' : 'rgba(200,155,0,0.18)'}`, borderRadius: 8, overflow: 'hidden' }}>
@@ -399,11 +400,15 @@ export default function SetupPage() {
                     <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.5, color: isMyTeam ? '#F5A623' : '#8A8060' }}>{team.name}</span>
                     {isMyTeam && <span style={{ fontSize: 10, background: '#F5A623', color: '#1a1500', padding: '1px 6px', borderRadius: 2, fontWeight: 700 }}>MY TEAM</span>}
                   </div>
-                  {/* 팀 이동 버튼 (내 팀 아닐 때) */}
+                  {/* 팀 이동 버튼 (내 팀 아닐 때, 팀에 자리 있을 때만) */}
                   {!isMyTeam && (
-                    <button onClick={() => handleMoveTeam(team.id)} style={{ background: 'none', border: '1px solid rgba(200,155,0,0.3)', color: '#8A8060', fontSize: 11, padding: '3px 9px', borderRadius: 3, cursor: 'pointer', fontFamily: 'inherit' }}>
-                      이 팀으로 이동
-                    </button>
+                    teamHasMember ? (
+                      <span style={{ fontSize: 10, color: '#555', padding: '3px 9px' }}>자리 없음</span>
+                    ) : (
+                      <button onClick={() => handleMoveTeam(team.id)} style={{ background: 'none', border: '1px solid rgba(200,155,0,0.3)', color: '#8A8060', fontSize: 11, padding: '3px 9px', borderRadius: 3, cursor: 'pointer', fontFamily: 'inherit' }}>
+                        이 팀으로 이동
+                      </button>
+                    )
                   )}
                 </div>
 
@@ -413,7 +418,6 @@ export default function SetupPage() {
                     <div style={{ fontSize: 10, color: '#8A8060', letterSpacing: 1, marginBottom: 6 }}>방 참여자</div>
                     {teamMembers.map((member) => {
                       const isMe = member.userId === user?.id;
-                      const memberIsOp = member.role === 'OPERATOR';
                       return (
                         <div key={member.userId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid rgba(200,155,0,0.05)' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
@@ -422,17 +426,10 @@ export default function SetupPage() {
                               {member.username}{isMe && ' (나)'}
                             </span>
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 2, fontWeight: 700, background: memberIsOp ? '#F5A623' : 'rgba(200,155,0,0.12)', color: memberIsOp ? '#1a1500' : '#8A8060' }}>
-                              {memberIsOp ? '★ OP' : 'MEMBER'}
-                            </span>
-                            {/* 내가 이 팀 OPERATOR이고 상대가 MEMBER면 위임 가능 */}
-                            {isMyTeam && isOperator && !isMe && !memberIsOp && (
-                              <button onClick={() => handleSetOperator(team.id, member.userId)} title="운영자 위임" style={{ background: 'none', border: '1px solid rgba(200,155,0,0.2)', color: '#8A8060', fontSize: 10, padding: '2px 6px', borderRadius: 2, cursor: 'pointer', fontFamily: 'inherit' }}>
-                                OP 위임
-                              </button>
-                            )}
-                          </div>
+                          {/* 팀당 1명 = 자동으로 해당 팀 OPERATOR */}
+                          <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 2, fontWeight: 700, background: '#F5A623', color: '#1a1500' }}>
+                            ★ OP
+                          </span>
                         </div>
                       );
                     })}
@@ -451,26 +448,28 @@ export default function SetupPage() {
                           <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#F5A623', flexShrink: 0 }} />
                           <span style={{ fontSize: 13 }}>{nick}</span>
                         </div>
-                        <button onClick={() => removePlayer(team.id, nick)} style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 13, padding: '0 4px' }}>✕</button>
+                        {isHost && <button onClick={() => removePlayer(team.id, nick)} style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 13, padding: '0 4px' }}>✕</button>}
                       </div>
                     ))
                   )}
                 </div>
 
-                {/* 닉네임 입력창 */}
-                {!isFull ? (
-                  <div style={{ padding: '8px 14px', borderTop: '1px solid rgba(200,155,0,0.08)', display: 'flex', gap: 8 }}>
-                    <input
-                      value={inputs[team.id] || ''}
-                      onChange={(e) => setInputs((p) => ({ ...p, [team.id]: e.target.value.replace(/\s/g, '') }))}
-                      onKeyDown={(e) => e.key === 'Enter' && addPlayer(team.id)}
-                      placeholder="배그 닉네임..."
-                      style={{ flex: 1, background: '#141200', border: '1px solid rgba(200,155,0,0.22)', color: '#E8DFC0', padding: '7px 10px', borderRadius: 4, fontSize: 12, outline: 'none', fontFamily: 'inherit' }}
-                    />
-                    <button onClick={() => addPlayer(team.id)} style={{ background: 'rgba(200,155,0,0.1)', border: '1px solid rgba(200,155,0,0.3)', color: '#F5A623', padding: '7px 12px', borderRadius: 4, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit' }}>추가</button>
-                  </div>
-                ) : (
-                  <div style={{ padding: '7px 14px', borderTop: '1px solid rgba(200,155,0,0.08)', fontSize: 11, color: '#555', textAlign: 'center' }}>{maxPerTeam}명 완료</div>
+                {/* 닉네임 입력창 — 방장만 표시 */}
+                {isHost && (
+                  !isFull ? (
+                    <div style={{ padding: '8px 14px', borderTop: '1px solid rgba(200,155,0,0.08)', display: 'flex', gap: 8 }}>
+                      <input
+                        value={inputs[team.id] || ''}
+                        onChange={(e) => setInputs((p) => ({ ...p, [team.id]: e.target.value.replace(/\s/g, '') }))}
+                        onKeyDown={(e) => e.key === 'Enter' && addPlayer(team.id)}
+                        placeholder="배그 닉네임..."
+                        style={{ flex: 1, background: '#141200', border: '1px solid rgba(200,155,0,0.22)', color: '#E8DFC0', padding: '7px 10px', borderRadius: 4, fontSize: 12, outline: 'none', fontFamily: 'inherit' }}
+                      />
+                      <button onClick={() => addPlayer(team.id)} style={{ background: 'rgba(200,155,0,0.1)', border: '1px solid rgba(200,155,0,0.3)', color: '#F5A623', padding: '7px 12px', borderRadius: 4, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit' }}>추가</button>
+                    </div>
+                  ) : (
+                    <div style={{ padding: '7px 14px', borderTop: '1px solid rgba(200,155,0,0.08)', fontSize: 11, color: '#555', textAlign: 'center' }}>{maxPerTeam}명 완료</div>
+                  )
                 )}
               </div>
             );
