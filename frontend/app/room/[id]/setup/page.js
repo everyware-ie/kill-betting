@@ -33,6 +33,7 @@ import { useAuth }   from '@/lib/auth-context';
 import { RoomAPI }   from '@/lib/room-api';
 import { MAX_PLAYERS_PER_TEAM } from '@/mock/rooms';
 import Button from '@/components/ui/Button';
+import RoleGuideModal from '@/components/ui/RoleGuideModal';
 
 // ── 초대 코드 배지 (클릭하면 클립보드 복사) ──
 function CopyCodeBadge({ code }) {
@@ -206,7 +207,8 @@ export default function SetupPage() {
   const [error,    setError]    = useState('');
   const [starting, setStarting] = useState(false);
   const [inputs,   setInputs]   = useState({});
-  const [showRuleModal, setShowRuleModal] = useState(false);
+  const [showRuleModal,  setShowRuleModal]  = useState(false);
+  const [showRoleGuide,  setShowRoleGuide]  = useState(false);
 
   // 현재 내가 속한 팀
   const myTeam = room?.teams.find((t) => t.members?.some((m) => m.userId === user?.id));
@@ -325,6 +327,11 @@ export default function SetupPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {/* 방 코드 + 클립보드 복사 */}
           <CopyCodeBadge code={room?.code} />
+          <button
+            onClick={() => setShowRoleGuide(true)}
+            title="역할 안내"
+            style={{ background: 'rgba(200,155,0,0.08)', border: '1px solid rgba(200,155,0,0.22)', color: '#8A8060', width: 30, height: 30, borderRadius: 4, cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontFamily: 'inherit' }}
+          >?</button>
           <Button variant="ghost" onClick={() => setShowRuleModal(true)} style={{ fontSize: 12, padding: '7px 14px' }}>⚙ 룰 수정</Button>
         </div>
       </div>
@@ -559,6 +566,11 @@ export default function SetupPage() {
       {/* ── 룰 수정 모달 ── */}
       {showRuleModal && (
         <RuleEditModal rule={room.rule} onSave={handleSaveRule} onClose={() => setShowRuleModal(false)} />
+      )}
+
+      {/* ── 역할 안내 모달 ── */}
+      {showRoleGuide && (
+        <RoleGuideModal onClose={() => setShowRoleGuide(false)} />
       )}
     </div>
   );

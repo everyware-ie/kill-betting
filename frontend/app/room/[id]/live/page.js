@@ -35,6 +35,7 @@ import { useAuth }  from '@/lib/auth-context';
 import { RoomAPI }  from '@/lib/room-api';
 import { OcrAPI }  from '@/lib/ocr-api';
 import Button from '@/components/ui/Button';
+import RoleGuideModal from '@/components/ui/RoleGuideModal';
 
 // ─────────────────────────────────────────
 //  점수 계산 유틸
@@ -796,6 +797,7 @@ export default function LivePage() {
   const [selectedTeamId,  setSelectedTeamId]  = useState(null);  // 모달에서 입력할 팀 ID
   const [modalMatchNum,   setModalMatchNum]   = useState(1);      // 모달 타이틀용 팀 매치 순번
   const [showAdminModal,  setShowAdminModal]  = useState(false);
+  const [showRoleGuide,   setShowRoleGuide]   = useState(false);
   const [matchError,      setMatchError]      = useState('');
   const [screenshotModal, setScreenshotModal] = useState(null);   // 열린 스크린샷 URL (null이면 닫힘)
 
@@ -960,8 +962,13 @@ export default function LivePage() {
           </div>
         </div>
 
-        {/* 타이머 */}
+        {/* 역할 안내 + 타이머 */}
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <button
+            onClick={() => setShowRoleGuide(true)}
+            title="역할 안내"
+            style={{ background: 'rgba(200,155,0,0.08)', border: '1px solid rgba(200,155,0,0.22)', color: '#8A8060', width: 30, height: 30, borderRadius: 4, cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontFamily: 'inherit' }}
+          >?</button>
           <div style={{ background: '#141200', border: '1px solid rgba(200,155,0,0.22)', borderRadius: 4, padding: '7px 16px', textAlign: 'center' }}>
             <div style={{ fontSize: 9, color: '#8A8060', letterSpacing: 1.5, marginBottom: 2 }}>경과 시간</div>
             <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 18, fontWeight: 700 }}>{fmtTime(elapsed)}</div>
@@ -1280,6 +1287,11 @@ export default function LivePage() {
           info={screenshotModal}
           onClose={() => setScreenshotModal(null)}
         />
+      )}
+
+      {/* ── 역할 안내 모달 ── */}
+      {showRoleGuide && (
+        <RoleGuideModal onClose={() => setShowRoleGuide(false)} />
       )}
     </div>
   );
