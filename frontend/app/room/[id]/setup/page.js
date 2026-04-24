@@ -210,8 +210,10 @@ export default function SetupPage() {
 
   // 현재 내가 속한 팀
   const myTeam = room?.teams.find((t) => t.members?.some((m) => m.userId === user?.id));
-  // 방장(HOST) 여부 — participants에서 role: 'HOST'인 사람
-  const isHost = room?.participants?.some((p) => p.userId === user?.id && p.role === 'HOST');
+  // 방장(HOST) userId — 팀 카드에서 방장 배지 표시에 사용
+  const hostUserId = room?.participants?.find((p) => p.role === 'HOST')?.userId;
+  // 내가 방장인지 여부
+  const isHost = hostUserId === user?.id;
 
   // ── 방 정보 불러오기 + 자동 팀 배정 ──
   useEffect(() => {
@@ -342,11 +344,18 @@ export default function SetupPage() {
         <div style={{ background: 'rgba(245,166,35,0.06)', borderBottom: '1px solid rgba(200,155,0,0.1)', padding: '8px 24px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
           <span style={{ color: '#8A8060' }}>나의 위치:</span>
           <span style={{ color: '#F5A623', fontWeight: 700 }}>{myTeam.name}</span>
-          <span style={{ padding: '1px 7px', borderRadius: 3, fontSize: 10, fontWeight: 700, background: '#F5A623', color: '#1a1500' }}>
-            ★ OPERATOR
+          {isHost ? (
+            <span style={{ padding: '1px 8px', borderRadius: 3, fontSize: 10, fontWeight: 700, background: '#FFD700', color: '#1a1500' }}>
+              👑 방장
+            </span>
+          ) : (
+            <span style={{ padding: '1px 7px', borderRadius: 3, fontSize: 10, fontWeight: 700, background: '#F5A623', color: '#1a1500' }}>
+              ★ OP
+            </span>
+          )}
+          <span style={{ fontSize: 11, color: '#8A8060' }}>
+            {isHost ? '— 닉네임 관리 · 게임 시작 · OCR 업로드 권한 있음' : '— 내 팀 OCR 업로드 및 결과 입력 권한 있음'}
           </span>
-          <span style={{ fontSize: 11, color: '#8A8060' }}>— 내 팀 OCR 업로드 및 결과 입력 권한 있음</span>
-          {isHost && <span style={{ fontSize: 11, color: '#F5A623' }}>| 방장 — 닉네임 관리 · 게임 시작 가능</span>}
           <span style={{ marginLeft: 'auto', fontSize: 11, color: '#8A8060' }}>
             💡 배그 닉네임은 아래에서 별도 입력 필요
           </span>
@@ -373,14 +382,19 @@ export default function SetupPage() {
           <div style={{ background: 'rgba(100,100,100,0.05)', borderBottom: '1px solid rgba(200,155,0,0.08)', padding: '8px 24px', flexShrink: 0 }}>
             <div style={{ fontSize: 10, color: '#8A8060', letterSpacing: 1, marginBottom: 6 }}>⏳ 대기석 ({waitingUsers.length}명)</div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {waitingUsers.map((p) => (
-                <div key={p.userId} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 12, background: p.userId === user?.id ? 'rgba(245,166,35,0.12)' : 'rgba(200,155,0,0.07)', border: `1px solid ${p.userId === user?.id ? 'rgba(245,166,35,0.3)' : 'rgba(200,155,0,0.15)'}`, fontSize: 11 }}>
-                  <span>👤</span>
-                  <span style={{ color: p.userId === user?.id ? '#F5A623' : '#E8DFC0', fontWeight: p.userId === user?.id ? 700 : 400 }}>
-                    {p.username}{p.userId === user?.id ? ' (나)' : ''}
-                  </span>
-                </div>
-              ))}
+              {waitingUsers.map((p) => {
+                const isMe = p.userId === user?.id;
+                const isHostUser = p.userId === hostUserId;
+                return (
+                  <div key={p.userId} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 12, background: isMe ? 'rgba(245,166,35,0.12)' : 'rgba(200,155,0,0.07)', border: `1px solid ${isMe ? 'rgba(245,166,35,0.3)' : 'rgba(200,155,0,0.15)'}`, fontSize: 11 }}>
+                    <span>{isHostUser ? '👑' : '👤'}</span>
+                    <span style={{ color: isMe ? '#F5A623' : '#E8DFC0', fontWeight: isMe ? 700 : 400 }}>
+                      {p.username}{isMe ? ' (나)' : ''}
+                    </span>
+                    {isHostUser && <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 2, background: '#FFD700', color: '#1a1500', fontWeight: 700 }}>방장</span>}
+                  </div>
+                );
+              })}
             </div>
           </div>
         );
@@ -442,10 +456,16 @@ export default function SetupPage() {
                               {member.username}{isMe && ' (나)'}
                             </span>
                           </div>
-                          {/* 팀당 1명 = 자동으로 해당 팀 OPERATOR */}
-                          <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 2, fontWeight: 700, background: '#F5A623', color: '#1a1500' }}>
-                            ★ OP
-                          </span>
+                          {/* 팀당 1명 = 해당 팀 OPERATOR. 방장이면 👑 배지 */}
+                          {member.userId === hostUserId ? (
+                            <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 2, fontWeight: 700, background: '#FFD700', color: '#1a1500' }}>
+                              👑 방장
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 2, fontWeight: 700, background: '#F5A623', color: '#1a1500' }}>
+                              ★ OP
+                            </span>
+                          )}
                         </div>
                       );
                     })}

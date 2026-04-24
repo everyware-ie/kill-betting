@@ -801,8 +801,9 @@ export default function LivePage() {
 
   // 내 팀 — 로그인 유저가 속한 팀 (있으면 해당 팀 OPERATOR)
   const myTeam = room?.teams.find((t) => t.members?.some((m) => m.userId === user?.id));
-  // 방장(HOST) 여부 — 닉네임 관리·점수조정·경기종료·룰변경 권한
-  const isHost = room?.participants?.some((p) => p.userId === user?.id && p.role === 'HOST');
+  // 방장(HOST) userId 및 여부 — 닉네임 관리·점수조정·경기종료·룰변경 권한
+  const hostUserId = room?.participants?.find((p) => p.role === 'HOST')?.userId;
+  const isHost = hostUserId === user?.id;
 
   // ── 초기 로드 ──
   useEffect(() => {
@@ -953,6 +954,7 @@ export default function LivePage() {
               <span>{room.title}</span>
               <span>|</span>
               <span>매치 {matches.length}판</span>
+              {isHost && <span style={{ color: '#FFD700', fontWeight: 700 }}>| 👑 방장</span>}
               {myTeam && <span style={{ color: '#F5A623', fontWeight: 700 }}>| ★ {myTeam.name} OP</span>}
             </div>
           </div>
@@ -1230,6 +1232,7 @@ export default function LivePage() {
             </span>
           ) : (
             <span style={{ color: '#8A8060' }}>
+              {isHost && <span style={{ color: '#FFD700', fontWeight: 700, marginRight: 4 }}>👑 방장</span>}
               {myTeam ? `★ ${myTeam.name} OPERATOR` : '관전자'} —&nbsp;
               {myTeam
                 ? '게임이 끝날 때마다 내 팀 카드의 [결과 입력]으로 결과를 제출하세요'
