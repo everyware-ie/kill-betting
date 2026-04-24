@@ -27,7 +27,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth }   from '@/lib/auth-context';
 import { RoomAPI }   from '@/lib/room-api';
@@ -217,32 +217,51 @@ export default function SetupPage() {
   // 내가 방장인지 여부
   const isHost = hostUserId === user?.id;
 
-  // ── 방 정보 불러오기 + 자동 팀 배정 ──
+  // ── 방 정보 폴링 ──
+  // TODO: 백엔드 WebSocket 연동 시 이 useEffect를 제거하고
+  //       stompClient.subscribe('/topic/room/{id}', handler) 로 교체
+  const isActionInProgress = useRef(false); // 내가 직접 액션 중일 때 폴링 덮어쓰기 방지
+
   useEffect(() => {
     if (!user) return;
+
+    // 최초 로드
     RoomAPI.get(roomId).then((res) => {
       if (!res.ok) { setError(res.error); setLoading(false); return; }
-      // 자동 팀 배정 없음 — 처음 입장하면 대기석에 위치
       setRoom(res.room);
       setLoading(false);
     });
+
+    // 5초마다 폴링 — 다른 유저의 팀 이동·닉네임 추가 등을 반영
+    const id = setInterval(async () => {
+      if (isActionInProgress.current) return; // 내 액션 처리 중엔 건너뜀
+      const res = await RoomAPI.get(roomId);
+      if (res.ok) setRoom(res.room);
+      // 폴링 실패는 무시 (네트워크 일시 오류 허용)
+    }, 5000);
+
+    return () => clearInterval(id);
   }, [roomId, user]);
 
   // ── 팀 참여 / 이동 ──
   // 대기석에서 처음 참여하거나, 이미 팀에 있을 때 다른 팀으로 이동
   const handleMoveTeam = async (newTeamId) => {
     if (myTeam?.id === newTeamId) return;
+    isActionInProgress.current = true;
     const res = await RoomAPI.joinTeam(roomId, newTeamId, user);
     if (res.ok) setRoom((r) => ({ ...r, teams: res.teams }));
     else setError(res.error);
+    isActionInProgress.current = false;
   };
 
   // ── 대기석으로 이동 (팀 탈퇴) ──
   const handleLeaveTeam = async () => {
     if (!myTeam) return;
+    isActionInProgress.current = true;
     const res = await RoomAPI.leaveTeam(roomId, myTeam.id, user.id);
     if (res.ok) setRoom((r) => ({ ...r, teams: res.teams }));
     else setError(res.error);
+    isActionInProgress.current = false;
   };
 
   // ── 운영자 위임 ──
@@ -264,28 +283,34 @@ export default function SetupPage() {
     if (allNicks.includes(nick)) { setError(`'${nick}'은 이미 다른 팀에 등록되어 있습니다`); return; }
     if (team.players.length >= maxPerTeam) { setError(`${team.name}은 최대 ${maxPerTeam}명까지 가능합니다`); return; }
     setError('');
+    isActionInProgress.current = true;
     const updatedTeams = room.teams.map((t) =>
       t.id === teamId ? { ...t, players: [...t.players, nick] } : t
     );
     const res = await RoomAPI.updateTeams(roomId, updatedTeams);
     if (res.ok) setRoom((r) => ({ ...r, teams: updatedTeams }));
     setInputs((p) => ({ ...p, [teamId]: '' }));
+    isActionInProgress.current = false;
   };
 
   // ── 닉네임 삭제 ──
   const removePlayer = async (teamId, nick) => {
+    isActionInProgress.current = true;
     const updatedTeams = room.teams.map((t) =>
       t.id === teamId ? { ...t, players: t.players.filter((p) => p !== nick) } : t
     );
     const res = await RoomAPI.updateTeams(roomId, updatedTeams);
     if (res.ok) setRoom((r) => ({ ...r, teams: updatedTeams }));
+    isActionInProgress.current = false;
   };
 
   // ── 팀 추가 ──
   const handleAddTeam = async () => {
+    isActionInProgress.current = true;
     const res = await RoomAPI.addTeam(roomId);
     if (res.ok) setRoom((r) => ({ ...r, teams: res.teams }));
     else setError(res.error);
+    isActionInProgress.current = false;
   };
 
   // ── 룰 저장 ──
