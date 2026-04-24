@@ -216,35 +216,18 @@ export default function SetupPage() {
   // ── 방 정보 불러오기 + 자동 팀 배정 ──
   useEffect(() => {
     if (!user) return;
-    RoomAPI.get(roomId).then(async (res) => {
+    RoomAPI.get(roomId).then((res) => {
       if (!res.ok) { setError(res.error); setLoading(false); return; }
-
-      let room = res.room;
-
-      // 이미 팀에 있으면 스킵
-      const alreadyInTeam = room.teams.some((t) =>
-        t.members?.some((m) => m.userId === user.id)
-      );
-
-      if (!alreadyInTeam) {
-        // 빈 자리 있는 팀 순서대로 자동 배정
-        const targetTeam = room.teams.find((t) =>
-          (t.members?.length || 0) < (MAX_PLAYERS_PER_TEAM[room.rule.gameMode] || 4)
-        );
-        if (targetTeam) {
-          const joinRes = await RoomAPI.joinTeam(roomId, targetTeam.id, user);
-          if (joinRes.ok) room = { ...room, teams: joinRes.teams };
-        }
-      }
-
-      setRoom(room);
+      // 자동 팀 배정 없음 — 처음 입장하면 대기석에 위치
+      setRoom(res.room);
       setLoading(false);
     });
   }, [roomId, user]);
 
-  // ── 팀 이동 ──
+  // ── 팀 참여 / 이동 ──
+  // 대기석에서 처음 참여하거나, 이미 팀에 있을 때 다른 팀으로 이동
   const handleMoveTeam = async (newTeamId) => {
-    if (!myTeam || myTeam.id === newTeamId) return;
+    if (myTeam?.id === newTeamId) return;
     const res = await RoomAPI.joinTeam(roomId, newTeamId, user);
     if (res.ok) setRoom((r) => ({ ...r, teams: res.teams }));
     else setError(res.error);
@@ -355,7 +338,7 @@ export default function SetupPage() {
       </div>
 
       {/* ── 내 현재 위치 안내 ── */}
-      {myTeam && (
+      {myTeam ? (
         <div style={{ background: 'rgba(245,166,35,0.06)', borderBottom: '1px solid rgba(200,155,0,0.1)', padding: '8px 24px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
           <span style={{ color: '#8A8060' }}>나의 위치:</span>
           <span style={{ color: '#F5A623', fontWeight: 700 }}>{myTeam.name}</span>
@@ -367,6 +350,13 @@ export default function SetupPage() {
           <span style={{ marginLeft: 'auto', fontSize: 11, color: '#8A8060' }}>
             💡 배그 닉네임은 아래에서 별도 입력 필요
           </span>
+        </div>
+      ) : (
+        <div style={{ background: 'rgba(100,100,100,0.08)', borderBottom: '1px solid rgba(200,155,0,0.1)', padding: '10px 24px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10, fontSize: 12 }}>
+          <span style={{ padding: '2px 10px', borderRadius: 3, fontSize: 11, fontWeight: 700, background: 'rgba(200,155,0,0.12)', color: '#8A8060', border: '1px solid rgba(200,155,0,0.2)' }}>
+            ⏳ 대기석
+          </span>
+          <span style={{ color: '#8A8060' }}>아직 팀에 참여하지 않았습니다. 아래에서 참여할 팀을 선택하세요.</span>
         </div>
       )}
 
@@ -400,13 +390,13 @@ export default function SetupPage() {
                     <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.5, color: isMyTeam ? '#F5A623' : '#8A8060' }}>{team.name}</span>
                     {isMyTeam && <span style={{ fontSize: 10, background: '#F5A623', color: '#1a1500', padding: '1px 6px', borderRadius: 2, fontWeight: 700 }}>MY TEAM</span>}
                   </div>
-                  {/* 팀 이동 버튼 (내 팀 아닐 때, 팀에 자리 있을 때만) */}
+                  {/* 팀 참여/이동 버튼 (내 팀 아닐 때) */}
                   {!isMyTeam && (
                     teamHasMember ? (
                       <span style={{ fontSize: 10, color: '#555', padding: '3px 9px' }}>자리 없음</span>
                     ) : (
                       <button onClick={() => handleMoveTeam(team.id)} style={{ background: 'none', border: '1px solid rgba(200,155,0,0.3)', color: '#8A8060', fontSize: 11, padding: '3px 9px', borderRadius: 3, cursor: 'pointer', fontFamily: 'inherit' }}>
-                        이 팀으로 이동
+                        {myTeam ? '이 팀으로 이동' : '이 팀으로 참여'}
                       </button>
                     )
                   )}
