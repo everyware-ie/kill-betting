@@ -57,7 +57,9 @@ export const RoomAPI = {
    *   room.teams: [{ id, name, players: [] }]  ← players는 배그 닉네임 문자열 배열
    *   room.participants: [{ userId, joinedAt }] ← 방에 들어온 로그인 유저
    */
-  create: async (title, rule, hostUserId) => {
+  create: async (title, rule, hostUser) => {
+    const hostUserId = typeof hostUser === 'object' ? hostUser.id : hostUser;
+    const hostUsername = typeof hostUser === 'object' ? hostUser.username : hostUser;
     if (USE_MOCK) {
       await delay(400);
       if (!title.trim()) return err('방 제목을 입력해주세요');
@@ -68,8 +70,8 @@ export const RoomAPI = {
         status:       'WAITING',
         rule:         { ...DEFAULT_RULE, ...rule },
         teams:        createDefaultTeams(),
-        // 방 참여자: 방장(hostUserId)이 자동으로 첫 참여자
-        participants: [{ userId: hostUserId, role: 'HOST', joinedAt: new Date().toISOString() }],
+        // 방 참여자: 방장이 자동으로 첫 참여자
+        participants: [{ userId: hostUserId, username: hostUsername, role: 'HOST', joinedAt: new Date().toISOString() }],
         createdAt:    new Date().toISOString(),
       };
       _runtimeRooms.push(room);
@@ -519,6 +521,7 @@ export const RoomAPI = {
         if (!room.participants) room.participants = [];
         room.participants.push({
           userId:   user.id,
+          username: user.username,
           role:     'MEMBER',
           joinedAt: new Date().toISOString(),
         });

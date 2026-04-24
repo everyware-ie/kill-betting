@@ -169,8 +169,8 @@ export default function CreateRoomPage() {
     setErrMsg('');
     setSaving(true);
 
-    // RoomAPI.create(방 제목, 룰 객체, 방장 userId)
-    const res = await RoomAPI.create(title.trim(), rule, user.id);
+    // RoomAPI.create(방 제목, 룰 객체, 방장 user 객체)
+    const res = await RoomAPI.create(title.trim(), rule, user);
 
     setSaving(false);
 

@@ -360,6 +360,32 @@ export default function SetupPage() {
         </div>
       )}
 
+      {/* ── 대기석 유저 목록 ── */}
+      {(() => {
+        const allTeamUserIds = new Set(
+          room?.teams.flatMap((t) => (t.members || []).map((m) => m.userId)) || []
+        );
+        const waitingUsers = (room?.participants || []).filter(
+          (p) => !allTeamUserIds.has(p.userId)
+        );
+        if (waitingUsers.length === 0) return null;
+        return (
+          <div style={{ background: 'rgba(100,100,100,0.05)', borderBottom: '1px solid rgba(200,155,0,0.08)', padding: '8px 24px', flexShrink: 0 }}>
+            <div style={{ fontSize: 10, color: '#8A8060', letterSpacing: 1, marginBottom: 6 }}>⏳ 대기석 ({waitingUsers.length}명)</div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {waitingUsers.map((p) => (
+                <div key={p.userId} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 12, background: p.userId === user?.id ? 'rgba(245,166,35,0.12)' : 'rgba(200,155,0,0.07)', border: `1px solid ${p.userId === user?.id ? 'rgba(245,166,35,0.3)' : 'rgba(200,155,0,0.15)'}`, fontSize: 11 }}>
+                  <span>👤</span>
+                  <span style={{ color: p.userId === user?.id ? '#F5A623' : '#E8DFC0', fontWeight: p.userId === user?.id ? 700 : 400 }}>
+                    {p.username}{p.userId === user?.id ? ' (나)' : ''}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* ── 안내 ── */}
       <div style={{ background: 'rgba(200,155,0,0.03)', borderBottom: '1px solid rgba(200,155,0,0.07)', padding: '8px 24px', fontSize: 12, color: '#8A8060', flexShrink: 0 }}>
         배그 인게임 닉네임을 정확히 입력해주세요. OCR 매칭에 사용됩니다. &nbsp;|&nbsp; 총 <b style={{ color: '#F5A623' }}>{totalPlayers}</b>명 등록됨
