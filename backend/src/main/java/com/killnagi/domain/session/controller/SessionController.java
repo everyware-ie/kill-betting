@@ -48,10 +48,12 @@ public class SessionController {
 
     @PostMapping("/{sessionId}/matches")
     public ResponseEntity<ApiResponse<MatchDto.ScreenshotUploadResponse>> uploadMatchImage(
+            @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable Long sessionId,
             @RequestParam("image") MultipartFile file) {
+        Long uploaderId = Long.parseLong(userDetails.getUsername());
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok("이미지가 업로드되었습니다.", sessionService.uploadMatchImage(sessionId, file)));
+                .body(ApiResponse.ok("이미지가 업로드되었습니다.", sessionService.uploadMatchImage(sessionId, uploaderId, file)));
     }
 
     @GetMapping("/my")

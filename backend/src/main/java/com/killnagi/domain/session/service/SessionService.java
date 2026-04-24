@@ -11,6 +11,7 @@ import com.killnagi.domain.session.dto.SessionDto.RuleRequest;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.session.repository.SessionRepository;
 import com.killnagi.domain.team.entity.Team;
+import com.killnagi.domain.team.repository.TeamMemberRepository;
 import com.killnagi.domain.team.repository.TeamRepository;
 import com.killnagi.domain.user.entity.User;
 import com.killnagi.domain.user.repository.UserRepository;
@@ -29,6 +30,7 @@ public class SessionService {
     private final SessionRepository sessionRepository;
     private final UserRepository userRepository;
     private final TeamRepository teamRepository;
+    private final TeamMemberRepository teamMemberRepository;
     private final RuleRepository ruleRepository;
     private final MatchService matchService;
 
@@ -114,9 +116,12 @@ public class SessionService {
     }
 
     @Transactional
-    public MatchDto.ScreenshotUploadResponse uploadMatchImage(Long sessionId, MultipartFile file) {
+    public MatchDto.ScreenshotUploadResponse uploadMatchImage(Long sessionId, Long uploaderId, MultipartFile file) {
         Session session = getSessionOrThrow(sessionId);
-        return matchService.uploadScreenshot(session, file);
+        Team team = teamMemberRepository.findByTeam_SessionIdAndUserId(sessionId, uploaderId)
+                .orElseThrow(() -> KillnagiException.notFound("해당 세션에 속한 팀을 찾을 수 없습니다."))
+                .getTeam();
+        return matchService.uploadScreenshot(session, team, file);
     }
 
     private Session getSessionOrThrow(Long sessionId) {
