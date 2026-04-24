@@ -481,16 +481,17 @@ export default function SetupPage() {
                               {member.username}{isMe && ' (나)'}
                             </span>
                           </div>
-                          {/* 팀당 1명 = 해당 팀 OPERATOR. 방장이면 👑 배지 */}
-                          {member.userId === hostUserId ? (
-                            <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 2, fontWeight: 700, background: '#FFD700', color: '#1a1500' }}>
-                              👑 방장
-                            </span>
-                          ) : (
+                          {/* 팀당 1명 = 해당 팀 OPERATOR. 방장이면 👑 + ★ OP 둘 다 표시 */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            {member.userId === hostUserId && (
+                              <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 2, fontWeight: 700, background: '#FFD700', color: '#1a1500' }}>
+                                👑 방장
+                              </span>
+                            )}
                             <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 2, fontWeight: 700, background: '#F5A623', color: '#1a1500' }}>
                               ★ OP
                             </span>
-                          )}
+                          </div>
                         </div>
                       );
                     })}
