@@ -1,6 +1,7 @@
 package com.killnagi.domain.session.controller;
 
 import com.killnagi.common.response.ApiResponse;
+import com.killnagi.domain.match.dto.MatchDto;
 import com.killnagi.domain.session.dto.SessionDto;
 import com.killnagi.domain.session.service.SessionService;
 import jakarta.validation.Valid;
@@ -10,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -42,6 +44,14 @@ public class SessionController {
     public ResponseEntity<ApiResponse<SessionDto.ScoreboardResponse>> getScoreboard(
             @PathVariable Long sessionId) {
         return ResponseEntity.ok(ApiResponse.ok(sessionService.getScoreboard(sessionId)));
+    }
+
+    @PostMapping("/{sessionId}/matches")
+    public ResponseEntity<ApiResponse<MatchDto.ScreenshotUploadResponse>> uploadMatchImage(
+            @PathVariable Long sessionId,
+            @RequestParam("image") MultipartFile file) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.ok("이미지가 업로드되었습니다.", sessionService.uploadMatchImage(sessionId, file)));
     }
 
     @GetMapping("/my")

@@ -1,6 +1,8 @@
 package com.killnagi.domain.session.service;
 
 import com.killnagi.common.exception.KillnagiException;
+import com.killnagi.domain.match.dto.MatchDto;
+import com.killnagi.domain.match.service.MatchService;
 import com.killnagi.domain.rule.entity.Rule;
 import com.killnagi.domain.rule.repository.RuleRepository;
 import com.killnagi.domain.session.dto.SessionDto;
@@ -15,6 +17,7 @@ import com.killnagi.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -27,6 +30,7 @@ public class SessionService {
     private final UserRepository userRepository;
     private final TeamRepository teamRepository;
     private final RuleRepository ruleRepository;
+    private final MatchService matchService;
 
     @Transactional
     public SessionDto.SessionResponse createSession(Long hostUserId, SessionDto.CreateRequest request) {
@@ -107,6 +111,12 @@ public class SessionService {
         return sessionRepository.findSessionsByUserId(userId).stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @Transactional
+    public MatchDto.ScreenshotUploadResponse uploadMatchImage(Long sessionId, MultipartFile file) {
+        Session session = getSessionOrThrow(sessionId);
+        return matchService.uploadScreenshot(session, file);
     }
 
     private Session getSessionOrThrow(Long sessionId) {
