@@ -434,9 +434,22 @@ export default function SetupPage() {
 
                 {/* 팀 헤더 */}
                 <div style={{ background: isMyTeam ? 'rgba(245,166,35,0.1)' : 'rgba(200,155,0,0.06)', borderBottom: '1px solid rgba(200,155,0,0.12)', padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.5, color: isMyTeam ? '#F5A623' : '#8A8060' }}>{team.name}</span>
-                    {isMyTeam && <span style={{ fontSize: 10, background: '#F5A623', color: '#1a1500', padding: '1px 6px', borderRadius: 2, fontWeight: 700 }}>MY TEAM</span>}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.5, color: isMyTeam ? '#F5A623' : '#8A8060' }}>{team.name}</span>
+                      {isMyTeam && <span style={{ fontSize: 10, background: '#F5A623', color: '#1a1500', padding: '1px 6px', borderRadius: 2, fontWeight: 700 }}>MY TEAM</span>}
+                    </div>
+                    {/* 팀 인원 현황 */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {/* 로그인 유저 슬롯 (팀당 1명 제한) */}
+                      <span style={{ fontSize: 10, color: teamHasMember ? '#F5A623' : '#555', background: 'rgba(200,155,0,0.07)', border: '1px solid rgba(200,155,0,0.12)', borderRadius: 3, padding: '1px 6px' }}>
+                        👤 {teamMembers.length}/1
+                      </span>
+                      {/* 배그 닉네임 슬롯 */}
+                      <span style={{ fontSize: 10, color: isFull ? '#E53935' : team.players.length > 0 ? '#F5A623' : '#555', background: 'rgba(200,155,0,0.07)', border: `1px solid ${isFull ? 'rgba(229,57,53,0.25)' : 'rgba(200,155,0,0.12)'}`, borderRadius: 3, padding: '1px 6px' }}>
+                        🎮 {team.players.length}/{maxPerTeam}
+                      </span>
+                    </div>
                   </div>
                   {/* 내 팀이면 대기석으로 이동 버튼, 아니면 참여/이동 버튼 */}
                   {isMyTeam ? (
