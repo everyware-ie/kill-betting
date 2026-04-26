@@ -3,6 +3,7 @@ package com.killnagi.domain.session.controller;
 import com.killnagi.common.response.ApiResponse;
 import com.killnagi.domain.match.dto.response.ScreenshotUploadResponse;
 import com.killnagi.domain.session.dto.request.CreateRequest;
+import com.killnagi.domain.session.dto.response.MatchHistoryResponse;
 import com.killnagi.domain.session.dto.response.ScoreboardResponse;
 import com.killnagi.domain.session.dto.response.SessionResponse;
 import com.killnagi.domain.session.service.SessionService;
@@ -12,14 +13,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -37,6 +38,12 @@ public class SessionController {
         Long userId = Long.parseLong(userDetails.getUsername());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok("세션이 생성되었습니다.", sessionService.createSession(userId, request)));
+    }
+
+    @GetMapping("/join/{roomUrl}")
+    public ResponseEntity<ApiResponse<SessionResponse>> getSessionByRoomUrl(
+            @PathVariable String roomUrl) {
+        return ResponseEntity.ok(ApiResponse.ok(sessionService.getSessionByRoomUrl(roomUrl)));
     }
 
     @PostMapping("/{sessionId}/start")
@@ -62,6 +69,12 @@ public class SessionController {
         Long uploaderId = Long.parseLong(userDetails.getUsername());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok("이미지가 업로드되었습니다.", sessionService.uploadMatchImage(sessionId, uploaderId, file)));
+    }
+
+    @GetMapping("/{sessionId}/match-history")
+    public ResponseEntity<ApiResponse<MatchHistoryResponse>> getMatchHistory(
+            @PathVariable Long sessionId) {
+        return ResponseEntity.ok(ApiResponse.ok(sessionService.getMatchHistory(sessionId)));
     }
 
     @GetMapping("/my")

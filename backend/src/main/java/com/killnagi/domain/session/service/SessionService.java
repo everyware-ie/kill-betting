@@ -2,11 +2,19 @@ package com.killnagi.domain.session.service;
 
 import com.killnagi.common.exception.KillnagiException;
 import com.killnagi.domain.match.dto.response.ScreenshotUploadResponse;
+import com.killnagi.domain.match.entity.Match;
+import com.killnagi.domain.match.entity.MatchResult;
+import com.killnagi.domain.match.entity.MatchStatus;
+import com.killnagi.domain.match.repository.MatchRepository;
 import com.killnagi.domain.match.service.MatchService;
 import com.killnagi.domain.rule.entity.Rule;
+import com.killnagi.domain.rule.entity.RuleSet;
 import com.killnagi.domain.rule.repository.RuleRepository;
+import com.killnagi.domain.rule.repository.RuleSetRepository;
 import com.killnagi.domain.session.dto.request.CreateRequest;
-import com.killnagi.domain.session.dto.request.RuleRequest;
+import com.killnagi.domain.session.dto.response.MatchHistoryResponse;
+import com.killnagi.domain.session.dto.response.MatchSummaryResponse;
+import com.killnagi.domain.session.dto.response.MemberMatchResultResponse;
 import com.killnagi.domain.session.dto.response.MemberScoreResponse;
 import com.killnagi.domain.session.dto.response.ScoreboardResponse;
 import com.killnagi.domain.session.dto.response.SessionResponse;
@@ -14,6 +22,7 @@ import com.killnagi.domain.session.dto.response.TeamScoreResponse;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.session.repository.SessionRepository;
 import com.killnagi.domain.team.entity.Team;
+import com.killnagi.domain.team.entity.TeamMember;
 import com.killnagi.domain.team.repository.TeamMemberRepository;
 import com.killnagi.domain.team.repository.TeamRepository;
 import com.killnagi.domain.user.entity.User;
@@ -24,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -37,6 +47,8 @@ public class SessionService {
     private final TeamRepository teamRepository;
     private final TeamMemberRepository teamMemberRepository;
     private final RuleRepository ruleRepository;
+    private final RuleSetRepository ruleSetRepository;
+    private final MatchRepository matchRepository;
     private final MatchService matchService;
 
     @Transactional
@@ -44,30 +56,30 @@ public class SessionService {
         User host = userRepository.findById(hostUserId)
                 .orElseThrow(() -> KillnagiException.notFound("사용자를 찾을 수 없습니다."));
 
-        Session saved = sessionRepository.save(buildSession(request, host));
-
-        if (request.rules() != null) {
-            request.rules().forEach(rule -> ruleRepository.save(buildRule(rule, saved)));
-        }
-
-        return toResponse(saved);
-    }
-
-    private Rule buildRule(RuleRequest ruleReq, Session saved) {
-        return Rule.builder()
-                .session(saved)
-                .ruleType(ruleReq.ruleType())
-                .killValue(ruleReq.killValue())
-                .build();
-    }
-
-    private Session buildSession(CreateRequest request, User host) {
-        return Session.builder()
+        Session session = sessionRepository.save(Session.builder()
                 .name(request.name())
+                .roomUrl(generateUniqueRoomUrl())
                 .host(host)
                 .targetKills(request.targetKills())
                 .timeLimitMinutes(request.timeLimitMinutes())
-                .build();
+                .build());
+
+        RuleSet ruleSet = ruleSetRepository.save(RuleSet.builder()
+                .session(session)
+                .build());
+
+        if (request.rules() != null) {
+            request.rules().forEach(ruleReq ->
+                    ruleRepository.save(Rule.builder()
+                            .ruleSet(ruleSet)
+                            .ruleType(ruleReq.ruleType())
+                            .operator(ruleReq.operator())
+                            .value(ruleReq.value())
+                            .build()));
+        }
+
+        session.assignCurrentRuleSet(ruleSet);
+        return toResponse(session);
     }
 
     @Transactional
@@ -85,30 +97,25 @@ public class SessionService {
 
     public ScoreboardResponse getScoreboard(Long sessionId) {
         Session session = getSessionOrThrow(sessionId);
-        List<Team> teams = teamRepository.findBySessionId(sessionId);
+        List<TeamScoreResponse> teamScores = teamRepository.findBySessionId(sessionId).stream()
+                .map(this::toTeamScoreResponse)
+                .toList();
+        return new ScoreboardResponse(session.getId(), session.getName(), session.getStatus(), teamScores);
+    }
 
-        List<TeamScoreResponse> teamScores = teams.stream()
-                .map(team -> new TeamScoreResponse(
-                        team.getId(),
-                        team.getName(),
-                        team.getTotalKills(),
-                        team.getBonusKills(),
-                        team.getPenaltyKills(),
-                        team.getEffectiveKills(),
-                        team.getMembers().stream()
-                                .map(m -> new MemberScoreResponse(
-                                        m.getUserId(),
-                                        m.getUserNickname(),
-                                        m.getTotalKills()
-                                )).toList()
-                )).toList();
+    public SessionResponse getSessionByRoomUrl(String roomUrl) {
+        Session session = sessionRepository.findByRoomUrl(roomUrl)
+                .orElseThrow(() -> KillnagiException.notFound("세션을 찾을 수 없습니다."));
+        return toResponse(session);
+    }
 
-        return new ScoreboardResponse(
-                session.getId(),
-                session.getName(),
-                session.getStatus(),
-                teamScores
-        );
+    public MatchHistoryResponse getMatchHistory(Long sessionId) {
+        Session session = getSessionOrThrow(sessionId);
+        List<Match> matches = matchRepository.findConfirmedMatchesWithResults(sessionId, MatchStatus.CONFIRMED);
+        List<MatchSummaryResponse> summaries = matches.stream()
+                .map(this::toMatchSummaryResponse)
+                .toList();
+        return new MatchHistoryResponse(session.getId(), session.getName(), matches.size(), summaries);
     }
 
     public List<SessionResponse> getMySessions(Long userId) {
@@ -137,9 +144,54 @@ public class SessionService {
                 session.getName(),
                 session.getHostNickname(),
                 session.getStatus(),
+                session.getRoomUrl(),
                 session.getTargetKills(),
                 session.getTimeLimitMinutes(),
                 session.getCreatedAt()
         );
+    }
+
+    private TeamScoreResponse toTeamScoreResponse(Team team) {
+        List<MemberScoreResponse> members = team.getMembers().stream()
+                .map(this::toMemberScoreResponse)
+                .toList();
+        return new TeamScoreResponse(
+                team.getId(), team.getName(),
+                team.getTotalKills(), team.getBonusKills(), team.getPenaltyKills(), team.getEffectiveKills(),
+                members
+        );
+    }
+
+    private MemberScoreResponse toMemberScoreResponse(TeamMember member) {
+        return new MemberScoreResponse(
+                member.getUserId(), member.getUserNickname(),
+                member.getTotalKills(), member.getBonusKills(), member.getPenaltyKills(), member.getEffectiveKills()
+        );
+    }
+
+    private MatchSummaryResponse toMatchSummaryResponse(Match match) {
+        List<MemberMatchResultResponse> memberResults = match.getResults().stream()
+                .map(this::toMemberMatchResultResponse)
+                .toList();
+        return new MatchSummaryResponse(
+                match.getId(), match.getMatchNumber(), match.getMapName(), match.getCreatedAt(), memberResults
+        );
+    }
+
+    private MemberMatchResultResponse toMemberMatchResultResponse(MatchResult result) {
+        TeamMember member = result.getTeamMember();
+        return new MemberMatchResultResponse(
+                member.getUserId(), member.getTeamId(), member.getTeamName(), member.getUserNickname(),
+                result.getKills(), result.getBonusKills(), result.getPenaltyKills(), result.getEffectiveKills(),
+                result.getPlacement(), result.isChicken()
+        );
+    }
+
+    private String generateUniqueRoomUrl() {
+        String roomUrl;
+        do {
+            roomUrl = UUID.randomUUID().toString();
+        } while (sessionRepository.existsByRoomUrl(roomUrl));
+        return roomUrl;
     }
 }

@@ -36,9 +36,15 @@ public class Match {
     @Column(name = "screenshot_url")
     private String screenshotUrl;
 
+    @Column(name = "map_name", length = 50)
+    private String mapName;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private MatchStatus status = MatchStatus.PENDING;
+
+    @OneToMany(mappedBy = "match", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<MatchResult> results = new ArrayList<>();
 
     @CreatedDate
     @Column(name = "created_at", updatable = false)
@@ -52,6 +58,10 @@ public class Match {
         this.screenshotUrl = screenshotUrl;
     }
 
+    public void confirm() {
+        this.status = MatchStatus.CONFIRMED;
+    }
+
     public void updateScreenshotUrl(String screenshotUrl) {
         this.screenshotUrl = screenshotUrl;
     }
@@ -63,9 +73,4 @@ public class Match {
     public boolean isConfirmed() {
         return this.status == MatchStatus.CONFIRMED;
     }
-
-    public void confirm() {
-        this.status = MatchStatus.CONFIRMED;
-    }
-
 }

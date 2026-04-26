@@ -17,4 +17,8 @@ public interface SessionRepository extends JpaRepository<Session, Long> {
     List<Session> findSessionsByUserId(@Param("userId") Long userId);
 
     Optional<Session> findByIdAndStatus(Long id, Session.SessionStatus status);
+
+    Optional<Session> findByRoomUrl(String roomUrl);
+
+    boolean existsByRoomUrl(String roomUrl);
 }

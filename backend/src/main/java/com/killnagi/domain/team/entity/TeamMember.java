@@ -28,6 +28,12 @@ public class TeamMember {
     @Column(name = "total_kills", nullable = false)
     private int totalKills = 0;
 
+    @Column(name = "bonus_kills", nullable = false)
+    private int bonusKills = 0;
+
+    @Column(name = "penalty_kills", nullable = false)
+    private int penaltyKills = 0;
+
     @Builder
     public TeamMember(Team team, User user, boolean isUploader) {
         this.team = team;
@@ -35,8 +41,20 @@ public class TeamMember {
         this.isUploader = isUploader;
     }
 
+    public int getEffectiveKills() {
+        return totalKills + bonusKills - penaltyKills;
+    }
+
     public void addKills(int kills) {
         this.totalKills += kills;
+    }
+
+    public void addBonus(int bonus) {
+        this.bonusKills += bonus;
+    }
+
+    public void addPenalty(int penalty) {
+        this.penaltyKills += penalty;
     }
 
     public Long getUserId() {
@@ -45,5 +63,13 @@ public class TeamMember {
 
     public String getUserNickname() {
         return this.user.getNickname();
+    }
+
+    public Long getTeamId() {
+        return this.team.getId();
+    }
+
+    public String getTeamName() {
+        return this.team.getName();
     }
 }

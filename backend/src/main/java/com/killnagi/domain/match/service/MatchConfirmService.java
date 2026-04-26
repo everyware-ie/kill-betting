@@ -32,7 +32,7 @@ public class MatchConfirmService {
         List<MatchResult> results = findConfirmableResults(match);
         validateUploaderPermission(match.getSession().getId(), requesterId);
 
-        List<Rule> rules = ruleRepository.findBySessionIdAndEnabled(match.getSession().getId(), true);
+        List<Rule> rules = ruleRepository.findByRuleSetSessionIdAndEnabled(match.getSession().getId(), true);
         applyResults(results, rules);
 
         match.confirm();
@@ -89,16 +89,28 @@ public class MatchConfirmService {
         for (Rule rule : rules) {
             switch (rule.getRuleType()) {
                 case CHICKEN_BONUS -> {
-                    if (isChicken) team.addBonus(rule.getKillValue());
+                    if (isChicken) team.addBonus(rule.getValue());
                 }
                 case SURVIVAL_PENALTY -> {
-                    if (placement != null && placement > 10) team.addPenalty(rule.getKillValue());
+                    if (placement != null && placement > 10) team.addPenalty(rule.getValue());
                 }
                 case PLACEMENT_BONUS -> {
-                    if (isChicken) team.addBonus(rule.getKillValue());
+                    if (placement != null && meetsPlacementCondition(placement, rule)) {
+                        team.addBonus(rule.getValue());
+                    }
                 }
                 case CONSECUTIVE_DEATH_PENALTY -> { /* 연속 사망 이력 필요 — 현재 미구현 */ }
             }
         }
+    }
+
+    private boolean meetsPlacementCondition(int placement, Rule rule) {
+        return switch (rule.getOperator()) {
+            case EQ  -> placement == rule.getValue();
+            case GTE -> placement >= rule.getValue();
+            case LTE -> placement <= rule.getValue();
+            case GT  -> placement > rule.getValue();
+            case LT  -> placement < rule.getValue();
+        };
     }
 }

@@ -1,5 +1,6 @@
 package com.killnagi.domain.session.entity;
 
+import com.killnagi.domain.rule.entity.RuleSet;
 import com.killnagi.domain.team.entity.Team;
 import com.killnagi.domain.user.entity.User;
 import jakarta.persistence.*;
@@ -24,6 +25,9 @@ public class Session {
     @Column(nullable = false, length = 100)
     private String name;
 
+    @Column(name = "room_url", nullable = false, unique = true, length = 36)
+    private String roomUrl;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "host_user_id", nullable = false)
     private User host;
@@ -32,14 +36,17 @@ public class Session {
     @Column(nullable = false, length = 20)
     private SessionStatus status = SessionStatus.WAITING;
 
-    // 목표 설정
     @Column(name = "target_kills")
     private Integer targetKills;
 
     @Column(name = "time_limit_minutes")
     private Integer timeLimitMinutes;
 
-    // 세션 결과
+    // 세션 생성 후 반드시 설정된다 — 생성 트랜잭션 내에서 assignCurrentRuleSet() 호출 필요
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "current_rule_set_id")
+    private RuleSet currentRuleSet;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "winner_team_id")
     private Team winnerTeam;
@@ -59,11 +66,16 @@ public class Session {
     private LocalDateTime updatedAt;
 
     @Builder
-    public Session(String name, User host, Integer targetKills, Integer timeLimitMinutes) {
+    public Session(String name, String roomUrl, User host, Integer targetKills, Integer timeLimitMinutes) {
         this.name = name;
+        this.roomUrl = roomUrl;
         this.host = host;
         this.targetKills = targetKills;
         this.timeLimitMinutes = timeLimitMinutes;
+    }
+
+    public void assignCurrentRuleSet(RuleSet ruleSet) {
+        this.currentRuleSet = ruleSet;
     }
 
     public void start() {
