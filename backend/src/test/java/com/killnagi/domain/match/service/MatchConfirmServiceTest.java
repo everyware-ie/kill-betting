@@ -6,6 +6,7 @@ import com.killnagi.domain.match.entity.MatchResult;
 import com.killnagi.domain.match.repository.MatchRepository;
 import com.killnagi.domain.match.repository.MatchResultRepository;
 import com.killnagi.domain.rule.entity.Rule;
+import com.killnagi.domain.rule.entity.Rule.Operator;
 import com.killnagi.domain.rule.entity.Rule.RuleType;
 import com.killnagi.domain.rule.repository.RuleRepository;
 import com.killnagi.domain.session.entity.Session;
@@ -197,6 +198,32 @@ class MatchConfirmServiceTest {
         matchConfirmService.confirm(MATCH_ID, USER_ID);
 
         assertThat(team.getPenaltyKills()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("순위 조건을 만족하면 PLACEMENT_BONUS 규칙이 팀 보너스 킬에 적용된다")
+    void should_ApplyPlacementBonus_when_PlacementMeetsCondition() {
+        MatchResult top3Result = MatchResult.builder()
+                .match(pendingMatch)
+                .teamMember(member)
+                .kills(4)
+                .placement(2)
+                .build();
+
+        Rule placementBonus = mock(Rule.class);
+        given(placementBonus.getRuleType()).willReturn(RuleType.PLACEMENT_BONUS);
+        given(placementBonus.getOperator()).willReturn(Operator.LTE);
+        given(placementBonus.getValue()).willReturn(3);
+
+        given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
+        given(matchResultRepository.findByMatch(pendingMatch)).willReturn(List.of(top3Result));
+        given(teamMemberRepository.existsByTeam_Session_IdAndUserIdAndIsUploaderTrue(SESSION_ID, USER_ID))
+                .willReturn(true);
+        given(ruleRepository.findByRuleSetSessionIdAndEnabled(SESSION_ID, true)).willReturn(List.of(placementBonus));
+
+        matchConfirmService.confirm(MATCH_ID, USER_ID);
+
+        assertThat(team.getBonusKills()).isEqualTo(3);
     }
 
     @Test

@@ -95,10 +95,22 @@ public class MatchConfirmService {
                     if (placement != null && placement > 10) team.addPenalty(rule.getValue());
                 }
                 case PLACEMENT_BONUS -> {
-                    if (isChicken) team.addBonus(rule.getValue());
+                    if (placement != null && meetsPlacementCondition(placement, rule)) {
+                        team.addBonus(rule.getValue());
+                    }
                 }
                 case CONSECUTIVE_DEATH_PENALTY -> { /* 연속 사망 이력 필요 — 현재 미구현 */ }
             }
         }
+    }
+
+    private boolean meetsPlacementCondition(int placement, Rule rule) {
+        return switch (rule.getOperator()) {
+            case EQ  -> placement == rule.getValue();
+            case GTE -> placement >= rule.getValue();
+            case LTE -> placement <= rule.getValue();
+            case GT  -> placement > rule.getValue();
+            case LT  -> placement < rule.getValue();
+        };
     }
 }

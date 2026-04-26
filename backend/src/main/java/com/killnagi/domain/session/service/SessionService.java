@@ -181,7 +181,7 @@ public class SessionService {
     private MemberMatchResultResponse toMemberMatchResultResponse(MatchResult result) {
         TeamMember member = result.getTeamMember();
         return new MemberMatchResultResponse(
-                member.getId(), member.getTeamId(), member.getTeamName(), member.getUserNickname(),
+                member.getUserId(), member.getTeamId(), member.getTeamName(), member.getUserNickname(),
                 result.getKills(), result.getBonusKills(), result.getPenaltyKills(), result.getEffectiveKills(),
                 result.getPlacement(), result.isChicken()
         );

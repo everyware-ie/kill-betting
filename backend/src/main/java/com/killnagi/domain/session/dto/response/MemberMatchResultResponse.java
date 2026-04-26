@@ -1,7 +1,7 @@
 package com.killnagi.domain.session.dto.response;
 
 public record MemberMatchResultResponse(
-        Long memberId,
+        Long userId,
         Long teamId,
         String teamName,
         String nickname,
