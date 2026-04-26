@@ -26,7 +26,7 @@ public class MatchResult {
     private int kills;
 
     @Column(name = "placement")
-    private Integer placement;  // 등수 (치킨=1)
+    private Integer placement;
 
     @Column(name = "is_chicken", nullable = false)
     private boolean isChicken = false;

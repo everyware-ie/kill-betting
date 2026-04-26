@@ -1,6 +1,7 @@
 package com.killnagi.domain.match.repository;
 
 import com.killnagi.domain.match.entity.Match;
+import com.killnagi.domain.match.entity.MatchStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,7 +14,6 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
 
     int countBySessionId(Long sessionId);
 
-    // 확정된 매치와 팀원 결과를 한 번에 조회 (N+1 방지)
     @Query("SELECT DISTINCT m FROM Match m " +
            "JOIN FETCH m.results r " +
            "JOIN FETCH r.teamMember tm " +
@@ -23,6 +23,6 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
            "ORDER BY m.matchNumber ASC")
     List<Match> findConfirmedMatchesWithResults(
             @Param("sessionId") Long sessionId,
-            @Param("status") Match.MatchStatus status
+            @Param("status") MatchStatus status
     );
 }

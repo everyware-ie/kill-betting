@@ -1,7 +1,6 @@
 package com.killnagi.domain.team.entity;
 
 import com.killnagi.domain.session.entity.Session;
-import com.killnagi.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
 

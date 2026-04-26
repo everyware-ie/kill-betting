@@ -1,14 +1,20 @@
 package com.killnagi.domain.session.service;
 
 import com.killnagi.common.exception.KillnagiException;
-import com.killnagi.domain.rule.entity.Rule;
-import com.killnagi.domain.rule.entity.RuleSet;
 import com.killnagi.domain.match.repository.MatchRepository;
+import com.killnagi.domain.match.service.MatchService;
+import com.killnagi.domain.rule.entity.Rule;
+import com.killnagi.domain.rule.entity.Rule.Operator;
+import com.killnagi.domain.rule.entity.Rule.RuleType;
+import com.killnagi.domain.rule.entity.RuleSet;
 import com.killnagi.domain.rule.repository.RuleRepository;
 import com.killnagi.domain.rule.repository.RuleSetRepository;
-import com.killnagi.domain.session.dto.SessionDto;
+import com.killnagi.domain.session.dto.request.CreateRequest;
+import com.killnagi.domain.session.dto.request.RuleRequest;
+import com.killnagi.domain.session.dto.response.SessionResponse;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.session.repository.SessionRepository;
+import com.killnagi.domain.team.repository.TeamMemberRepository;
 import com.killnagi.domain.team.repository.TeamRepository;
 import com.killnagi.domain.user.entity.User;
 import com.killnagi.domain.user.repository.UserRepository;
@@ -35,9 +41,11 @@ class SessionServiceTest {
     @Mock private SessionRepository sessionRepository;
     @Mock private UserRepository userRepository;
     @Mock private TeamRepository teamRepository;
+    @Mock private TeamMemberRepository teamMemberRepository;
     @Mock private RuleRepository ruleRepository;
     @Mock private RuleSetRepository ruleSetRepository;
     @Mock private MatchRepository matchRepository;
+    @Mock private MatchService matchService;
     @InjectMocks private SessionService sessionService;
 
     @Test
@@ -51,13 +59,13 @@ class SessionServiceTest {
         given(sessionRepository.existsByRoomUrl(any())).willReturn(false);
         given(sessionRepository.save(any())).willReturn(savedSession);
         given(ruleSetRepository.save(any())).willReturn(savedRuleSet);
-        SessionDto.CreateRequest request = new SessionDto.CreateRequest(
+
+        CreateRequest request = new CreateRequest(
                 "테스트 세션", 10, 60,
-                List.of(new SessionDto.RuleRequest(
-                        Rule.RuleType.CHICKEN_BONUS, Rule.Operator.EQ, 3))
+                List.of(new RuleRequest(RuleType.CHICKEN_BONUS, Operator.EQ, 3))
         );
 
-        SessionDto.SessionResponse response = sessionService.createSession(1L, request);
+        SessionResponse response = sessionService.createSession(1L, request);
 
         assertThat(response).isNotNull();
         then(sessionRepository).should().save(any(Session.class));
@@ -77,8 +85,7 @@ class SessionServiceTest {
         given(sessionRepository.save(any())).willReturn(savedSession);
         given(ruleSetRepository.save(any())).willReturn(savedRuleSet);
 
-        SessionDto.CreateRequest request = new SessionDto.CreateRequest(
-                "테스트 세션", null, null, null);
+        CreateRequest request = new CreateRequest("테스트 세션", null, null, null);
 
         sessionService.createSession(1L, request);
 
@@ -90,8 +97,7 @@ class SessionServiceTest {
     void createSession_존재하지않는_사용자면_예외를_던진다() {
         given(userRepository.findById(99L)).willReturn(Optional.empty());
 
-        SessionDto.CreateRequest request = new SessionDto.CreateRequest(
-                "테스트 세션", null, null, null);
+        CreateRequest request = new CreateRequest("테스트 세션", null, null, null);
 
         assertThatThrownBy(() -> sessionService.createSession(99L, request))
                 .isInstanceOf(KillnagiException.class)

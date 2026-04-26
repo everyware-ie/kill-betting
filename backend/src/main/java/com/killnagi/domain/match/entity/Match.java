@@ -1,6 +1,7 @@
 package com.killnagi.domain.match.entity;
 
 import com.killnagi.domain.session.entity.Session;
+import com.killnagi.domain.team.entity.Team;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -25,6 +26,10 @@ public class Match {
     @JoinColumn(name = "session_id", nullable = false)
     private Session session;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "team_id", nullable = false)
+    private Team team;
+
     @Column(name = "match_number", nullable = false)
     private int matchNumber;
 
@@ -46,14 +51,14 @@ public class Match {
     private LocalDateTime createdAt;
 
     @Builder
-    public Match(Session session, int matchNumber, String screenshotUrl) {
+    public Match(Session session, Team team, int matchNumber, String screenshotUrl) {
         this.session = session;
+        this.team = team;
         this.matchNumber = matchNumber;
         this.screenshotUrl = screenshotUrl;
     }
 
-    public void confirm(String mapName) {
-        this.mapName = mapName;
+    public void confirm() {
         this.status = MatchStatus.CONFIRMED;
     }
 
@@ -61,7 +66,11 @@ public class Match {
         this.screenshotUrl = screenshotUrl;
     }
 
-    public enum MatchStatus {
-        PENDING, CONFIRMED
+    public boolean isConfirmable() {
+        return this.status == MatchStatus.PENDING;
+    }
+
+    public boolean isConfirmed() {
+        return this.status == MatchStatus.CONFIRMED;
     }
 }
