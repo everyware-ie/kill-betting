@@ -82,6 +82,6 @@ public class User {
     }
 
     public boolean hasId(Long userId) {
-        return this.id.equals(userId);
+        return this.id != null && this.id.equals(userId);
     }
 }

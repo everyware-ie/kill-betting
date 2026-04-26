@@ -51,22 +51,21 @@ class SessionTest {
     }
 
     @Test
-    @DisplayName("isHostedBy()는 호스트 ID가 일치할 때 true를 반환한다")
-    void isHostedBy_호스트ID가_일치하면_true() {
+    @DisplayName("isHostedBy()는 영속화 전 호스트는 어떤 ID와도 일치하지 않는다")
+    void isHostedBy_영속화전_호스트는_어떤ID와도_일치하지_않는다() {
         User host = User.builder()
                 .nickname("testHost")
                 .email("host@test.com")
                 .password("pw")
                 .build();
-        // 리플렉션 없이 검증 가능한 User.hasId() 의존
         Session session = Session.builder()
                 .name("테스트 세션")
                 .roomUrl("abc-123")
                 .host(host)
                 .build();
 
-        // host.id는 null이므로 false (영속화 전 상태)
         assertThat(session.isHostedBy(null)).isFalse();
+        assertThat(session.isHostedBy(1L)).isFalse();
     }
 
     private Session sessionWithRoomUrl(String roomUrl) {
