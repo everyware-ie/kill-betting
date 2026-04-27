@@ -80,7 +80,7 @@ jobs:
 
             # 새 이미지로 재배포
             IMAGE_TAG=${{ github.sha }} docker compose pull
-            IMAGE_TAG=${{ github.sha }} docker compose up -d --remove-orphans
+            IMAGE_TAG=${{ github.sha }} docker compose up -d --no-build --remove-orphans
 
             # 오래된 이미지 정리
             docker image prune -f
