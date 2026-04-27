@@ -114,7 +114,7 @@ class MatchConfirmServiceTest {
     void should_ThrowForbidden_when_RequesterIsNotUploader() {
         given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
         given(matchResultRepository.findByMatch(pendingMatch)).willReturn(List.of(result));
-        given(teamMemberRepository.existsByTeam_Session_IdAndUserIdAndIsUploaderTrue(SESSION_ID, USER_ID))
+        given(teamMemberRepository.existsByTeam_Session_IdAndUser_IdAndIsUploaderTrue(SESSION_ID, USER_ID))
                 .willReturn(false);
 
         assertThatThrownBy(() -> matchConfirmService.confirm(MATCH_ID, USER_ID))
@@ -127,7 +127,7 @@ class MatchConfirmServiceTest {
     void should_AddKillsToTeam_when_MatchIsConfirmed() {
         given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
         given(matchResultRepository.findByMatch(pendingMatch)).willReturn(List.of(result));
-        given(teamMemberRepository.existsByTeam_Session_IdAndUserIdAndIsUploaderTrue(SESSION_ID, USER_ID))
+        given(teamMemberRepository.existsByTeam_Session_IdAndUser_IdAndIsUploaderTrue(SESSION_ID, USER_ID))
                 .willReturn(true);
         given(ruleRepository.findByRuleSetSessionIdAndEnabled(SESSION_ID, true)).willReturn(List.of());
 
@@ -141,7 +141,7 @@ class MatchConfirmServiceTest {
     void should_UpdateTeamMemberKills_when_MatchIsConfirmed() {
         given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
         given(matchResultRepository.findByMatch(pendingMatch)).willReturn(List.of(result));
-        given(teamMemberRepository.existsByTeam_Session_IdAndUserIdAndIsUploaderTrue(SESSION_ID, USER_ID))
+        given(teamMemberRepository.existsByTeam_Session_IdAndUser_IdAndIsUploaderTrue(SESSION_ID, USER_ID))
                 .willReturn(true);
         given(ruleRepository.findByRuleSetSessionIdAndEnabled(SESSION_ID, true)).willReturn(List.of());
 
@@ -166,7 +166,7 @@ class MatchConfirmServiceTest {
 
         given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
         given(matchResultRepository.findByMatch(pendingMatch)).willReturn(List.of(chickenResult));
-        given(teamMemberRepository.existsByTeam_Session_IdAndUserIdAndIsUploaderTrue(SESSION_ID, USER_ID))
+        given(teamMemberRepository.existsByTeam_Session_IdAndUser_IdAndIsUploaderTrue(SESSION_ID, USER_ID))
                 .willReturn(true);
         given(ruleRepository.findByRuleSetSessionIdAndEnabled(SESSION_ID, true)).willReturn(List.of(chickenBonus));
 
@@ -191,7 +191,7 @@ class MatchConfirmServiceTest {
 
         given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
         given(matchResultRepository.findByMatch(pendingMatch)).willReturn(List.of(lateResult));
-        given(teamMemberRepository.existsByTeam_Session_IdAndUserIdAndIsUploaderTrue(SESSION_ID, USER_ID))
+        given(teamMemberRepository.existsByTeam_Session_IdAndUser_IdAndIsUploaderTrue(SESSION_ID, USER_ID))
                 .willReturn(true);
         given(ruleRepository.findByRuleSetSessionIdAndEnabled(SESSION_ID, true)).willReturn(List.of(penalty));
 
@@ -217,7 +217,7 @@ class MatchConfirmServiceTest {
 
         given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
         given(matchResultRepository.findByMatch(pendingMatch)).willReturn(List.of(top3Result));
-        given(teamMemberRepository.existsByTeam_Session_IdAndUserIdAndIsUploaderTrue(SESSION_ID, USER_ID))
+        given(teamMemberRepository.existsByTeam_Session_IdAndUser_IdAndIsUploaderTrue(SESSION_ID, USER_ID))
                 .willReturn(true);
         given(ruleRepository.findByRuleSetSessionIdAndEnabled(SESSION_ID, true)).willReturn(List.of(placementBonus));
 
@@ -231,7 +231,7 @@ class MatchConfirmServiceTest {
     void should_MarkMatchAsConfirmed_when_ConfirmSucceeds() {
         given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
         given(matchResultRepository.findByMatch(pendingMatch)).willReturn(List.of(result));
-        given(teamMemberRepository.existsByTeam_Session_IdAndUserIdAndIsUploaderTrue(SESSION_ID, USER_ID))
+        given(teamMemberRepository.existsByTeam_Session_IdAndUser_IdAndIsUploaderTrue(SESSION_ID, USER_ID))
                 .willReturn(true);
         given(ruleRepository.findByRuleSetSessionIdAndEnabled(SESSION_ID, true)).willReturn(List.of());
 

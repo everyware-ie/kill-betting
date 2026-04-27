@@ -56,7 +56,7 @@ public class TeamService {
             throw KillnagiException.badRequest("팀은 최대 " + MAX_TEAM_SIZE + "명까지 구성할 수 있습니다.");
         }
 
-        if (teamMemberRepository.existsByTeam_Session_IdAndUserId(sessionId, request.userId())) {
+        if (teamMemberRepository.existsByTeam_Session_IdAndUser_Id(sessionId, request.userId())) {
             throw KillnagiException.badRequest("이미 세션에 참여 중인 사용자입니다.");
         }
 

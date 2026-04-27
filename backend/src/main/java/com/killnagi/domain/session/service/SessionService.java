@@ -127,7 +127,7 @@ public class SessionService {
     @Transactional
     public ScreenshotUploadResponse uploadMatchImage(Long sessionId, Long uploaderId, MultipartFile file) {
         Session session = getSessionOrThrow(sessionId);
-        Team team = teamMemberRepository.findByTeam_SessionIdAndUserId(sessionId, uploaderId)
+        Team team = teamMemberRepository.findByTeam_SessionIdAndUser_Id(sessionId, uploaderId)
                 .orElseThrow(() -> KillnagiException.notFound("해당 세션에 속한 팀을 찾을 수 없습니다."))
                 .getTeam();
         return matchService.uploadScreenshot(session, team, file);

@@ -63,7 +63,7 @@ public class MatchConfirmService {
     }
 
     private void validateUploaderPermission(Long sessionId, Long requesterId) {
-        if (!teamMemberRepository.existsByTeam_Session_IdAndUserIdAndIsUploaderTrue(sessionId, requesterId)) {
+        if (!teamMemberRepository.existsByTeam_Session_IdAndUser_IdAndIsUploaderTrue(sessionId, requesterId)) {
             throw KillnagiException.forbidden("업로더 권한이 있는 사용자만 결과를 확정할 수 있습니다.");
         }
     }
