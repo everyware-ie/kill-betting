@@ -5,6 +5,7 @@ import com.killnagi.domain.team.dto.request.AddMemberRequest;
 import com.killnagi.domain.team.dto.request.CreateTeamRequest;
 import com.killnagi.domain.team.dto.response.TeamResponse;
 import com.killnagi.domain.team.service.TeamService;
+import com.killnagi.domain.team.controller.docs.TeamControllerDocs;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +23,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/sessions/{sessionId}/teams")
 @RequiredArgsConstructor
-public class TeamController {
+public class TeamController implements TeamControllerDocs {
 
     private final TeamService teamService;
 

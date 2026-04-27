@@ -6,6 +6,7 @@ import com.killnagi.domain.user.dto.request.SignUpRequest;
 import com.killnagi.domain.user.dto.response.TokenResponse;
 import com.killnagi.domain.user.dto.response.UserInfoResponse;
 import com.killnagi.domain.user.service.AuthService;
+import com.killnagi.domain.user.controller.docs.AuthControllerDocs;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
-public class AuthController {
+public class AuthController implements AuthControllerDocs {
 
     private final AuthService authService;
 

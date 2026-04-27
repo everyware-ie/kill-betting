@@ -3,6 +3,7 @@ package com.killnagi.domain.match.controller;
 import com.killnagi.common.response.ApiResponse;
 import com.killnagi.domain.match.dto.response.ConfirmResponse;
 import com.killnagi.domain.match.service.MatchConfirmService;
+import com.killnagi.domain.match.controller.docs.MatchControllerDocs;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -15,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/matches")
 @RequiredArgsConstructor
-public class MatchController {
+public class MatchController implements MatchControllerDocs {
 
     private final MatchConfirmService matchConfirmService;
 
