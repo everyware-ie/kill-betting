@@ -3,38 +3,42 @@ services:
     image: mysql:8.0
     container_name: killnagi-mysql
     environment:
-      MYSQL_DATABASE: killnagi
-      MYSQL_ROOT_PASSWORD: killnagi_password
+      MYSQL_DATABASE: ${DB_NAME:-killnagi}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
     ports:
       - "3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pkillnagi_password"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD}"]
       interval: 10s
       timeout: 5s
       retries: 5
 
   backend:
-    build:
-      context: ./backend
+    image: ghcr.io/everyware-ie/kill-betting-backend:${IMAGE_TAG:-latest}
     container_name: killnagi-backend
     environment:
       DB_HOST: mysql
       DB_PORT: 3306
-      DB_NAME: killnagi
-      DB_USERNAME: root
-      DB_PASSWORD: killnagi_password
-      JWT_SECRET: secretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecret
+      DB_NAME: ${DB_NAME:-killnagi}
+      DB_USERNAME: ${DB_USERNAME:-root}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      NAVER_OCR_URL: ${NAVER_OCR_URL:-}
+      NAVER_OCR_SECRET_KEY: ${NAVER_OCR_SECRET_KEY:-}
+      FILE_UPLOAD_DIR: ${FILE_UPLOAD_DIR:-uploads}
+      FILE_BASE_URL: ${FILE_BASE_URL:-http://localhost:8080/files}
     ports:
       - "8080:8080"
     depends_on:
       mysql:
         condition: service_healthy
+    volumes:
+      - upload-data:/app/uploads
 
   frontend:
-    build:
-      context: ./frontend
+    image: ghcr.io/everyware-ie/kill-betting-frontend:${IMAGE_TAG:-latest}
     container_name: killnagi-frontend
     ports:
       - "3000:80"
@@ -43,3 +47,4 @@ services:
 
 volumes:
   mysql-data:
+  upload-data:

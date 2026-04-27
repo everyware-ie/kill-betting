@@ -36,7 +36,18 @@ file:
   upload-dir: ${FILE_UPLOAD_DIR:uploads}
   base-url: ${FILE_BASE_URL:http://localhost:8080/files}
 
+naver:
+  ocr:
+    url: ${NAVER_OCR_URL:}
+    secret-key: ${NAVER_OCR_SECRET_KEY:}
+
 logging:
   level:
     com.killnagi: DEBUG
     org.hibernate.SQL: DEBUG
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
