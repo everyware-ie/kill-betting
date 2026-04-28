@@ -35,60 +35,97 @@ import { MAX_PLAYERS_PER_TEAM } from '@/mock/rooms';
 import Button from '@/components/ui/Button';
 import RoleGuideModal from '@/components/ui/RoleGuideModal';
 
-// ── 초대 코드 배지 (클릭하면 클립보드 복사) ──
-function CopyCodeBadge({ code }) {
-  const [copied, setCopied] = useState(false);
-  const [copyFailed, setCopyFailed] = useState(false);
+const normalizeId = (value) => (value == null ? '' : String(value));
+const sameId = (a, b) => normalizeId(a) === normalizeId(b);
 
-  const handleCopy = async () => {
+// ── 클립보드 복사 헬퍼 ──
+async function copyToClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const el = document.createElement('input');
+    el.value = text;
+    document.body.appendChild(el);
+    el.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(el);
+    return ok;
+  }
+}
+
+// ── 초대 코드 + URL 공유 배지 ──
+// code  : 초대 코드 문자열 (예: "0e0071b1-85d1-48a...")
+// 공유 URL : window.location.origin + '/join/' + code
+function CopyCodeBadge({ code }) {
+  const [codeCopied, setCodeCopied] = useState(false);
+  const [urlCopied,  setUrlCopied]  = useState(false);
+
+  const shareUrl = code ? `${typeof window !== 'undefined' ? window.location.origin : ''}/join/${code}` : null;
+
+  const handleCopyCode = async () => {
     if (!code) return;
-    let success = false;
-    try {
-      await navigator.clipboard.writeText(code);
-      success = true;
-    } catch {
-      // clipboard API 미지원 시 fallback (execCommand는 성공 여부를 boolean으로 반환)
-      const el = document.createElement('input');
-      el.value = code;
-      document.body.appendChild(el);
-      el.select();
-      success = document.execCommand('copy');
-      document.body.removeChild(el);
-    }
-    if (success) {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } else {
-      setCopyFailed(true);
-      setTimeout(() => setCopyFailed(false), 2000);
-    }
+    const ok = await copyToClipboard(code);
+    if (ok) { setCodeCopied(true); setTimeout(() => setCodeCopied(false), 2000); }
+  };
+
+  const handleCopyUrl = async () => {
+    if (!shareUrl) return;
+    const ok = await copyToClipboard(shareUrl);
+    if (ok) { setUrlCopied(true); setTimeout(() => setUrlCopied(false), 2000); }
   };
 
   return (
-    <button
-      onClick={handleCopy}
-      title="클릭하면 코드를 복사합니다"
-      style={{
-        background: '#141200',
-        border: `1px solid ${copied ? 'rgba(76,175,80,0.5)' : copyFailed ? 'rgba(229,57,53,0.5)' : 'rgba(200,155,0,0.25)'}`,
-        borderRadius: 4, padding: '4px 12px',
-        textAlign: 'center', cursor: 'pointer',
-        transition: 'border-color .2s',
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
-      }}
-    >
-      <div style={{ fontSize: 9, color: copied ? '#4CAF50' : copyFailed ? '#E53935' : '#8A8060', letterSpacing: 1.5 }}>
-        {copied ? '✓ 복사됨' : copyFailed ? '✕ 복사 실패' : '초대 코드  📋'}
-      </div>
-      <div style={{
-        fontSize: 13, fontWeight: 700,
-        fontFamily: "'Share Tech Mono', monospace",
-        color: copied ? '#4CAF50' : copyFailed ? '#E53935' : '#F5A623',
-        letterSpacing: 2,
-      }}>
-        {code ?? '—'}
-      </div>
-    </button>
+    <div style={{ display: 'flex', alignItems: 'stretch', gap: 6 }}>
+
+      {/* 초대 코드 복사 버튼 */}
+      <button
+        onClick={handleCopyCode}
+        title="초대 코드 복사"
+        style={{
+          background: '#141200',
+          border: `1px solid ${codeCopied ? 'rgba(76,175,80,0.5)' : 'rgba(200,155,0,0.25)'}`,
+          borderRadius: 4, padding: '4px 12px',
+          textAlign: 'center', cursor: 'pointer',
+          transition: 'border-color .2s',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
+        }}
+      >
+        <div style={{ fontSize: 9, color: codeCopied ? '#4CAF50' : '#8A8060', letterSpacing: 1.5 }}>
+          {codeCopied ? '✓ 복사됨' : '초대 코드  📋'}
+        </div>
+        <div style={{
+          fontSize: 13, fontWeight: 700,
+          fontFamily: "'Share Tech Mono', monospace",
+          color: codeCopied ? '#4CAF50' : '#F5A623',
+          letterSpacing: 2,
+          maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {code ?? '—'}
+        </div>
+      </button>
+
+      {/* URL 공유 버튼 */}
+      <button
+        onClick={handleCopyUrl}
+        title="입장 링크 복사 — 클릭 한 번에 바로 입장"
+        style={{
+          background: urlCopied ? 'rgba(76,175,80,0.1)' : 'rgba(200,155,0,0.07)',
+          border: `1px solid ${urlCopied ? 'rgba(76,175,80,0.45)' : 'rgba(200,155,0,0.25)'}`,
+          borderRadius: 4, padding: '4px 12px',
+          cursor: 'pointer', transition: 'all .2s',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
+        }}
+      >
+        <div style={{ fontSize: 9, color: urlCopied ? '#4CAF50' : '#8A8060', letterSpacing: 1.5 }}>
+          {urlCopied ? '✓ 복사됨' : '입장 링크  🔗'}
+        </div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: urlCopied ? '#4CAF50' : '#C8B878' }}>
+          URL 복사
+        </div>
+      </button>
+
+    </div>
   );
 }
 
@@ -209,13 +246,25 @@ export default function SetupPage() {
   const [inputs,   setInputs]   = useState({});
   const [showRuleModal,  setShowRuleModal]  = useState(false);
   const [showRoleGuide,  setShowRoleGuide]  = useState(false);
+  // 방장이 대기석 유저를 팀에 배정할 때 열리는 드롭다운 (userId | null)
+  const [assignDropdown, setAssignDropdown] = useState(null);
+  // 방장이 팀 내 멤버를 이동/대기석으로 보낼 때 열리는 드롭다운 ("teamId-userId" | null)
+  const [memberDropdown, setMemberDropdown] = useState(null);
 
   // 현재 내가 속한 팀
-  const myTeam = room?.teams.find((t) => t.members?.some((m) => m.userId === user?.id));
+  const myTeam = room?.teams.find((t) => t.members?.some((m) => sameId(m.userId, user?.id)));
   // 방장(HOST) userId — 팀 카드에서 방장 배지 표시에 사용
   const hostUserId = room?.participants?.find((p) => p.role === 'HOST')?.userId;
   // 내가 방장인지 여부
-  const isHost = hostUserId === user?.id;
+  const isHost = sameId(hostUserId, user?.id);
+
+  // 드롭다운 외부 클릭 시 닫기
+  useEffect(() => {
+    if (!assignDropdown && !memberDropdown) return;
+    const handler = () => { setAssignDropdown(null); setMemberDropdown(null); };
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, [assignDropdown, memberDropdown]);
 
   // ── 방 정보 폴링 ──
   // TODO: 백엔드 WebSocket 연동 시 이 useEffect를 제거하고
@@ -247,6 +296,7 @@ export default function SetupPage() {
   // 대기석에서 처음 참여하거나, 이미 팀에 있을 때 다른 팀으로 이동
   const handleMoveTeam = async (newTeamId) => {
     if (myTeam?.id === newTeamId) return;
+    setError('');
     isActionInProgress.current = true;
     const res = await RoomAPI.joinTeam(roomId, newTeamId, user);
     if (res.ok) setRoom((r) => ({ ...r, teams: res.teams }));
@@ -257,6 +307,7 @@ export default function SetupPage() {
   // ── 대기석으로 이동 (팀 탈퇴) ──
   const handleLeaveTeam = async () => {
     if (!myTeam) return;
+    setError('');
     isActionInProgress.current = true;
     const res = await RoomAPI.leaveTeam(roomId, myTeam.id, user.id);
     if (res.ok) setRoom((r) => ({ ...r, teams: res.teams }));
@@ -266,6 +317,7 @@ export default function SetupPage() {
 
   // ── 운영자 위임 ──
   const handleSetLeader = async (teamId, targetUserId) => {
+    setError('');
     const res = await RoomAPI.setLeader(roomId, teamId, targetUserId);
     if (res.ok) setRoom((r) => ({ ...r, teams: res.teams }));
     else setError(res.error);
@@ -306,10 +358,74 @@ export default function SetupPage() {
 
   // ── 팀 추가 ──
   const handleAddTeam = async () => {
+    setError('');
     isActionInProgress.current = true;
     const res = await RoomAPI.addTeam(roomId);
     if (res.ok) setRoom((r) => ({ ...r, teams: res.teams }));
     else setError(res.error);
+    isActionInProgress.current = false;
+  };
+
+  // ── 팀 삭제 (방장 전용, 멤버·플레이어 없는 팀만 가능) ──
+  const handleRemoveTeam = async (teamId) => {
+    const team = room.teams.find((t) => t.id === teamId);
+    if (!team) return;
+    if ((team.members || []).length > 0) { setError('팀에 참여한 유저가 있어 삭제할 수 없습니다'); return; }
+    if (team.players.length > 0)         { setError('등록된 배그 닉네임이 있어 삭제할 수 없습니다'); return; }
+    setError('');
+    isActionInProgress.current = true;
+    const res = await RoomAPI.removeTeam(roomId, teamId);
+    if (res.ok) setRoom((r) => ({ ...r, teams: res.teams }));
+    else setError(res.error);
+    isActionInProgress.current = false;
+  };
+
+  // ── 대기석 유저 → 팀 LEADER 배정 (방장 전용) ──
+  // targetUserId  : 배정할 대기석 유저의 ID
+  // targetUsername: 해당 유저의 닉네임 (화면 표시용)
+  // teamId        : 배정할 팀 ID
+  const handleAssignToTeam = async (targetUserId, targetUsername, teamId) => {
+    setAssignDropdown(null);
+    setError('');
+    isActionInProgress.current = true;
+
+    // PUT /api/sessions/{roomId}/teams/{teamId}/operator  { userId }
+    // → setLeader가 configure 재조회 후 최신 teams 반환
+    const res = await RoomAPI.setLeader(roomId, teamId, targetUserId);
+    if (res.ok && res.teams) {
+      setRoom((r) => ({ ...r, teams: res.teams }));
+    } else if (!res.ok) {
+      setError(res.error || `${targetUsername}님을 팀에 배정하는 데 실패했습니다`);
+    }
+    isActionInProgress.current = false;
+  };
+
+  // ── 팀 멤버 → 대기석으로 이동 (방장 전용) ──
+  const handleMoveToWaiting = async (fromTeamId, targetUserId, targetUsername) => {
+    setMemberDropdown(null);
+    setError('');
+    isActionInProgress.current = true;
+    const res = await RoomAPI.leaveTeam(roomId, fromTeamId, targetUserId);
+    if (res.ok) {
+      const refreshed = await RoomAPI.get(roomId);
+      if (refreshed.ok) setRoom(refreshed.room);
+    } else {
+      setError(res.error || `${targetUsername}님을 대기석으로 이동하는 데 실패했습니다`);
+    }
+    isActionInProgress.current = false;
+  };
+
+  // ── 팀 멤버 → 다른 팀 LEADER로 이동 (방장 전용) ──
+  const handleMoveMemberToTeam = async (targetUserId, targetUsername, newTeamId) => {
+    setMemberDropdown(null);
+    setError('');
+    isActionInProgress.current = true;
+    const res = await RoomAPI.setLeader(roomId, newTeamId, targetUserId);
+    if (res.ok && res.teams) {
+      setRoom((r) => ({ ...r, teams: res.teams }));
+    } else if (!res.ok) {
+      setError(res.error || `${targetUsername}님을 이동하는 데 실패했습니다`);
+    }
     isActionInProgress.current = false;
   };
 
@@ -334,6 +450,15 @@ export default function SetupPage() {
   // 시작 조건: 팀이 2개 이상 + 전체 닉네임 합계 2명 이상
   const canStart = (room?.teams.length ?? 0) >= 2 && totalPlayers >= 2;
   const maxPerTeam = MAX_PLAYERS_PER_TEAM[room?.rule?.gameMode] || 4;
+  const allTeamUserIds = new Set(
+    room?.teams.flatMap((t) => (t.members || []).map((m) => normalizeId(m.userId))) || []
+  );
+  const waitingUsers = (room?.participants || []).filter(
+    (p) => !allTeamUserIds.has(normalizeId(p.userId))
+  );
+  const visibleWaitingUsers = !myTeam && user && !waitingUsers.some((p) => sameId(p.userId, user.id))
+    ? [{ userId: normalizeId(user.id), username: user.username, role: 'MEMBER', isLocalUser: true }, ...waitingUsers]
+    : waitingUsers;
 
   if (loading) return <div style={{ minHeight: '100vh', background: '#12100A', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8A8060' }}>불러오는 중...</div>;
   if (error && !room) return <div style={{ minHeight: '100vh', background: '#12100A', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#E53935' }}>{error}</div>;
@@ -406,33 +531,107 @@ export default function SetupPage() {
           <span style={{ padding: '2px 10px', borderRadius: 3, fontSize: 11, fontWeight: 700, background: 'rgba(200,155,0,0.12)', color: '#8A8060', border: '1px solid rgba(200,155,0,0.2)' }}>
             ⏳ 대기석
           </span>
-          <span style={{ color: '#8A8060' }}>아직 팀에 참여하지 않았습니다. 아래에서 참여할 팀을 선택하세요.</span>
+          <span style={{ color: '#8A8060' }}>
+            {user?.username ? `${user.username}님은 아직 팀에 참여하지 않았습니다. 아래에서 참여할 팀을 선택하세요.` : '아직 팀에 참여하지 않았습니다. 아래에서 참여할 팀을 선택하세요.'}
+          </span>
         </div>
       )}
 
       {/* ── 대기석 유저 목록 ── */}
       {(() => {
-        const allTeamUserIds = new Set(
-          room?.teams.flatMap((t) => (t.members || []).map((m) => m.userId)) || []
-        );
-        const waitingUsers = (room?.participants || []).filter(
-          (p) => !allTeamUserIds.has(p.userId)
-        );
-        if (waitingUsers.length === 0) return null;
+        if (visibleWaitingUsers.length === 0) return null;
         return (
           <div style={{ background: 'rgba(100,100,100,0.05)', borderBottom: '1px solid rgba(200,155,0,0.08)', padding: '8px 24px', flexShrink: 0 }}>
-            <div style={{ fontSize: 10, color: '#8A8060', letterSpacing: 1, marginBottom: 6 }}>⏳ 대기석 ({waitingUsers.length}명)</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <span style={{ fontSize: 10, color: '#8A8060', letterSpacing: 1 }}>⏳ 대기석 ({visibleWaitingUsers.length}명)</span>
+              {isHost && <span style={{ fontSize: 10, color: '#8A8060' }}>— 유저 옆 버튼을 눌러 팀에 배정할 수 있습니다</span>}
+            </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {waitingUsers.map((p) => {
-                const isMe = p.userId === user?.id;
-                const isHostUser = p.userId === hostUserId;
+              {visibleWaitingUsers.map((p) => {
+                const isMe       = sameId(p.userId, user?.id);
+                const isHostUser = sameId(p.userId, hostUserId);
+                const isOpen     = assignDropdown === p.userId;
+
                 return (
-                  <div key={p.userId} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 12, background: isMe ? 'rgba(245,166,35,0.12)' : 'rgba(200,155,0,0.07)', border: `1px solid ${isMe ? 'rgba(245,166,35,0.3)' : 'rgba(200,155,0,0.15)'}`, fontSize: 11 }}>
-                    <span>{isHostUser ? '👑' : '👤'}</span>
-                    <span style={{ color: isMe ? '#F5A623' : '#E8DFC0', fontWeight: isMe ? 700 : 400 }}>
-                      {p.username}{isMe ? ' (나)' : ''}
-                    </span>
-                    {isHostUser && <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 2, background: '#FFD700', color: '#1a1500', fontWeight: 700 }}>방장</span>}
+                  <div key={p.userId} style={{ position: 'relative' }}>
+                    {/* 유저 칩 */}
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 5,
+                      padding: isHost && !isMe ? '3px 6px 3px 10px' : '3px 10px',
+                      borderRadius: 12,
+                      background: isMe ? 'rgba(245,166,35,0.12)' : 'rgba(200,155,0,0.07)',
+                      border: `1px solid ${isOpen ? 'rgba(245,166,35,0.5)' : isMe ? 'rgba(245,166,35,0.3)' : 'rgba(200,155,0,0.15)'}`,
+                      fontSize: 11,
+                    }}>
+                      <span>{isHostUser ? '👑' : '👤'}</span>
+                      <span style={{ color: isMe ? '#F5A623' : '#E8DFC0', fontWeight: isMe ? 700 : 400 }}>
+                        {p.username}{isMe ? ' (나)' : ''}
+                      </span>
+                      {isHostUser && (
+                        <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 2, background: '#FFD700', color: '#1a1500', fontWeight: 700 }}>방장</span>
+                      )}
+                      {/* 배정 버튼 — 방장 전용, 자기 자신 제외 */}
+                      {isHost && !isMe && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setAssignDropdown(isOpen ? null : p.userId); }}
+                          style={{
+                            background: isOpen ? 'rgba(245,166,35,0.2)' : 'rgba(200,155,0,0.1)',
+                            border: `1px solid ${isOpen ? 'rgba(245,166,35,0.5)' : 'rgba(200,155,0,0.25)'}`,
+                            color: '#F5A623', fontSize: 10, fontWeight: 700,
+                            padding: '2px 7px', borderRadius: 8,
+                            cursor: 'pointer', fontFamily: 'inherit',
+                            marginLeft: 4, whiteSpace: 'nowrap',
+                          }}
+                        >
+                          팀 배정 {isOpen ? '▲' : '▼'}
+                        </button>
+                      )}
+                    </div>
+
+                    {/* 팀 선택 드롭다운 */}
+                    {isHost && isOpen && (
+                      <div style={{
+                        position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 200,
+                        background: '#1C1A0C',
+                        border: '1px solid rgba(200,155,0,0.35)',
+                        borderRadius: 6, overflow: 'hidden',
+                        minWidth: 180,
+                        boxShadow: '0 6px 20px rgba(0,0,0,0.5)',
+                      }}>
+                        <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(200,155,0,0.12)', fontSize: 10, color: '#8A8060', letterSpacing: 1 }}>
+                          {p.username}님을 배정할 팀 선택
+                        </div>
+                        {room.teams.map((team) => {
+                          const occupied = (team.members || []).length > 0;
+                          return (
+                            <button
+                              key={team.id}
+                              disabled={occupied}
+                              onClick={() => handleAssignToTeam(p.userId, p.username, team.id)}
+                              style={{
+                                width: '100%', textAlign: 'left',
+                                padding: '9px 14px',
+                                background: 'none',
+                                border: 'none',
+                                borderBottom: '1px solid rgba(200,155,0,0.07)',
+                                color: occupied ? '#444' : '#E8DFC0',
+                                fontSize: 12, fontFamily: 'inherit',
+                                cursor: occupied ? 'not-allowed' : 'pointer',
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+                              }}
+                              onMouseEnter={(e) => { if (!occupied) e.currentTarget.style.background = 'rgba(245,166,35,0.08)'; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; }}
+                            >
+                              <span style={{ fontWeight: 600 }}>{team.name}</span>
+                              {occupied
+                                ? <span style={{ fontSize: 10, color: '#555' }}>자리 없음</span>
+                                : <span style={{ fontSize: 10, color: '#F5A623', fontWeight: 700 }}>★ LEADER</span>
+                              }
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -484,20 +683,48 @@ export default function SetupPage() {
                       </span>
                     </div>
                   </div>
-                  {/* 내 팀이면 대기석으로 이동 버튼, 아니면 참여/이동 버튼 */}
-                  {isMyTeam ? (
-                    <button onClick={handleLeaveTeam} style={{ background: 'none', border: '1px solid rgba(229,57,53,0.3)', color: '#E53935', fontSize: 11, padding: '3px 9px', borderRadius: 3, cursor: 'pointer', fontFamily: 'inherit' }}>
-                      대기석으로
-                    </button>
-                  ) : (
-                    teamHasMember ? (
-                      <span style={{ fontSize: 10, color: '#555', padding: '3px 9px' }}>자리 없음</span>
-                    ) : (
-                      <button onClick={() => handleMoveTeam(team.id)} style={{ background: 'none', border: '1px solid rgba(200,155,0,0.3)', color: '#8A8060', fontSize: 11, padding: '3px 9px', borderRadius: 3, cursor: 'pointer', fontFamily: 'inherit' }}>
-                        {myTeam ? '이 팀으로 이동' : '이 팀으로 참여'}
+                  {/* 버튼 영역 */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {/* 팀 삭제 버튼 — 방장 전용, 멤버·플레이어 없을 때만 활성화 */}
+                    {isHost && (
+                      (() => {
+                        const canDelete = (team.members || []).length === 0 && team.players.length === 0;
+                        return (
+                          <button
+                            onClick={() => handleRemoveTeam(team.id)}
+                            disabled={!canDelete}
+                            title={canDelete ? '팀 삭제' : '멤버 또는 닉네임이 있으면 삭제할 수 없습니다'}
+                            style={{
+                              background: 'none',
+                              border: `1px solid ${canDelete ? 'rgba(229,57,53,0.35)' : 'rgba(100,100,100,0.2)'}`,
+                              color: canDelete ? '#E53935' : '#444',
+                              width: 26, height: 26, borderRadius: 3,
+                              cursor: canDelete ? 'pointer' : 'not-allowed',
+                              fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              fontFamily: 'inherit', flexShrink: 0,
+                              opacity: canDelete ? 1 : 0.45,
+                            }}
+                          >
+                            🗑
+                          </button>
+                        );
+                      })()
+                    )}
+                    {/* 내 팀이면 대기석으로 이동 버튼, 아니면 참여/이동 버튼 */}
+                    {isMyTeam ? (
+                      <button onClick={handleLeaveTeam} style={{ background: 'none', border: '1px solid rgba(229,57,53,0.3)', color: '#E53935', fontSize: 11, padding: '3px 9px', borderRadius: 3, cursor: 'pointer', fontFamily: 'inherit' }}>
+                        대기석으로
                       </button>
-                    )
-                  )}
+                    ) : (
+                      teamHasMember ? (
+                        <span style={{ fontSize: 10, color: '#555', padding: '3px 9px' }}>자리 없음</span>
+                      ) : (
+                        <button onClick={() => handleMoveTeam(team.id)} style={{ background: 'none', border: '1px solid rgba(200,155,0,0.3)', color: '#8A8060', fontSize: 11, padding: '3px 9px', borderRadius: 3, cursor: 'pointer', fontFamily: 'inherit' }}>
+                          {myTeam ? '이 팀으로 이동' : '이 팀으로 참여'}
+                        </button>
+                      )
+                    )}
+                  </div>
                 </div>
 
                 {/* 로그인 유저 목록 (방 참여자) */}
@@ -505,18 +732,30 @@ export default function SetupPage() {
                   <div style={{ padding: '8px 14px', borderBottom: '1px solid rgba(200,155,0,0.08)', background: 'rgba(200,155,0,0.03)' }}>
                     <div style={{ fontSize: 10, color: '#8A8060', letterSpacing: 1, marginBottom: 6 }}>방 참여자</div>
                     {teamMembers.map((member) => {
-                      const isMe = member.userId === user?.id;
+                      const isMe       = sameId(member.userId, user?.id);
+                      const dropKey    = `${team.id}-${member.userId}`;
+                      const isMenuOpen = memberDropdown === dropKey;
+                      // 방장이 제어 가능한 조건: 내가 방장이고, 해당 멤버가 나 자신이 아닐 때
+                      const canControl = isHost && !isMe;
+                      // 이동 가능한 다른 팀 목록 (빈 자리 있는 팀만)
+                      const otherTeams = room.teams.filter(
+                        (t) => t.id !== team.id && (t.members || []).length === 0
+                      );
+
                       return (
-                        <div key={member.userId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid rgba(200,155,0,0.05)' }}>
+                        <div key={member.userId} style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid rgba(200,155,0,0.05)' }}>
+                          {/* 유저 정보 */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                             <div style={{ width: 22, height: 22, background: isMe ? 'rgba(245,166,35,0.2)' : 'rgba(200,155,0,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>👤</div>
                             <span style={{ fontSize: 12, color: isMe ? '#F5A623' : '#E8DFC0', fontWeight: isMe ? 700 : 400 }}>
                               {member.username}{isMe && ' (나)'}
                             </span>
                           </div>
-                          {/* 팀당 1명 = 해당 팀 LEADER. 방장이면 👑 + ★ LEADER 둘 다 표시 */}
+
+                          {/* 오른쪽: 배지 + 방장 제어 버튼 */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                            {member.userId === hostUserId && (
+                            {/* 역할 배지 */}
+                            {sameId(member.userId, hostUserId) && (
                               <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 2, fontWeight: 700, background: '#FFD700', color: '#1a1500' }}>
                                 👑 방장
                               </span>
@@ -524,6 +763,91 @@ export default function SetupPage() {
                             <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 2, fontWeight: 700, background: '#F5A623', color: '#1a1500' }}>
                               ★ LEADER
                             </span>
+
+                            {/* 방장 전용 제어 메뉴 버튼 */}
+                            {canControl && (
+                              <div style={{ position: 'relative' }}>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setMemberDropdown(isMenuOpen ? null : dropKey); }}
+                                  title="멤버 이동 옵션"
+                                  style={{
+                                    background: isMenuOpen ? 'rgba(245,166,35,0.15)' : 'rgba(200,155,0,0.08)',
+                                    border: `1px solid ${isMenuOpen ? 'rgba(245,166,35,0.4)' : 'rgba(200,155,0,0.2)'}`,
+                                    color: '#8A8060', fontSize: 11,
+                                    width: 22, height: 22, borderRadius: 3,
+                                    cursor: 'pointer', fontFamily: 'inherit',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  }}
+                                >
+                                  ⋮
+                                </button>
+
+                                {/* 드롭다운 메뉴 */}
+                                {isMenuOpen && (
+                                  <div
+                                    onClick={(e) => e.stopPropagation()}
+                                    style={{
+                                      position: 'absolute', top: 'calc(100% + 4px)', right: 0, zIndex: 300,
+                                      background: '#1C1A0C',
+                                      border: '1px solid rgba(200,155,0,0.35)',
+                                      borderRadius: 6, overflow: 'hidden',
+                                      minWidth: 170,
+                                      boxShadow: '0 6px 20px rgba(0,0,0,0.55)',
+                                    }}
+                                  >
+                                    <div style={{ padding: '7px 12px', borderBottom: '1px solid rgba(200,155,0,0.12)', fontSize: 10, color: '#8A8060', letterSpacing: 1 }}>
+                                      {member.username} 이동
+                                    </div>
+
+                                    {/* 대기석으로 */}
+                                    <button
+                                      onClick={() => handleMoveToWaiting(team.id, member.userId, member.username)}
+                                      style={{
+                                        width: '100%', textAlign: 'left',
+                                        padding: '9px 14px',
+                                        background: 'none', border: 'none',
+                                        borderBottom: otherTeams.length > 0 ? '1px solid rgba(200,155,0,0.08)' : 'none',
+                                        color: '#E8DFC0', fontSize: 12,
+                                        fontFamily: 'inherit', cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', gap: 8,
+                                      }}
+                                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(229,57,53,0.07)'; }}
+                                      onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; }}
+                                    >
+                                      <span>⏳</span>
+                                      <span>대기석으로 이동</span>
+                                    </button>
+
+                                    {/* 다른 팀으로 이동 */}
+                                    {otherTeams.length > 0 && (
+                                      <>
+                                        <div style={{ padding: '5px 12px 3px', fontSize: 10, color: '#555', letterSpacing: 0.5 }}>다른 팀 LEADER로</div>
+                                        {otherTeams.map((t) => (
+                                          <button
+                                            key={t.id}
+                                            onClick={() => handleMoveMemberToTeam(member.userId, member.username, t.id)}
+                                            style={{
+                                              width: '100%', textAlign: 'left',
+                                              padding: '8px 14px',
+                                              background: 'none', border: 'none',
+                                              borderTop: '1px solid rgba(200,155,0,0.06)',
+                                              color: '#E8DFC0', fontSize: 12,
+                                              fontFamily: 'inherit', cursor: 'pointer',
+                                              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                            }}
+                                            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(245,166,35,0.07)'; }}
+                                            onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; }}
+                                          >
+                                            <span>{t.name}</span>
+                                            <span style={{ fontSize: 10, color: '#F5A623', fontWeight: 700 }}>★ LEADER</span>
+                                          </button>
+                                        ))}
+                                      </>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                       );
