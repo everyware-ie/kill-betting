@@ -24,6 +24,9 @@ public class Team {
     @Column(nullable = false, length = 50)
     private String name;
 
+    @Column(name = "operator_user_id")
+    private Long operatorUserId;
+
     @Column(name = "total_kills", nullable = false)
     private int totalKills = 0;
 
@@ -34,12 +37,24 @@ public class Team {
     private int penaltyKills = 0;
 
     @OneToMany(mappedBy = "team", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<TeamMember> members = new ArrayList<>();
+    private List<TeamPlayer> players = new ArrayList<>();
 
     @Builder
     public Team(Session session, String name) {
         this.session = session;
         this.name = name;
+    }
+
+    public void assignOperator(Long userId) {
+        this.operatorUserId = userId;
+    }
+
+    public boolean hasOperator() {
+        return this.operatorUserId != null;
+    }
+
+    public boolean isOperatedBy(Long userId) {
+        return userId != null && userId.equals(this.operatorUserId);
     }
 
     public int getEffectiveKills() {
