@@ -2,10 +2,7 @@ package com.killnagi.domain.session.repository;
 
 import com.killnagi.config.JpaConfig;
 import com.killnagi.domain.session.entity.Session;
-import com.killnagi.domain.team.entity.Team;
-import com.killnagi.domain.team.entity.TeamMember;
-import com.killnagi.domain.team.repository.TeamMemberRepository;
-import com.killnagi.domain.team.repository.TeamRepository;
+import com.killnagi.domain.session.entity.SessionUser;
 import com.killnagi.domain.user.entity.User;
 import com.killnagi.domain.user.repository.UserRepository;
 import com.killnagi.support.TestFixtures;
@@ -26,9 +23,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 class SessionRepositoryTest {
 
     @Autowired private SessionRepository sessionRepository;
+    @Autowired private SessionUserRepository sessionUserRepository;
     @Autowired private UserRepository userRepository;
-    @Autowired private TeamRepository teamRepository;
-    @Autowired private TeamMemberRepository teamMemberRepository;
 
     private User host;
     private User member;
@@ -42,8 +38,10 @@ class SessionRepositoryTest {
         unrelated = userRepository.save(TestFixtures.user(null, "unrelated", "unrelated@test.com"));
 
         session = sessionRepository.save(TestFixtures.session(host));
-        Team team = teamRepository.save(TestFixtures.team(session));
-        teamMemberRepository.save(TestFixtures.member(team, member));
+        sessionUserRepository.save(SessionUser.builder()
+                .session(session)
+                .user(member)
+                .build());
     }
 
     @Test
@@ -53,7 +51,7 @@ class SessionRepositoryTest {
     }
 
     @Test
-    void 팀원인_경우_내_세션_목록에_포함된다() {
+    void 세션에_입장한_사용자인_경우_내_세션_목록에_포함된다() {
         List<Session> sessions = sessionRepository.findSessionsByUserId(member.getId());
         assertThat(sessions).contains(session);
     }

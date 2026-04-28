@@ -8,7 +8,7 @@ import com.killnagi.domain.rule.entity.Rule.Operator;
 import com.killnagi.domain.rule.entity.RuleSet;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.team.entity.Team;
-import com.killnagi.domain.team.entity.TeamMember;
+import com.killnagi.domain.team.entity.TeamPlayer;
 import com.killnagi.domain.user.entity.User;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -62,19 +62,15 @@ public class TestFixtures {
                 .build();
     }
 
-    public static TeamMember member(Team team, User user) {
-        return TeamMember.builder()
+    public static TeamPlayer player(Team team, String playerNickname) {
+        return TeamPlayer.builder()
                 .team(team)
-                .user(user)
+                .playerNickname(playerNickname)
                 .build();
     }
 
-    public static TeamMember uploader(Team team, User user) {
-        return TeamMember.builder()
-                .team(team)
-                .user(user)
-                .isUploader(true)
-                .build();
+    public static TeamPlayer player(Team team) {
+        return player(team, "TestPlayer");
     }
 
     public static Match match(Session session) {
@@ -90,19 +86,19 @@ public class TestFixtures {
         return m;
     }
 
-    public static MatchResult matchResult(Match match, TeamMember member, int kills, int placement) {
+    public static MatchResult matchResult(Match match, TeamPlayer player, int kills, int placement) {
         return MatchResult.builder()
                 .match(match)
-                .teamMember(member)
+                .teamPlayer(player)
                 .kills(kills)
                 .placement(placement)
                 .build();
     }
 
-    public static MatchResult matchResult(Match match, TeamMember member, int kills) {
+    public static MatchResult matchResult(Match match, TeamPlayer player, int kills) {
         return MatchResult.builder()
                 .match(match)
-                .teamMember(member)
+                .teamPlayer(player)
                 .kills(kills)
                 .placement(null)
                 .build();
