@@ -45,7 +45,6 @@ public class AuthService {
                 .nickname(request.nickname())
                 .email(request.email())
                 .password(passwordEncoder.encode(request.password()))
-                .pubgNickname(request.pubgNickname())
                 .build();
     }
 

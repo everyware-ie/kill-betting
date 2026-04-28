@@ -19,7 +19,6 @@ public class TestFixtures {
                 .nickname("tester")
                 .email("test@test.com")
                 .password("encoded-password")
-                .pubgNickname("TestPlayer")
                 .build();
     }
 
