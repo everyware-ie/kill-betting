@@ -29,7 +29,7 @@ public class MatchConfirmService {
     @Transactional
     public ConfirmResponse confirm(Long matchId, Long requesterId) {
         Match match = findValidMatch(matchId);
-        validateOperatorPermission(match.getSession().getId(), requesterId);
+        validateLeaderPermission(match.getSession().getId(), requesterId);
         List<MatchResult> results = findConfirmableResults(match);
 
         List<Rule> rules = ruleRepository.findByRuleSetSessionIdAndEnabled(match.getSession().getId(), true);
@@ -62,8 +62,8 @@ public class MatchConfirmService {
         return results;
     }
 
-    private void validateOperatorPermission(Long sessionId, Long requesterId) {
-        if (!teamRepository.existsBySessionIdAndOperator_Id(sessionId, requesterId)) {
+    private void validateLeaderPermission(Long sessionId, Long requesterId) {
+        if (!teamRepository.existsBySessionIdAndLeader_Id(sessionId, requesterId)) {
             throw KillnagiException.forbidden("업로더 권한이 있는 사용자만 결과를 확정할 수 있습니다.");
         }
     }

@@ -2,7 +2,7 @@ package com.killnagi.domain.team.controller.docs;
 
 import com.killnagi.common.response.ApiResponse;
 import com.killnagi.domain.team.dto.request.AddPlayerRequest;
-import com.killnagi.domain.team.dto.request.AssignOperatorRequest;
+import com.killnagi.domain.team.dto.request.AssignLeaderRequest;
 import com.killnagi.domain.team.dto.request.CreateTeamRequest;
 import com.killnagi.domain.team.dto.request.UpdatePlayerRequest;
 import com.killnagi.domain.team.dto.response.TeamResponse;
@@ -47,10 +47,10 @@ public interface TeamControllerDocs {
             Long teamId,
             Long playerId);
 
-    @Operation(summary = "Operator 배정", description = "대기석 사용자를 팀의 Operator로 배정합니다. (Host 전용)")
-    ResponseEntity<ApiResponse<Void>> assignOperator(
+    @Operation(summary = "Leader 배정", description = "대기석 사용자를 팀의 Leader로 배정합니다. (Host 전용)")
+    ResponseEntity<ApiResponse<Void>> assignLeader(
             UserDetails userDetails,
             Long sessionId,
             Long teamId,
-            AssignOperatorRequest request);
+            AssignLeaderRequest request);
 }

@@ -88,7 +88,7 @@ public class TeamConfigureService {
     }
 
     @Transactional
-    public void assignOperator(Long sessionId, Long teamId, Long hostUserId, Long targetUserId) {
+    public void assignLeader(Long sessionId, Long teamId, Long hostUserId, Long targetUserId) {
         Session session = findWaitingSession(sessionId);
         validateHost(session, hostUserId);
 
@@ -99,33 +99,33 @@ public class TeamConfigureService {
             boolean isInWaiting = sessionUserService.getActiveUsers(sessionId).stream()
                     .anyMatch(su -> su.getUserId().equals(targetUserId));
             if (!isInWaiting) {
-                throw KillnagiException.badRequest("대기석에 있는 사용자만 Operator로 배정할 수 있습니다.");
+                throw KillnagiException.badRequest("대기석에 있는 사용자만 Leader로 배정할 수 있습니다.");
             }
         }
 
-        // 다른 팀에 이미 Operator로 배정된 경우
-        if (teamRepository.existsBySessionIdAndOperator_IdAndIdNot(sessionId, targetUserId, teamId)) {
-            throw KillnagiException.badRequest("이미 다른 팀의 Operator로 배정된 사용자입니다.");
+        // 다른 팀에 이미 Leader로 배정된 경우
+        if (teamRepository.existsBySessionIdAndLeader_IdAndIdNot(sessionId, targetUserId, teamId)) {
+            throw KillnagiException.badRequest("이미 다른 팀의 Leader로 배정된 사용자입니다.");
         }
 
-        User operator = userRepository.findById(targetUserId)
+        User leader = userRepository.findById(targetUserId)
                 .orElseThrow(() -> KillnagiException.notFound("사용자를 찾을 수 없습니다."));
-        team.assignOperator(operator);
+        team.assignLeader(leader);
     }
 
     public ConfigureStateMessage buildConfigureState(Long sessionId) {
         List<SessionUser> activeUsers = sessionUserService.getActiveUsers(sessionId);
         List<Team> teams = teamRepository.findBySessionId(sessionId);
 
-        // Operator로 배정된 userId 집합
-        List<Long> assignedOperatorIds = teams.stream()
-                .filter(Team::hasOperator)
-                .map(Team::getOperatorUserId)
+        // Leader로 배정된 userId 집합
+        List<Long> assignedLeaderIds = teams.stream()
+                .filter(Team::hasLeader)
+                .map(Team::getLeaderUserId)
                 .toList();
 
-        // 대기 중인 사용자 = ACTIVE 중 Operator 아닌 사람 (Host도 대기석에 없으므로 자동 제외)
+        // 대기 중인 사용자 = ACTIVE 중 Leader 아닌 사람 (Host도 대기석에 없으므로 자동 제외)
         List<WaitingUserInfo> waitingUsers = activeUsers.stream()
-                .filter(su -> !assignedOperatorIds.contains(su.getUserId()))
+                .filter(su -> !assignedLeaderIds.contains(su.getUserId()))
                 .map(su -> new WaitingUserInfo(su.getUserId(), su.getUserNickname()))
                 .toList();
 
@@ -135,13 +135,13 @@ public class TeamConfigureService {
                             .map(p -> new PlayerInfo(p.getId(), p.getPlayerNickname()))
                             .toList();
 
-                    String operatorNickname = team.getOperatorNickname();
+                    String leaderNickname = team.getLeaderNickname();
 
                     String status = resolveTeamStatus(team, players);
 
                     return new TeamConfigureInfo(
                             team.getId(), team.getName(), status,
-                            team.getOperatorUserId(), operatorNickname,
+                            team.getLeaderUserId(), leaderNickname,
                             players
                     );
                 })
@@ -151,11 +151,11 @@ public class TeamConfigureService {
     }
 
     private String resolveTeamStatus(Team team, List<PlayerInfo> players) {
-        boolean hasOperator = team.hasOperator();
+        boolean hasLeader = team.hasLeader();
         boolean hasPlayers = !players.isEmpty();
 
-        if (hasOperator && hasPlayers) return "READY";
-        if (hasOperator || hasPlayers) return "PARTIAL";
+        if (hasLeader && hasPlayers) return "READY";
+        if (hasLeader || hasPlayers) return "PARTIAL";
         return "EMPTY";
     }
 
