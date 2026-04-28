@@ -3,7 +3,7 @@ package com.killnagi.domain.session.controller;
 import com.killnagi.common.response.ApiResponse;
 import com.killnagi.domain.session.service.SessionUserService;
 import com.killnagi.domain.team.dto.response.ConfigureStateMessage;
-import com.killnagi.domain.team.service.ConfigureBroadcaster;
+import com.killnagi.domain.team.service.TeamConfigureBroadcaster;
 import com.killnagi.domain.team.service.TeamConfigureService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +22,7 @@ public class SessionUserController {
 
     private final SessionUserService sessionUserService;
     private final TeamConfigureService teamConfigureService;
-    private final ConfigureBroadcaster configureBroadcaster;
+    private final TeamConfigureBroadcaster configureBroadcaster;
 
     @PostMapping("/join")
     public ResponseEntity<ApiResponse<Void>> join(

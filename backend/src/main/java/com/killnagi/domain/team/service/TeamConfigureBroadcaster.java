@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class ConfigureBroadcaster {
+public class TeamConfigureBroadcaster {
 
     private final SimpMessagingTemplate messagingTemplate;
 

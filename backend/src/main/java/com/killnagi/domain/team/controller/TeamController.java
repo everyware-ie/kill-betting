@@ -7,7 +7,7 @@ import com.killnagi.domain.team.dto.request.CreateTeamRequest;
 import com.killnagi.domain.team.dto.request.UpdatePlayerRequest;
 import com.killnagi.domain.team.dto.response.ConfigureStateMessage;
 import com.killnagi.domain.team.dto.response.TeamResponse;
-import com.killnagi.domain.team.service.ConfigureBroadcaster;
+import com.killnagi.domain.team.service.TeamConfigureBroadcaster;
 import com.killnagi.domain.team.service.TeamConfigureService;
 import com.killnagi.domain.team.service.TeamService;
 import com.killnagi.domain.team.controller.docs.TeamControllerDocs;
@@ -35,7 +35,7 @@ public class TeamController implements TeamControllerDocs {
 
     private final TeamService teamService;
     private final TeamConfigureService teamConfigureService;
-    private final ConfigureBroadcaster configureBroadcaster;
+    private final TeamConfigureBroadcaster configureBroadcaster;
 
     @PostMapping
     public ResponseEntity<ApiResponse<TeamResponse>> createTeam(
