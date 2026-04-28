@@ -125,8 +125,8 @@ public class SessionService {
     @Transactional
     public ScreenshotUploadResponse uploadMatchImage(Long sessionId, Long uploaderId, MultipartFile file) {
         Session session = getSessionOrThrow(sessionId);
-        Team team = teamRepository.findBySessionIdAndOperator_Id(sessionId, uploaderId)
-                .orElseThrow(() -> KillnagiException.notFound("해당 세션에서 Operator로 배정된 팀을 찾을 수 없습니다."));
+        Team team = teamRepository.findBySessionIdAndLeader_Id(sessionId, uploaderId)
+                .orElseThrow(() -> KillnagiException.notFound("해당 세션에서 Leader로 배정된 팀을 찾을 수 없습니다."));
         return matchService.uploadScreenshot(session, team, file);
     }
 
@@ -171,7 +171,7 @@ public class SessionService {
                 .map(this::toMemberMatchResultResponse)
                 .toList();
         return new MatchSummaryResponse(
-                match.getId(), match.getMatchNumber(), match.getMapName(), match.getCreatedAt(), memberResults
+                match.getId(), match.getMatchNumber(), match.getMapName(), match.getScreenshotUrl(), match.getCreatedAt(), memberResults
         );
     }
 

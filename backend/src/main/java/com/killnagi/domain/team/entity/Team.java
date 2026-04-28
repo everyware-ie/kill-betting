@@ -26,8 +26,8 @@ public class Team {
     private String name;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "operator_user_id")
-    private User operator;
+    @JoinColumn(name = "leader_user_id")
+    private User leader;
 
     @Column(name = "total_kills", nullable = false)
     private int totalKills = 0;
@@ -47,24 +47,24 @@ public class Team {
         this.name = name;
     }
 
-    public void assignOperator(User operator) {
-        this.operator = operator;
+    public void assignLeader(User leader) {
+        this.leader = leader;
     }
 
-    public boolean hasOperator() {
-        return this.operator != null;
+    public boolean hasLeader() {
+        return this.leader != null;
     }
 
-    public boolean isOperatedBy(Long userId) {
-        return this.operator != null && this.operator.hasId(userId);
+    public boolean isLedBy(Long userId) {
+        return this.leader != null && this.leader.hasId(userId);
     }
 
-    public Long getOperatorUserId() {
-        return this.operator != null ? this.operator.getId() : null;
+    public Long getLeaderUserId() {
+        return this.leader != null ? this.leader.getId() : null;
     }
 
-    public String getOperatorNickname() {
-        return this.operator != null ? this.operator.getNickname() : null;
+    public String getLeaderNickname() {
+        return this.leader != null ? this.leader.getNickname() : null;
     }
 
     public int getEffectiveKills() {

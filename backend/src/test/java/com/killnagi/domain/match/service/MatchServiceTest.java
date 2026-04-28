@@ -6,6 +6,8 @@ import com.killnagi.domain.match.repository.MatchRepository;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.team.entity.Team;
 import com.killnagi.domain.user.entity.User;
+import com.killnagi.infra.ocr.MatchOcrResult;
+import com.killnagi.infra.ocr.OcrClient;
 import com.killnagi.support.TestFixtures;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,7 +17,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
@@ -24,6 +30,7 @@ class MatchServiceTest {
 
     @Mock private MatchRepository matchRepository;
     @Mock private FileStorageService fileStorageService;
+    @Mock private OcrClient ocrClient;
     @InjectMocks private MatchService matchService;
 
     @Test
@@ -35,6 +42,7 @@ class MatchServiceTest {
 
         given(matchRepository.countBySessionId(session.getId())).willReturn(0);
         given(fileStorageService.store(file, "screenshots")).willReturn("http://localhost/files/screenshots/result.jpg");
+        given(ocrClient.parseMatchScreenshot(any(), anyString())).willReturn(MatchOcrResult.builder().playerStats(List.of()).build());
 
         ScreenshotUploadResponse response = matchService.uploadScreenshot(session, team, file);
 

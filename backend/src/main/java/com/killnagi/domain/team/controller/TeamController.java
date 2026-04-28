@@ -2,7 +2,7 @@ package com.killnagi.domain.team.controller;
 
 import com.killnagi.common.response.ApiResponse;
 import com.killnagi.domain.team.dto.request.AddPlayerRequest;
-import com.killnagi.domain.team.dto.request.AssignOperatorRequest;
+import com.killnagi.domain.team.dto.request.AssignLeaderRequest;
 import com.killnagi.domain.team.dto.request.CreateTeamRequest;
 import com.killnagi.domain.team.dto.request.UpdatePlayerRequest;
 import com.killnagi.domain.team.dto.response.ConfigureStateMessage;
@@ -93,16 +93,16 @@ public class TeamController implements TeamControllerDocs {
         return ResponseEntity.ok(ApiResponse.ok("플레이어가 제거되었습니다.", null));
     }
 
-    @PutMapping("/{teamId}/operator")
-    public ResponseEntity<ApiResponse<Void>> assignOperator(
+    @PutMapping("/{teamId}/leader")
+    public ResponseEntity<ApiResponse<Void>> assignLeader(
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable Long sessionId,
             @PathVariable Long teamId,
-            @RequestBody AssignOperatorRequest request) {
+            @RequestBody AssignLeaderRequest request) {
         Long userId = Long.parseLong(userDetails.getUsername());
-        teamConfigureService.assignOperator(sessionId, teamId, userId, request.userId());
+        teamConfigureService.assignLeader(sessionId, teamId, userId, request.userId());
         broadcastConfigureState(sessionId);
-        return ResponseEntity.ok(ApiResponse.ok("Operator가 배정되었습니다.", null));
+        return ResponseEntity.ok(ApiResponse.ok("Leader가 배정되었습니다.", null));
     }
 
     private void broadcastConfigureState(Long sessionId) {

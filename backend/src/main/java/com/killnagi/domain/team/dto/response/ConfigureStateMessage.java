@@ -13,8 +13,8 @@ public record ConfigureStateMessage(
             Long teamId,
             String teamName,
             String status,
-            Long operatorUserId,
-            String operatorNickname,
+            Long leaderUserId,
+            String leaderNickname,
             List<PlayerInfo> players
     ) {}
 
