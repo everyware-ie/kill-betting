@@ -36,7 +36,7 @@ class AuthServiceTest {
 
     @Test
     void 회원가입_성공시_토큰을_반환한다() {
-        SignUpRequest request = new SignUpRequest("tester", "test@test.com", "password1!", "TestPlayer");
+        SignUpRequest request = new SignUpRequest("tester", "test@test.com", "password1!");
         User savedUser = TestFixtures.user(USER_ID);
 
         given(userRepository.existsByEmail(request.email())).willReturn(false);
@@ -53,7 +53,7 @@ class AuthServiceTest {
 
     @Test
     void 중복_이메일로_회원가입시_예외가_발생한다() {
-        SignUpRequest request = new SignUpRequest("tester", "test@test.com", "password1!", "TestPlayer");
+        SignUpRequest request = new SignUpRequest("tester", "test@test.com", "password1!");
         given(userRepository.existsByEmail(request.email())).willReturn(true);
 
         assertThatThrownBy(() -> authService.signUp(request))
@@ -63,7 +63,7 @@ class AuthServiceTest {
 
     @Test
     void 중복_닉네임으로_회원가입시_예외가_발생한다() {
-        SignUpRequest request = new SignUpRequest("tester", "test@test.com", "password1!", "TestPlayer");
+        SignUpRequest request = new SignUpRequest("tester", "test@test.com", "password1!");
         given(userRepository.existsByEmail(request.email())).willReturn(false);
         given(userRepository.existsByNickname(request.nickname())).willReturn(true);
 
