@@ -11,12 +11,11 @@ import com.killnagi.domain.rule.repository.RuleRepository;
 import com.killnagi.domain.rule.repository.RuleSetRepository;
 import com.killnagi.domain.session.dto.request.CreateRequest;
 import com.killnagi.domain.session.dto.request.RuleRequest;
-import com.killnagi.domain.session.dto.request.RuleRequest;
 import com.killnagi.domain.session.dto.response.SessionResponse;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.session.repository.SessionRepository;
-import com.killnagi.domain.team.repository.TeamMemberRepository;
 import com.killnagi.domain.team.entity.Team;
+import com.killnagi.domain.team.repository.TeamMemberRepository;
 import com.killnagi.domain.team.repository.TeamRepository;
 import com.killnagi.domain.user.entity.User;
 import com.killnagi.domain.user.repository.UserRepository;
@@ -58,16 +57,55 @@ class SessionServiceTest {
     @Test
     void 세션_생성_성공시_응답을_반환한다() {
         User host = TestFixtures.user(HOST_ID);
-        CreateRequest request = new CreateRequest("킬내기 세션", 50, 60, null);
         Session savedSession = TestFixtures.session(SESSION_ID, host);
+        RuleSet savedRuleSet = RuleSet.builder().session(savedSession).build();
+        CreateRequest request = new CreateRequest("킬내기 세션", 50, 60, null);
 
         given(userRepository.findById(HOST_ID)).willReturn(Optional.of(host));
         given(sessionRepository.save(any(Session.class))).willReturn(savedSession);
+        given(ruleSetRepository.save(any(RuleSet.class))).willReturn(savedRuleSet);
 
         SessionResponse response = sessionService.createSession(HOST_ID, request);
 
         assertThat(response.id()).isEqualTo(SESSION_ID);
         assertThat(response.name()).isEqualTo("킬내기 세션");
+    }
+
+    @Test
+    void 세션_생성시_rules가_있으면_Session_RuleSet_Rule이_모두_저장된다() {
+        User host = TestFixtures.user(HOST_ID);
+        Session savedSession = TestFixtures.session(SESSION_ID, host);
+        RuleSet savedRuleSet = RuleSet.builder().session(savedSession).build();
+        CreateRequest request = new CreateRequest(
+                "킬내기 세션", 50, 60,
+                List.of(new RuleRequest(RuleType.CHICKEN_BONUS, Operator.EQ, 3))
+        );
+
+        given(userRepository.findById(HOST_ID)).willReturn(Optional.of(host));
+        given(sessionRepository.save(any(Session.class))).willReturn(savedSession);
+        given(ruleSetRepository.save(any(RuleSet.class))).willReturn(savedRuleSet);
+
+        sessionService.createSession(HOST_ID, request);
+
+        then(sessionRepository).should().save(any(Session.class));
+        then(ruleSetRepository).should().save(any(RuleSet.class));
+        then(ruleRepository).should(times(1)).save(any(Rule.class));
+    }
+
+    @Test
+    void 세션_생성시_rules가_null이면_Rule은_저장되지_않는다() {
+        User host = TestFixtures.user(HOST_ID);
+        Session savedSession = TestFixtures.session(SESSION_ID, host);
+        RuleSet savedRuleSet = RuleSet.builder().session(savedSession).build();
+        CreateRequest request = new CreateRequest("킬내기 세션", null, null, null);
+
+        given(userRepository.findById(HOST_ID)).willReturn(Optional.of(host));
+        given(sessionRepository.save(any(Session.class))).willReturn(savedSession);
+        given(ruleSetRepository.save(any(RuleSet.class))).willReturn(savedRuleSet);
+
+        sessionService.createSession(HOST_ID, request);
+
+        then(ruleRepository).shouldHaveNoInteractions();
     }
 
     @Test
@@ -121,88 +159,11 @@ class SessionServiceTest {
     }
 
     @Test
-    @DisplayName("세션 생성 시 Session, RuleSet, Rule이 모두 저장된다")
-    void createSession_Session_RuleSet_Rule_모두_저장된다() {
-        User host = userFixture();
-        Session savedSession = sessionFixture(host);
-        RuleSet savedRuleSet = ruleSetFixture(savedSession);
-
-        given(userRepository.findById(1L)).willReturn(Optional.of(host));
-        given(sessionRepository.existsByRoomUrl(any())).willReturn(false);
-        given(sessionRepository.save(any())).willReturn(savedSession);
-        given(ruleSetRepository.save(any())).willReturn(savedRuleSet);
-
-        CreateRequest request = new CreateRequest(
-                "테스트 세션", 10, 60,
-                List.of(new RuleRequest(RuleType.CHICKEN_BONUS, Operator.EQ, 3))
-        );
-
-        SessionResponse response = sessionService.createSession(1L, request);
-
-        assertThat(response).isNotNull();
-        then(sessionRepository).should().save(any(Session.class));
-        then(ruleSetRepository).should().save(any(RuleSet.class));
-        then(ruleRepository).should(times(1)).save(any(Rule.class));
-    }
-
-    @Test
-    @DisplayName("세션 생성 시 rules가 null이면 Rule은 저장되지 않는다")
-    void createSession_rules가_null이면_Rule은_저장되지_않는다() {
-        User host = userFixture();
-        Session savedSession = sessionFixture(host);
-        RuleSet savedRuleSet = ruleSetFixture(savedSession);
-
-        given(userRepository.findById(1L)).willReturn(Optional.of(host));
-        given(sessionRepository.existsByRoomUrl(any())).willReturn(false);
-        given(sessionRepository.save(any())).willReturn(savedSession);
-        given(ruleSetRepository.save(any())).willReturn(savedRuleSet);
-
-        CreateRequest request = new CreateRequest("테스트 세션", null, null, null);
-
-        sessionService.createSession(1L, request);
-
-        then(ruleRepository).shouldHaveNoInteractions();
-    }
-
-    @Test
-    @DisplayName("존재하지 않는 사용자로 세션 생성 시 예외를 던진다")
-    void createSession_존재하지않는_사용자면_예외를_던진다() {
-        given(userRepository.findById(99L)).willReturn(Optional.empty());
-
-        CreateRequest request = new CreateRequest("테스트 세션", null, null, null);
-
-        assertThatThrownBy(() -> sessionService.createSession(99L, request))
-                .isInstanceOf(KillnagiException.class)
-                .hasMessageContaining("사용자를 찾을 수 없습니다");
-    }
-
-    @Test
-    @DisplayName("roomUrl로 세션 조회 시 존재하지 않으면 예외를 던진다")
-    void getSessionByRoomUrl_존재하지않으면_예외를_던진다() {
+    void roomUrl로_세션_조회시_존재하지않으면_예외를_던진다() {
         given(sessionRepository.findByRoomUrl("invalid-url")).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> sessionService.getSessionByRoomUrl("invalid-url"))
                 .isInstanceOf(KillnagiException.class)
                 .hasMessageContaining("세션을 찾을 수 없습니다");
-    }
-
-    private User userFixture() {
-        return User.builder()
-                .nickname("host")
-                .email("host@test.com")
-                .password("pw")
-                .build();
-    }
-
-    private Session sessionFixture(User host) {
-        return Session.builder()
-                .name("테스트 세션")
-                .roomUrl("test-room-url")
-                .host(host)
-                .build();
-    }
-
-    private RuleSet ruleSetFixture(Session session) {
-        return RuleSet.builder().session(session).build();
     }
 }
