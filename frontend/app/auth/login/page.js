@@ -35,7 +35,7 @@ export default function LoginPage() {
   const { login }     = useAuth();
 
   // ── 폼 상태 ──
-  const [email,    setEmail]    = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPw,   setShowPw]   = useState(false);
   const [error,    setError]    = useState('');
@@ -46,11 +46,11 @@ export default function LoginPage() {
     setError('');
 
     // 클라이언트 유효성 검사
-    if (!email.trim())  { setError('이메일을 입력해주세요'); return; }
-    if (!password)      { setError('비밀번호를 입력해주세요'); return; }
+    if (!username.trim()) { setError('아이디를 입력해주세요'); return; }
+    if (!password)         { setError('비밀번호를 입력해주세요'); return; }
 
     setLoading(true);
-    const res = await login(email.trim(), password);
+    const res = await login(username.trim(), password);
     setLoading(false);
 
     if (!res.ok) {
@@ -82,18 +82,17 @@ export default function LoginPage() {
         </p>
       </div>
 
-      {/* 이메일 입력 */}
+      {/* 아이디 입력 */}
       <Input
-        label="이메일"
-        type="email"
-        placeholder="가입한 이메일을 입력하세요"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
+        label="아이디"
+        placeholder="플레이어 아이디를 입력하세요"
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-        prefix="✉️"
+        prefix="👤"
         style={{ background: '#1a1800' }}
         containerStyle={{ marginBottom: 14 }}
-        autoComplete="email"
+        autoComplete="username"
       />
 
       {/* 비밀번호 입력 */}
@@ -154,7 +153,7 @@ export default function LoginPage() {
         </Button>
       </Link>
 
-      {/* 개발 환경 안내 */}
+      {/* Mock 안내 (개발 환경에서만 표시) */}
       {process.env.NODE_ENV !== 'production' && (
         <div style={{
           marginTop: 20, padding: '10px 12px',
@@ -162,7 +161,9 @@ export default function LoginPage() {
           border: '1px dashed rgba(200,155,0,0.2)',
           borderRadius: 4, fontSize: 11, color: '#8A8060', lineHeight: 1.8,
         }}>
-          🔧 <b style={{ color: '#F5A623' }}>개발 환경</b> — 회원가입 후 이메일/비밀번호로 로그인
+          🔧 <b style={{ color: '#F5A623' }}>Mock 모드</b> — 테스트 계정으로 로그인<br />
+          아이디: <b style={{ color: '#E8DFC0' }}>test</b> &nbsp;/&nbsp;
+          비밀번호: <b style={{ color: '#E8DFC0' }}>1234</b>
         </div>
       )}
     </AuthLayout>

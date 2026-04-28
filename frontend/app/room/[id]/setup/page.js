@@ -284,13 +284,11 @@ export default function SetupPage() {
     if (team.players.length >= maxPerTeam) { setError(`${team.name}은 최대 ${maxPerTeam}명까지 가능합니다`); return; }
     setError('');
     isActionInProgress.current = true;
-    // RoomAPI.addPlayer → POST /api/sessions/{id}/teams/{teamId}/players
-    const res = await RoomAPI.addPlayer(roomId, teamId, nick);
-    if (res.ok) setRoom((r) => ({
-      ...r,
-      teams: r.teams.map((t) => t.id === teamId ? { ...t, players: [...t.players, nick] } : t),
-    }));
-    else setError(res.error);
+    const updatedTeams = room.teams.map((t) =>
+      t.id === teamId ? { ...t, players: [...t.players, nick] } : t
+    );
+    const res = await RoomAPI.updateTeams(roomId, updatedTeams);
+    if (res.ok) setRoom((r) => ({ ...r, teams: updatedTeams }));
     setInputs((p) => ({ ...p, [teamId]: '' }));
     isActionInProgress.current = false;
   };
@@ -298,13 +296,11 @@ export default function SetupPage() {
   // ── 닉네임 삭제 ──
   const removePlayer = async (teamId, nick) => {
     isActionInProgress.current = true;
-    // RoomAPI.removePlayer → DELETE /api/sessions/{id}/teams/{teamId}/players/{playerId}
-    const res = await RoomAPI.removePlayer(roomId, teamId, nick);
-    if (res.ok) setRoom((r) => ({
-      ...r,
-      teams: r.teams.map((t) => t.id === teamId ? { ...t, players: t.players.filter((p) => p !== nick) } : t),
-    }));
-    else setError(res.error);
+    const updatedTeams = room.teams.map((t) =>
+      t.id === teamId ? { ...t, players: t.players.filter((p) => p !== nick) } : t
+    );
+    const res = await RoomAPI.updateTeams(roomId, updatedTeams);
+    if (res.ok) setRoom((r) => ({ ...r, teams: updatedTeams }));
     isActionInProgress.current = false;
   };
 

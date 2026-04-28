@@ -6,12 +6,9 @@
  *  ✅ Mock → 실제 API 전환 방법
  *
  *  1. USE_MOCK = false 로 변경
- *  2. .env.local 에 NEXT_PUBLIC_API_URL=http://localhost:8080 추가
+ *  2. API_BASE_URL = '실제 서버 주소' 로 변경
  *
- *  [실제 API 공통 규칙]
- *   - 모든 경로는 /api/ 로 시작
- *   - 인증이 필요한 엔드포인트: Authorization: Bearer {JWT} 헤더 전송
- *   - 응답 형식: { success, message, data } (ApiResponse<T>)
+ *  각 함수의 [실제 API] 주석에서 엔드포인트/스펙 확인하세요.
  *
  * ============================================================
  */
@@ -24,23 +21,14 @@ import { MOCK_SESSIONS } from '@/mock/sessions';
 // ─────────────────────────────────────────
 
 /** true = Mock 데이터, false = 실제 API */
-export const USE_MOCK = false;
+export const USE_MOCK = true;
 
-/** 실제 백엔드 주소 (로컬: http://localhost:8080) */
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-
-
-// ─────────────────────────────────────────
-//  JWT 토큰 관리
-// ─────────────────────────────────────────
-
-export const getToken  = () => { try { return localStorage.getItem('kc_token'); }  catch { return null; } };
-const storeToken       = (t) => { try { localStorage.setItem('kc_token', t); }     catch {} };
-const clearToken       = ()  => { try { localStorage.removeItem('kc_token'); }      catch {} };
+/** 실제 백엔드 주소 */
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 
 // ─────────────────────────────────────────
-//  Mock 내부 상태 (USE_MOCK = true 일 때만 사용)
+//  Mock 내부 상태
 // ─────────────────────────────────────────
 
 const _runtimeUsers    = [...MOCK_USERS];
@@ -49,67 +37,33 @@ const _runtimeSessions = [...MOCK_SESSIONS];
 const getStoredUser = () => {
   try { return JSON.parse(sessionStorage.getItem('mock_user')); } catch { return null; }
 };
-const storeUser  = (u) => { try { sessionStorage.setItem('mock_user', JSON.stringify(u)); } catch {} };
-const clearStoredUser = () => { try { sessionStorage.removeItem('mock_user'); }             catch {} };
+const storeUser = (user) => {
+  try { sessionStorage.setItem('mock_user', JSON.stringify(user)); } catch {}
+};
+const clearStoredUser = () => {
+  try { sessionStorage.removeItem('mock_user'); } catch {}
+};
 
 
 // ─────────────────────────────────────────
 //  공통 헬퍼
 // ─────────────────────────────────────────
 
-/**
- * 실제 API 호출
- * - JWT 토큰 자동 첨부
- * - ApiResponse<T> { success, message, data } 자동 언래핑
- * - multipart FormData 전송 시 options.body = FormData (Content-Type 자동)
- */
-export async function apiFetch(path, options = {}) {
-  const token = getToken();
-
-  // FormData 전송 시 Content-Type 헤더를 설정하지 않음 (브라우저가 boundary 포함해 자동 설정)
-  const isFormData = options.body instanceof FormData;
-  const headers = {
-    ...(!isFormData && { 'Content-Type': 'application/json' }),
-    ...(token && { Authorization: `Bearer ${token}` }),
-    ...(options.headers || {}),
-  };
-
-  let res;
-  try {
-    res = await fetch(`${API_BASE_URL}${path}`, {
-      ...options,
-      headers,
-      credentials: 'include',
-    });
-  } catch {
-    return { ok: false, error: '서버에 연결할 수 없습니다. 백엔드 서버를 확인해주세요.' };
-  }
-
-  const json = await res.json().catch(() => ({}));
-
-  // HTTP 오류 처리
-  if (!res.ok) {
-    return { ok: false, error: json.message || `요청 실패 (${res.status})` };
-  }
-
-  // ApiResponse 래퍼 언래핑: { success, message, data }
-  if (json.success === false) {
-    return { ok: false, error: json.message || '서버 오류가 발생했습니다' };
-  }
-
-  // data 필드가 있으면 스프레드, 없으면 json 전체 반환
-  return { ok: true, ...(json.data !== undefined ? (json.data || {}) : json) };
+async function apiFetch(path, options = {}) {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    ...options,
+  });
+  return res.json().catch(() => ({}));
 }
 
 const ok    = (data = {}) => ({ ok: true,  ...data });
 const err   = (msg)       => ({ ok: false, error: msg });
 const delay = (ms = 350)  => new Promise((r) => setTimeout(r, ms));
 
-const findUser = (identifier) =>
-  _runtimeUsers.find(
-    (u) => u.username.toLowerCase() === identifier.toLowerCase()
-      || (u.email && u.email.toLowerCase() === identifier.toLowerCase())
-  );
+const findUser = (username) =>
+  _runtimeUsers.find((u) => u.username.toLowerCase() === username.toLowerCase());
 
 const genCode = () =>
   `#${String(Math.floor(1000 + Math.random() * 8999))}-${String(Math.floor(10 + Math.random() * 89))}`;
@@ -126,9 +80,9 @@ export const AuthAPI = {
    * 현재 로그인 유저 조회
    *
    * [실제 API]
-   *   GET /api/auth/me
-   *   Header: Authorization: Bearer {token}
-   *   Response 200: { id, nickname, email, pubgNickname, ... }
+   *   GET /auth/me
+   *   Response 200: { user: { id, username } }
+   *   Response 401: { error: 'Unauthorized' }
    */
   me: async () => {
     if (USE_MOCK) {
@@ -137,85 +91,77 @@ export const AuthAPI = {
       if (!user) return err('로그인이 필요합니다');
       return ok({ user });
     }
-    const token = getToken();
-    if (!token) return err('로그인이 필요합니다');
-    const res = await apiFetch('/api/auth/me');
-    if (!res.ok) return res;
-    // nickname → username 으로 매핑 (프론트 user 객체 통일)
-    return ok({ user: { id: String(res.id), username: res.nickname, email: res.email } });
+    return apiFetch('/auth/me');
   },
 
   /**
    * 로그인
    *
    * [실제 API]
-   *   POST /api/auth/login
-   *   Body: { email, password }
-   *   Response 200: { accessToken, tokenType, userId, nickname }
+   *   POST /auth/login
+   *   Body:     { username, password }
+   *   Response 200: { user: { id, username } }
+   *   Response 401: { error: string }
    *
-   * [Mock] email = 아이디(username) 로 동작 (mock 전용)
+   * [Mock 계정] test / 1234
    */
-  login: async (email, password) => {
+  login: async (username, password) => {
     if (USE_MOCK) {
       await delay(400);
-      // mock: email 필드에 username 입력 허용
-      const user = findUser(email);
-      if (!user)                      return err('존재하지 않는 계정입니다');
+      const user = findUser(username);
+      if (!user)                      return err('존재하지 않는 아이디입니다');
       if (user.password !== password) return err('비밀번호가 올바르지 않습니다');
       const safeUser = { id: user.id, username: user.username };
       storeUser(safeUser);
       return ok({ user: safeUser });
     }
-    const res = await apiFetch('/api/auth/login', {
+    return apiFetch('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ username, password }),
     });
-    if (!res.ok) return res;
-    storeToken(res.accessToken);
-    return ok({ user: { id: String(res.userId), username: res.nickname } });
   },
 
   /**
    * 회원가입
    *
    * [실제 API]
-   *   POST /api/auth/signup
-   *   Body: { nickname, email, password, pubgNickname? }
-   *   Response 201: { accessToken, tokenType, userId, nickname }
+   *   POST /auth/signup
+   *   Body:     { username, password }
+   *   Response 201: { user: { id, username } }
+   *   Response 409: { error: '이미 사용 중인 아이디입니다' }
    *
-   * [Mock] nickname = username 으로 저장
+   * [참고] 닉네임 없음. 배그 닉네임은 방 팀 구성 시 직접 입력.
    */
-  signup: async (nickname, email, password) => {
+  signup: async (username, password) => {
     if (USE_MOCK) {
       await delay(500);
-      if (!/^[a-zA-Z0-9_]{2,20}$/.test(nickname))
-        return err('닉네임은 영문·숫자·언더스코어 2~20자만 가능합니다');
+      if (!/^[a-zA-Z0-9_]{2,20}$/.test(username))
+        return err('아이디는 영문·숫자·언더스코어 2~20자만 가능합니다');
       if (!password || password.length < 4)
         return err('비밀번호는 최소 4자 이상이어야 합니다');
-      if (findUser(nickname))
-        return err('이미 사용 중인 닉네임입니다');
+      if (findUser(username))
+        return err('이미 사용 중인 아이디입니다');
       const newUser = {
-        id: genId('user'), username: nickname, password,
-        email, createdAt: new Date().toISOString(),
+        id: genId('user'), username, password,
+        createdAt: new Date().toISOString(),
       };
       _runtimeUsers.push(newUser);
       const safeUser = { id: newUser.id, username: newUser.username };
       storeUser(safeUser);
       return ok({ user: safeUser });
     }
-    const res = await apiFetch('/api/auth/signup', {
+    return apiFetch('/auth/signup', {
       method: 'POST',
-      body: JSON.stringify({ nickname, email, password }),
+      body: JSON.stringify({ username, password }),
     });
-    if (!res.ok) return res;
-    storeToken(res.accessToken);
-    return ok({ user: { id: String(res.userId), username: res.nickname } });
   },
 
   /**
    * 로그아웃
    *
-   * [실제 API] JWT는 서버 상태 없음 → 클라이언트에서 토큰 삭제만
+   * [실제 API]
+   *   POST /auth/logout
+   *   Response 200: { ok: true }
    */
   logout: async () => {
     if (USE_MOCK) {
@@ -223,17 +169,15 @@ export const AuthAPI = {
       clearStoredUser();
       return ok();
     }
-    clearToken();
-    return ok();
+    return apiFetch('/auth/logout', { method: 'POST' });
   },
 
   /**
-   * 내 프로필 상세 조회
+   * 내 프로필 조회 (가입일 등 상세 정보 포함)
    *
    * [실제 API]
-   *   GET /api/auth/me  (me 와 동일, 추가 필드 포함)
-   *
-   * TODO: 백엔드에 상세 프로필 엔드포인트 추가 시 업데이트
+   *   GET /auth/profile
+   *   Response 200: { user: { id, username, createdAt } }
    */
   getProfile: async () => {
     if (USE_MOCK) {
@@ -244,26 +188,17 @@ export const AuthAPI = {
       if (!full) return err('유저를 찾을 수 없습니다');
       return ok({ user: { id: full.id, username: full.username, createdAt: full.createdAt } });
     }
-    const res = await apiFetch('/api/auth/me');
-    if (!res.ok) return res;
-    return ok({
-      user: {
-        id: String(res.id),
-        username: res.nickname,
-        email: res.email,
-        pubgNickname: res.pubgNickname,
-        totalSessions: res.totalSessions,
-        wins: res.wins,
-        losses: res.losses,
-        winRate: res.winRate,
-      },
-    });
+    return apiFetch('/auth/profile');
   },
 
   /**
    * 비밀번호 변경
    *
-   * TODO: 백엔드 비밀번호 변경 엔드포인트 미구현 → mock 유지
+   * [실제 API]
+   *   PUT /auth/password
+   *   Body: { currentPassword, newPassword }
+   *   Response 200: { ok: true }
+   *   Response 401: { error: '현재 비밀번호가 올바르지 않습니다' }
    */
   changePassword: async (currentPassword, newPassword) => {
     if (USE_MOCK) {
@@ -277,14 +212,19 @@ export const AuthAPI = {
       user.password = newPassword;
       return ok();
     }
-    // TODO: PUT /api/auth/password 구현 시 연결
-    return err('비밀번호 변경은 아직 지원되지 않습니다');
+    return apiFetch('/auth/password', {
+      method: 'PUT',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
   },
 
   /**
-   * 닉네임 중복 확인
+   * 아이디 중복 확인
    *
-   * TODO: 백엔드 중복 확인 엔드포인트 미구현 → mock 유지
+   * [실제 API]
+   *   GET /auth/check-username?username={username}
+   *   Response 200: { available: true }
+   *   Response 409: { error: '이미 사용 중인 아이디입니다' }
    */
   checkUsername: async (username) => {
     if (USE_MOCK) {
@@ -292,24 +232,27 @@ export const AuthAPI = {
       if (!/^[a-zA-Z0-9_]{2,20}$/.test(username))
         return err('영문·숫자·언더스코어만 사용 가능 (2~20자)');
       if (findUser(username))
-        return err('이미 사용 중인 닉네임입니다');
-      return ok({ message: '사용 가능한 닉네임입니다' });
+        return err('이미 사용 중인 아이디입니다');
+      return ok({ message: '사용 가능한 아이디입니다' });
     }
-    // TODO: GET /api/auth/check-nickname 구현 시 연결
-    if (!/^[a-zA-Z0-9_]{2,20}$/.test(username))
-      return err('영문·숫자·언더스코어만 사용 가능 (2~20자)');
-    return ok({ message: '사용 가능한 닉네임입니다' });
+    return apiFetch(`/auth/check-username?username=${encodeURIComponent(username)}`);
   },
 };
 
 
 // ─────────────────────────────────────────
-//  🏠 Session API (킬내기 방) — 하위 호환용
-//  실제 세션 로직은 lib/room-api.js 에 있음
+//  🏠 Session API (킬내기 방)
 // ─────────────────────────────────────────
 
 export const SessionAPI = {
 
+  /**
+   * 내 방 목록 조회
+   *
+   * [실제 API]
+   *   GET /sessions
+   *   Response 200: { sessions: [{ id, title, code, status, createdAt, teams }] }
+   */
   list: async () => {
     if (USE_MOCK) {
       await delay(300);
@@ -319,28 +262,52 @@ export const SessionAPI = {
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       return ok({ sessions });
     }
-    return apiFetch('/api/sessions/my');
+    return apiFetch('/sessions');
   },
 
+  /**
+   * 방 생성
+   *
+   * [실제 API]
+   *   POST /sessions
+   *   Body: { title, rule, teams }
+   *   Response 201: { session: { id, title, code, status, rule, teams, createdAt } }
+   *
+   * [teams 구조]
+   *   [{ id, name, players: [{ id, nick }] }, ...]
+   *   players.nick = 배그 인게임 닉네임 (계정 연동 없음)
+   */
   create: async ({ title, rule, teams }) => {
     if (USE_MOCK) {
       await delay(400);
       const user = getStoredUser();
       const session = {
-        id: genId('session'), title,
-        code: genCode(), status: 'WAITING',
+        id: genId('session'),
+        title,
+        code: genCode(),
+        status: 'WAITING',
         hostId: user?.id || 'user-001',
-        rule, teams, createdAt: new Date().toISOString(),
+        rule,
+        teams,
+        createdAt: new Date().toISOString(),
       };
       _runtimeSessions.push(session);
       return ok({ session });
     }
-    return apiFetch('/api/sessions', {
+    return apiFetch('/sessions', {
       method: 'POST',
       body: JSON.stringify({ title, rule, teams }),
     });
   },
 
+  /**
+   * 방 정보 업데이트
+   *
+   * [실제 API]
+   *   PUT /sessions/:id
+   *   Body: { rule?, teams?, status? }
+   *   Response 200: { session }
+   */
   update: async (id, data) => {
     if (USE_MOCK) {
       await delay(200);
@@ -348,7 +315,7 @@ export const SessionAPI = {
       if (idx !== -1) _runtimeSessions[idx] = { ..._runtimeSessions[idx], ...data };
       return ok({ session: _runtimeSessions[idx] });
     }
-    return apiFetch(`/api/sessions/${id}`, {
+    return apiFetch(`/sessions/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
