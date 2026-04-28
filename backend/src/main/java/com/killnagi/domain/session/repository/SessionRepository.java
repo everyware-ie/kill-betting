@@ -13,7 +13,7 @@ public interface SessionRepository extends JpaRepository<Session, Long> {
     List<Session> findByHostId(Long hostId);
 
     @Query("SELECT s FROM Session s WHERE s.host.id = :userId OR EXISTS " +
-           "(SELECT tm FROM TeamMember tm WHERE tm.team.session.id = s.id AND tm.user.id = :userId)")
+           "(SELECT su FROM SessionUser su WHERE su.session.id = s.id AND su.user.id = :userId)")
     List<Session> findSessionsByUserId(@Param("userId") Long userId);
 
     Optional<Session> findByIdAndStatus(Long id, Session.SessionStatus status);

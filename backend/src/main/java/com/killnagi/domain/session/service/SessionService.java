@@ -22,8 +22,7 @@ import com.killnagi.domain.session.dto.response.TeamScoreResponse;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.session.repository.SessionRepository;
 import com.killnagi.domain.team.entity.Team;
-import com.killnagi.domain.team.entity.TeamMember;
-import com.killnagi.domain.team.repository.TeamMemberRepository;
+import com.killnagi.domain.team.entity.TeamPlayer;
 import com.killnagi.domain.team.repository.TeamRepository;
 import com.killnagi.domain.user.entity.User;
 import com.killnagi.domain.user.repository.UserRepository;
@@ -45,7 +44,6 @@ public class SessionService {
     private final SessionRepository sessionRepository;
     private final UserRepository userRepository;
     private final TeamRepository teamRepository;
-    private final TeamMemberRepository teamMemberRepository;
     private final RuleRepository ruleRepository;
     private final RuleSetRepository ruleSetRepository;
     private final MatchRepository matchRepository;
@@ -127,9 +125,8 @@ public class SessionService {
     @Transactional
     public ScreenshotUploadResponse uploadMatchImage(Long sessionId, Long uploaderId, MultipartFile file) {
         Session session = getSessionOrThrow(sessionId);
-        Team team = teamMemberRepository.findByTeam_SessionIdAndUser_Id(sessionId, uploaderId)
-                .orElseThrow(() -> KillnagiException.notFound("해당 세션에 속한 팀을 찾을 수 없습니다."))
-                .getTeam();
+        Team team = teamRepository.findBySessionIdAndOperatorUserId(sessionId, uploaderId)
+                .orElseThrow(() -> KillnagiException.notFound("해당 세션에서 Operator로 배정된 팀을 찾을 수 없습니다."));
         return matchService.uploadScreenshot(session, team, file);
     }
 
@@ -152,7 +149,7 @@ public class SessionService {
     }
 
     private TeamScoreResponse toTeamScoreResponse(Team team) {
-        List<MemberScoreResponse> members = team.getMembers().stream()
+        List<MemberScoreResponse> members = team.getPlayers().stream()
                 .map(this::toMemberScoreResponse)
                 .toList();
         return new TeamScoreResponse(
@@ -162,10 +159,10 @@ public class SessionService {
         );
     }
 
-    private MemberScoreResponse toMemberScoreResponse(TeamMember member) {
+    private MemberScoreResponse toMemberScoreResponse(TeamPlayer player) {
         return new MemberScoreResponse(
-                member.getUserId(), member.getUserNickname(),
-                member.getTotalKills(), member.getBonusKills(), member.getPenaltyKills(), member.getEffectiveKills()
+                player.getId(), player.getPlayerNickname(),
+                player.getTotalKills(), player.getBonusKills(), player.getPenaltyKills(), player.getEffectiveKills()
         );
     }
 
@@ -179,9 +176,9 @@ public class SessionService {
     }
 
     private MemberMatchResultResponse toMemberMatchResultResponse(MatchResult result) {
-        TeamMember member = result.getTeamMember();
+        TeamPlayer player = result.getTeamPlayer();
         return new MemberMatchResultResponse(
-                member.getUserId(), member.getTeamId(), member.getTeamName(), member.getUserNickname(),
+                player.getId(), player.getTeamId(), player.getTeam().getName(), player.getPlayerNickname(),
                 result.getKills(), result.getBonusKills(), result.getPenaltyKills(), result.getEffectiveKills(),
                 result.getPlacement(), result.isChicken()
         );

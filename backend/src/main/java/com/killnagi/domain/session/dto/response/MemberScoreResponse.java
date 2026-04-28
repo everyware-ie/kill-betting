@@ -1,8 +1,8 @@
 package com.killnagi.domain.session.dto.response;
 
 public record MemberScoreResponse(
-        Long userId,
-        String nickname,
+        Long playerId,
+        String playerNickname,
         int totalKills,
         int bonusKills,
         int penaltyKills,
