@@ -15,7 +15,6 @@ import com.killnagi.domain.session.dto.response.SessionResponse;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.session.repository.SessionRepository;
 import com.killnagi.domain.team.entity.Team;
-import com.killnagi.domain.team.repository.TeamMemberRepository;
 import com.killnagi.domain.team.repository.TeamRepository;
 import com.killnagi.domain.user.entity.User;
 import com.killnagi.domain.user.repository.UserRepository;
@@ -44,11 +43,8 @@ class SessionServiceTest {
     @Mock private SessionRepository sessionRepository;
     @Mock private UserRepository userRepository;
     @Mock private TeamRepository teamRepository;
-    @Mock private TeamMemberRepository teamMemberRepository;
     @Mock private RuleRepository ruleRepository;
     @Mock private RuleSetRepository ruleSetRepository;
-    @Mock private MatchRepository matchRepository;
-    @Mock private MatchService matchService;
     @InjectMocks private SessionService sessionService;
 
     private static final Long HOST_ID = 1L;
