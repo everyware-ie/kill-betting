@@ -63,7 +63,7 @@ public class MatchConfirmService {
     }
 
     private void validateOperatorPermission(Long sessionId, Long requesterId) {
-        if (!teamRepository.existsBySessionIdAndOperatorUserId(sessionId, requesterId)) {
+        if (!teamRepository.existsBySessionIdAndOperator_Id(sessionId, requesterId)) {
             throw KillnagiException.forbidden("업로더 권한이 있는 사용자만 결과를 확정할 수 있습니다.");
         }
     }

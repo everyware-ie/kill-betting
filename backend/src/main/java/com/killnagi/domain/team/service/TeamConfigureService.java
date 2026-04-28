@@ -20,8 +20,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -106,11 +104,13 @@ public class TeamConfigureService {
         }
 
         // 다른 팀에 이미 Operator로 배정된 경우
-        if (teamRepository.existsBySessionIdAndOperatorUserIdAndIdNot(sessionId, targetUserId, teamId)) {
+        if (teamRepository.existsBySessionIdAndOperator_IdAndIdNot(sessionId, targetUserId, teamId)) {
             throw KillnagiException.badRequest("이미 다른 팀의 Operator로 배정된 사용자입니다.");
         }
 
-        team.assignOperator(targetUserId);
+        User operator = userRepository.findById(targetUserId)
+                .orElseThrow(() -> KillnagiException.notFound("사용자를 찾을 수 없습니다."));
+        team.assignOperator(operator);
     }
 
     public ConfigureStateMessage buildConfigureState(Long sessionId) {
@@ -129,20 +129,13 @@ public class TeamConfigureService {
                 .map(su -> new WaitingUserInfo(su.getUserId(), su.getUserNickname()))
                 .toList();
 
-        // Operator 닉네임 조회를 위해 userId → User 맵 구성
-        List<Long> operatorIds = assignedOperatorIds;
-        Map<Long, String> operatorNicknameMap = userRepository.findAllById(operatorIds).stream()
-                .collect(Collectors.toMap(User::getId, User::getNickname));
-
         List<TeamConfigureInfo> teamInfos = teams.stream()
                 .map(team -> {
                     List<PlayerInfo> players = team.getPlayers().stream()
                             .map(p -> new PlayerInfo(p.getId(), p.getPlayerNickname()))
                             .toList();
 
-                    String operatorNickname = team.getOperatorUserId() != null
-                            ? operatorNicknameMap.get(team.getOperatorUserId())
-                            : null;
+                    String operatorNickname = team.getOperatorNickname();
 
                     String status = resolveTeamStatus(team, players);
 
