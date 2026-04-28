@@ -1,7 +1,7 @@
 /**
  * RoleGuideModal
  * ──────────────
- * 킬내기 서비스의 역할(방장 / 오퍼레이터) 안내 모달.
+ * 킬내기 서비스의 역할(방장 / 리더) 안내 모달.
  * setup 페이지와 live 페이지 양쪽에서 공용으로 사용합니다.
  *
  * Props:
@@ -20,7 +20,7 @@ const HOST_ITEMS = [
   { icon: '🏁', text: '경기 종료' },
 ];
 
-const OP_ITEMS = [
+const LEADER_ITEMS = [
   { icon: '👤', text: '팀 대표 유저 (팀당 1명)' },
   { icon: '📸', text: 'OCR 스크린샷 업로드' },
   { icon: '✏️', text: '매치 결과 수치 수정' },
@@ -118,7 +118,7 @@ export default function RoleGuideModal({ onClose }) {
           >✕</button>
         </div>
 
-        {/* ── 역할 카드 (방장 / OP) ── */}
+        {/* ── 역할 카드 (방장 / 리더) ── */}
         <div style={{
           padding: '20px 24px 0',
           display: 'grid',
@@ -135,17 +135,17 @@ export default function RoleGuideModal({ onClose }) {
             items={HOST_ITEMS}
           />
           <RoleCard
-            badge="★ OP"
+            badge="★ LEADER"
             badgeBg="#F5A623"
-            title="오퍼레이터"
-            subtitle="OPERATOR · 팀당 1명"
+            title="리더"
+            subtitle="LEADER · 팀당 1명"
             accentColor="245,166,35"
             borderColor="245,166,35"
-            items={OP_ITEMS}
+            items={LEADER_ITEMS}
           />
         </div>
 
-        {/* ── 방장 + OP 겸임 안내 ── */}
+        {/* ── 방장 + 리더 겸임 안내 ── */}
         <div style={{
           margin: '16px 24px',
           background: 'rgba(200,155,0,0.06)',
@@ -156,12 +156,12 @@ export default function RoleGuideModal({ onClose }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
             <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 3, fontWeight: 700, background: '#FFD700', color: '#1a1500' }}>👑 방장</span>
             <span style={{ fontSize: 13, color: '#555' }}>+</span>
-            <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 3, fontWeight: 700, background: '#F5A623', color: '#1a1500' }}>★ OP</span>
+            <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 3, fontWeight: 700, background: '#F5A623', color: '#1a1500' }}>★ LEADER</span>
             <span style={{ fontSize: 11, color: '#8A8060', fontWeight: 700 }}>겸임 가능</span>
           </div>
           <div style={{ fontSize: 11, color: '#8A8060', lineHeight: 1.7 }}>
-            방장이 특정 팀에 합류하면 <span style={{ color: '#C8B97A' }}>해당 팀의 OP를 겸임</span>합니다.<br />
-            방장이 대기석에 있으면 방장과 OP는 <span style={{ color: '#C8B97A' }}>완전히 분리</span>됩니다.
+            방장이 특정 팀에 합류하면 <span style={{ color: '#C8B97A' }}>해당 팀의 리더를 겸임</span>합니다.<br />
+            방장이 대기석에 있으면 방장과 리더는 <span style={{ color: '#C8B97A' }}>완전히 분리</span>됩니다.
           </div>
         </div>
 
@@ -170,19 +170,19 @@ export default function RoleGuideModal({ onClose }) {
           <div style={{ fontSize: 10, color: '#8A8060', letterSpacing: 1, marginBottom: 10 }}>진행 흐름</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 0, overflowX: 'auto' }}>
             {[
-              { step: '방 생성', role: '방장', icon: '🏠' },
-              { step: '팀 구성', role: '방장', icon: '🏗' },
-              { step: '닉네임 등록', role: '방장', icon: '✏️' },
-              { step: '킬내기 시작', role: '방장', icon: '🚀' },
-              { step: 'OCR 업로드', role: 'OP', icon: '📸' },
-              { step: '경기 종료', role: '방장', icon: '🏁' },
+              { step: '방 생성',    role: '방장',   icon: '🏠' },
+              { step: '팀 구성',    role: '방장',   icon: '🏗' },
+              { step: '닉네임 등록', role: '방장',   icon: '✏️' },
+              { step: '킬내기 시작', role: '방장',   icon: '🚀' },
+              { step: 'OCR 업로드', role: 'LEADER', icon: '📸' },
+              { step: '경기 종료',  role: '방장',   icon: '🏁' },
             ].map(({ step, role, icon }, idx, arr) => (
               <div key={step} style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
                   <div style={{
                     width: 36, height: 36,
-                    background: role === 'OP' ? 'rgba(245,166,35,0.1)' : 'rgba(255,215,0,0.08)',
-                    border: `1px solid ${role === 'OP' ? 'rgba(245,166,35,0.3)' : 'rgba(255,215,0,0.25)'}`,
+                    background: role === 'LEADER' ? 'rgba(245,166,35,0.1)' : 'rgba(255,215,0,0.08)',
+                    border: `1px solid ${role === 'LEADER' ? 'rgba(245,166,35,0.3)' : 'rgba(255,215,0,0.25)'}`,
                     borderRadius: 8,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 16,
@@ -190,9 +190,9 @@ export default function RoleGuideModal({ onClose }) {
                   <div style={{ fontSize: 9, color: '#E8DFC0', fontWeight: 600, textAlign: 'center', whiteSpace: 'nowrap' }}>{step}</div>
                   <div style={{
                     fontSize: 8, padding: '1px 5px', borderRadius: 2, fontWeight: 700,
-                    background: role === 'OP' ? '#F5A623' : '#FFD700',
+                    background: role === 'LEADER' ? '#F5A623' : '#FFD700',
                     color: '#1a1500',
-                  }}>{role === 'OP' ? '★ OP' : '👑 방장'}</div>
+                  }}>{role === 'LEADER' ? '★ LEADER' : '👑 방장'}</div>
                 </div>
                 {idx < arr.length - 1 && (
                   <div style={{ width: 16, height: 1, background: 'rgba(200,155,0,0.2)', margin: '0 4px', marginBottom: 18 }} />

@@ -9,14 +9,14 @@
  *    - 방에 들어온 로그인 유저
  *    - 방 입장 시 빈 자리 있는 팀에 자동 배정
  *    - 다른 팀으로 이동 가능
- *    - role: OPERATOR(1명) | MEMBER(나머지)
+ *    - role: LEADER(1명) | MEMBER(나머지)
  *
  *  팀 players (킬내기 참가자)
  *    - 배그 인게임 닉네임 문자열
  *    - 계정 연동 없음, 직접 입력
  *    - members와 별개 — members가 있어도 players는 따로 입력해야 함
  *
- *  OPERATOR 권한
+ *  LEADER 권한
  *    - OCR 스크린샷 업로드
  *    - 매치 결과 수치 수정
  *    - 팀당 1명만 가능
@@ -265,8 +265,8 @@ export default function SetupPage() {
   };
 
   // ── 운영자 위임 ──
-  const handleSetOperator = async (teamId, targetUserId) => {
-    const res = await RoomAPI.setOperator(roomId, teamId, targetUserId);
+  const handleSetLeader = async (teamId, targetUserId) => {
+    const res = await RoomAPI.setLeader(roomId, teamId, targetUserId);
     if (res.ok) setRoom((r) => ({ ...r, teams: res.teams }));
     else setError(res.error);
   };
@@ -391,7 +391,7 @@ export default function SetupPage() {
             </span>
           ) : (
             <span style={{ padding: '1px 7px', borderRadius: 3, fontSize: 10, fontWeight: 700, background: '#F5A623', color: '#1a1500' }}>
-              ★ OP
+              ★ LEADER
             </span>
           )}
           <span style={{ fontSize: 11, color: '#8A8060' }}>
@@ -514,7 +514,7 @@ export default function SetupPage() {
                               {member.username}{isMe && ' (나)'}
                             </span>
                           </div>
-                          {/* 팀당 1명 = 해당 팀 OPERATOR. 방장이면 👑 + ★ OP 둘 다 표시 */}
+                          {/* 팀당 1명 = 해당 팀 LEADER. 방장이면 👑 + ★ LEADER 둘 다 표시 */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                             {member.userId === hostUserId && (
                               <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 2, fontWeight: 700, background: '#FFD700', color: '#1a1500' }}>
@@ -522,7 +522,7 @@ export default function SetupPage() {
                               </span>
                             )}
                             <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 2, fontWeight: 700, background: '#F5A623', color: '#1a1500' }}>
-                              ★ OP
+                              ★ LEADER
                             </span>
                           </div>
                         </div>

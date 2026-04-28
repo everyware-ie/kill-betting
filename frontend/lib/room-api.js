@@ -110,8 +110,8 @@ export const RoomAPI = {
    *
    * [동작]
    *   - 기존 팀에 있으면 자동으로 기존 팀에서 제거 후 새 팀에 추가
-   *   - 팀에 처음 들어온 유저 → 자동으로 OPERATOR 배정
-   *   - 이미 OPERATOR 있으면 MEMBER로 배정
+   *   - 팀에 처음 들어온 유저 → 자동으로 LEADER 배정
+   *   - 이미 LEADER 있으면 MEMBER로 배정
    */
   joinTeam: async (roomId, teamId, user) => {
     if (USE_MOCK) {
@@ -130,7 +130,7 @@ export const RoomAPI = {
         members: (t.members || []).filter((m) => m.userId !== user.id),
       }));
 
-      // 새 팀에 추가 — 팀당 1명이므로 항상 OPERATOR
+      // 새 팀에 추가 — 팀당 1명이므로 항상 LEADER
       room.teams = room.teams.map((t) => {
         if (t.id !== teamId) return t;
         return {
@@ -138,7 +138,7 @@ export const RoomAPI = {
           members: [{
             userId:   user.id,
             username: user.username,
-            role:     'OPERATOR',
+            role:     'LEADER',
           }],
         };
       });
@@ -156,7 +156,7 @@ export const RoomAPI = {
    *   Response 200: { teams }
    *
    * [동작]
-   *   - OPERATOR가 나가면 남은 멤버 중 첫 번째가 자동으로 OPERATOR 승격
+   *   - LEADER가 나가면 남은 멤버 중 첫 번째가 자동으로 LEADER 승격
    */
   leaveTeam: async (roomId, teamId, userId) => {
     if (USE_MOCK) {
@@ -167,10 +167,10 @@ export const RoomAPI = {
       room.teams = room.teams.map((t) => {
         if (t.id !== teamId) return t;
         const remaining = t.members.filter((m) => m.userId !== userId);
-        // OPERATOR 없으면 첫 번째 MEMBER를 OPERATOR로 승격
-        const hasOperator = remaining.some((m) => m.role === 'OPERATOR');
-        if (!hasOperator && remaining.length > 0) {
-          remaining[0] = { ...remaining[0], role: 'OPERATOR' };
+        // LEADER 없으면 첫 번째 MEMBER를 LEADER로 승격
+        const hasLeader = remaining.some((m) => m.role === 'LEADER');
+        if (!hasLeader && remaining.length > 0) {
+          remaining[0] = { ...remaining[0], role: 'LEADER' };
         }
         return { ...t, members: remaining };
       });
@@ -181,17 +181,17 @@ export const RoomAPI = {
   },
 
   /**
-   * 운영자(Operator) 위임
+   * 리더(Leader) 위임
    *
    * [실제 API]
-   *   PUT /rooms/:id/teams/:teamId/operator
+   *   PUT /rooms/:id/teams/:teamId/leader
    *   Body: { userId: string }
    *   Response 200: { teams }
    *
    * [권한]
-   *   현재 OPERATOR만 위임 가능
+   *   현재 LEADER만 위임 가능
    */
-  setOperator: async (roomId, teamId, newOperatorUserId) => {
+  setLeader: async (roomId, teamId, newLeaderUserId) => {
     if (USE_MOCK) {
       await delay(200);
       const room = _runtimeRooms.find((r) => r.id === roomId);
@@ -203,16 +203,16 @@ export const RoomAPI = {
           ...t,
           members: t.members.map((m) => ({
             ...m,
-            role: m.userId === newOperatorUserId ? 'OPERATOR' : 'MEMBER',
+            role: m.userId === newLeaderUserId ? 'LEADER' : 'MEMBER',
           })),
         };
       });
 
       return ok({ teams: room.teams });
     }
-    return apiFetch(`/rooms/${roomId}/teams/${teamId}/operator`, {
+    return apiFetch(`/rooms/${roomId}/teams/${teamId}/leader`, {
       method: 'PUT',
-      body: JSON.stringify({ userId: newOperatorUserId }),
+      body: JSON.stringify({ userId: newLeaderUserId }),
     });
   },
 
