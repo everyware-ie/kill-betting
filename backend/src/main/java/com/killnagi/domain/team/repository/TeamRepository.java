@@ -9,7 +9,7 @@ import java.util.Optional;
 public interface TeamRepository extends JpaRepository<Team, Long> {
     List<Team> findBySessionId(Long sessionId);
     Optional<Team> findByIdAndSessionId(Long teamId, Long sessionId);
-    boolean existsBySessionIdAndOperatorUserId(Long sessionId, Long operatorUserId);
-    boolean existsBySessionIdAndOperatorUserIdAndIdNot(Long sessionId, Long operatorUserId, Long teamId);
-    java.util.Optional<Team> findBySessionIdAndOperatorUserId(Long sessionId, Long operatorUserId);
+    boolean existsBySessionIdAndOperator_Id(Long sessionId, Long operatorUserId);
+    boolean existsBySessionIdAndOperator_IdAndIdNot(Long sessionId, Long operatorUserId, Long teamId);
+    Optional<Team> findBySessionIdAndOperator_Id(Long sessionId, Long operatorUserId);
 }

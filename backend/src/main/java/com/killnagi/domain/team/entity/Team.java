@@ -1,6 +1,7 @@
 package com.killnagi.domain.team.entity;
 
 import com.killnagi.domain.session.entity.Session;
+import com.killnagi.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -24,8 +25,9 @@ public class Team {
     @Column(nullable = false, length = 50)
     private String name;
 
-    @Column(name = "operator_user_id")
-    private Long operatorUserId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "operator_user_id")
+    private User operator;
 
     @Column(name = "total_kills", nullable = false)
     private int totalKills = 0;
@@ -45,16 +47,24 @@ public class Team {
         this.name = name;
     }
 
-    public void assignOperator(Long userId) {
-        this.operatorUserId = userId;
+    public void assignOperator(User operator) {
+        this.operator = operator;
     }
 
     public boolean hasOperator() {
-        return this.operatorUserId != null;
+        return this.operator != null;
     }
 
     public boolean isOperatedBy(Long userId) {
-        return userId != null && userId.equals(this.operatorUserId);
+        return this.operator != null && this.operator.hasId(userId);
+    }
+
+    public Long getOperatorUserId() {
+        return this.operator != null ? this.operator.getId() : null;
+    }
+
+    public String getOperatorNickname() {
+        return this.operator != null ? this.operator.getNickname() : null;
     }
 
     public int getEffectiveKills() {
