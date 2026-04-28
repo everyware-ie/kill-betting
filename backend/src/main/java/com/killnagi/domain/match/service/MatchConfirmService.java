@@ -29,8 +29,8 @@ public class MatchConfirmService {
     @Transactional
     public ConfirmResponse confirm(Long matchId, Long requesterId) {
         Match match = findValidMatch(matchId);
-        List<MatchResult> results = findConfirmableResults(match);
         validateUploaderPermission(match.getSession().getId(), requesterId);
+        List<MatchResult> results = findConfirmableResults(match);
 
         List<Rule> rules = ruleRepository.findByRuleSetSessionIdAndEnabled(match.getSession().getId(), true);
         applyResults(results, rules);
