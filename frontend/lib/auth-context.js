@@ -36,20 +36,25 @@ export function AuthProvider({ children }) {
 
   /**
    * 로그인
+   * @param {string} email     이메일 (실제 API) 또는 아이디 (mock)
+   * @param {string} password  비밀번호
    * @returns {{ ok: boolean, error?: string }}
    */
-  const login = async (username, password) => {
-    const res = await AuthAPI.login(username, password);
+  const login = async (email, password) => {
+    const res = await AuthAPI.login(email, password);
     if (res.ok) setUser(res.user);
     return res;
   };
 
   /**
    * 회원가입
+   * @param {string} nickname  닉네임 (표시명)
+   * @param {string} email     이메일
+   * @param {string} password  비밀번호
    * @returns {{ ok: boolean, error?: string }}
    */
-  const signup = async (username, password) => {
-    const res = await AuthAPI.signup(username, password);
+  const signup = async (nickname, email, password) => {
+    const res = await AuthAPI.signup(nickname, email, password);
     if (res.ok) setUser(res.user);
     return res;
   };
