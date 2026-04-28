@@ -6,6 +6,8 @@ import com.killnagi.domain.match.entity.MatchResult;
 import com.killnagi.domain.match.repository.MatchRepository;
 import com.killnagi.domain.match.repository.MatchResultRepository;
 import com.killnagi.domain.rule.entity.Rule;
+import com.killnagi.domain.rule.entity.Rule.RuleType;
+import com.killnagi.domain.rule.entity.Rule.Operator;
 import com.killnagi.domain.rule.repository.RuleRepository;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.team.entity.Team;
@@ -32,11 +34,16 @@ import static org.mockito.BDDMockito.given;
 @DisplayName("MatchConfirmService 매치 결과 확정 테스트")
 class MatchConfirmServiceTest {
 
-    @Mock private MatchRepository matchRepository;
-    @Mock private MatchResultRepository matchResultRepository;
-    @Mock private RuleRepository ruleRepository;
-    @Mock private TeamMemberRepository teamMemberRepository;
-    @InjectMocks private MatchConfirmService matchConfirmService;
+    @Mock
+    private MatchRepository matchRepository;
+    @Mock
+    private MatchResultRepository matchResultRepository;
+    @Mock
+    private RuleRepository ruleRepository;
+    @Mock
+    private TeamMemberRepository teamMemberRepository;
+    @InjectMocks
+    private MatchConfirmService matchConfirmService;
 
     private static final Long MATCH_ID = 1L;
     private static final Long SESSION_ID = 1L;
@@ -79,7 +86,8 @@ class MatchConfirmServiceTest {
     @Test
     void 업로더_권한이_없는_사용자는_확정할_수_없다() {
         given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
-        given(teamMemberRepository.existsByTeam_Session_IdAndUser_IdAndIsUploaderTrue(SESSION_ID, USER_ID)).willReturn(false);
+        given(teamMemberRepository.existsByTeam_Session_IdAndUser_IdAndIsUploaderTrue(SESSION_ID, USER_ID)).willReturn(
+                false);
 
         assertThatThrownBy(() -> matchConfirmService.confirm(MATCH_ID, USER_ID))
                 .isInstanceOf(KillnagiException.class)
@@ -89,7 +97,8 @@ class MatchConfirmServiceTest {
     @Test
     void 매치_결과_데이터가_없으면_확정할_수_없다() {
         given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
-        given(teamMemberRepository.existsByTeam_Session_IdAndUser_IdAndIsUploaderTrue(SESSION_ID, USER_ID)).willReturn(true);
+        given(teamMemberRepository.existsByTeam_Session_IdAndUser_IdAndIsUploaderTrue(SESSION_ID, USER_ID)).willReturn(
+                true);
         given(matchResultRepository.findByMatch(pendingMatch)).willReturn(List.of());
 
         assertThatThrownBy(() -> matchConfirmService.confirm(MATCH_ID, USER_ID))
@@ -101,7 +110,8 @@ class MatchConfirmServiceTest {
     void 확정_성공시_팀의_총_킬수가_누적된다() {
         given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
         given(matchResultRepository.findByMatch(pendingMatch)).willReturn(List.of(result));
-        given(teamMemberRepository.existsByTeam_Session_IdAndUser_IdAndIsUploaderTrue(SESSION_ID, USER_ID)).willReturn(true);
+        given(teamMemberRepository.existsByTeam_Session_IdAndUser_IdAndIsUploaderTrue(SESSION_ID, USER_ID)).willReturn(
+                true);
         given(matchResultRepository.findByMatch(pendingMatch)).willReturn(List.of(result));
         given(ruleRepository.findByRuleSetSessionIdAndEnabled(SESSION_ID, true)).willReturn(List.of());
 
@@ -114,7 +124,8 @@ class MatchConfirmServiceTest {
     void 확정_성공시_팀원의_총_킬수가_업데이트된다() {
         given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
         given(matchResultRepository.findByMatch(pendingMatch)).willReturn(List.of(result));
-        given(teamMemberRepository.existsByTeam_Session_IdAndUser_IdAndIsUploaderTrue(SESSION_ID, USER_ID)).willReturn(true);
+        given(teamMemberRepository.existsByTeam_Session_IdAndUser_IdAndIsUploaderTrue(SESSION_ID, USER_ID)).willReturn(
+                true);
         given(ruleRepository.findByRuleSetSessionIdAndEnabled(SESSION_ID, true)).willReturn(List.of());
 
         matchConfirmService.confirm(MATCH_ID, USER_ID);
@@ -131,7 +142,8 @@ class MatchConfirmServiceTest {
 
         given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
         given(matchResultRepository.findByMatch(pendingMatch)).willReturn(List.of(chickenResult));
-        given(teamMemberRepository.existsByTeam_Session_IdAndUser_IdAndIsUploaderTrue(SESSION_ID, USER_ID)).willReturn(true);
+        given(teamMemberRepository.existsByTeam_Session_IdAndUser_IdAndIsUploaderTrue(SESSION_ID, USER_ID)).willReturn(
+                true);
         given(ruleRepository.findByRuleSetSessionIdAndEnabled(SESSION_ID, true)).willReturn(List.of(chickenBonus));
 
         matchConfirmService.confirm(MATCH_ID, USER_ID);
@@ -147,7 +159,8 @@ class MatchConfirmServiceTest {
         Rule penalty = TestFixtures.rule(session, RuleType.SURVIVAL_PENALTY, 2);
 
         given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
-        given(teamMemberRepository.existsByTeam_Session_IdAndUser_IdAndIsUploaderTrue(SESSION_ID, USER_ID)).willReturn(true);
+        given(teamMemberRepository.existsByTeam_Session_IdAndUser_IdAndIsUploaderTrue(SESSION_ID, USER_ID)).willReturn(
+                true);
         given(matchResultRepository.findByMatch(pendingMatch)).willReturn(List.of(lateResult));
         given(ruleRepository.findByRuleSetSessionIdAndEnabled(SESSION_ID, true)).willReturn(List.of(penalty));
 
@@ -159,7 +172,8 @@ class MatchConfirmServiceTest {
     @Test
     void 확정_성공시_매치_상태가_CONFIRMED로_변경된다() {
         given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
-        given(teamMemberRepository.existsByTeam_Session_IdAndUser_IdAndIsUploaderTrue(SESSION_ID, USER_ID)).willReturn(true);
+        given(teamMemberRepository.existsByTeam_Session_IdAndUser_IdAndIsUploaderTrue(SESSION_ID, USER_ID)).willReturn(
+                true);
         given(ruleRepository.findByRuleSetSessionIdAndEnabled(SESSION_ID, true)).willReturn(List.of());
         given(matchResultRepository.findByMatch(pendingMatch)).willReturn(List.of(result));
 
@@ -169,8 +183,10 @@ class MatchConfirmServiceTest {
     }
 
     @Test
-    @DisplayName("순위 조건을 만족하면 PLACEMENT_BONUS 규칙이 팀 보너스 킬에 적용된다")
-    void should_ApplyPlacementBonus_when_PlacementMeetsCondition() {
+    void 순위_조건_만족시_PLACEMENT_BONUS가_팀_보너스에_적용된다() {
+        User user = TestFixtures.user(USER_ID);
+        Session session = TestFixtures.session(SESSION_ID, user);
+        Rule placementBonus = TestFixtures.rule(session, RuleType.PLACEMENT_BONUS, Operator.LTE, 3);
         MatchResult top3Result = MatchResult.builder()
                 .match(pendingMatch)
                 .teamMember(member)
@@ -180,7 +196,8 @@ class MatchConfirmServiceTest {
 
         given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
         given(matchResultRepository.findByMatch(pendingMatch)).willReturn(List.of(top3Result));
-        given(teamMemberRepository.existsByTeam_Session_IdAndUser_IdAndIsUploaderTrue(SESSION_ID, USER_ID)).willReturn(true);
+        given(teamMemberRepository.existsByTeam_Session_IdAndUser_IdAndIsUploaderTrue(SESSION_ID, USER_ID)).willReturn(
+                true);
         given(ruleRepository.findByRuleSetSessionIdAndEnabled(SESSION_ID, true)).willReturn(List.of(placementBonus));
 
         matchConfirmService.confirm(MATCH_ID, USER_ID);
