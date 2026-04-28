@@ -2,7 +2,6 @@ package com.killnagi.domain.session.entity;
 
 import com.killnagi.domain.rule.entity.RuleSet;
 import com.killnagi.domain.user.entity.User;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -10,7 +9,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 class SessionTest {
 
     @Test
-    @DisplayName("세션 생성 시 상태는 WAITING이다")
     void 세션_생성시_상태는_WAITING이다() {
         Session session = sessionWithRoomUrl("abc-123");
 
@@ -18,8 +16,7 @@ class SessionTest {
     }
 
     @Test
-    @DisplayName("start() 호출 시 상태가 IN_PROGRESS로 변경된다")
-    void start_호출시_상태가_IN_PROGRESS로_변경된다() {
+    void 세션_시작시_상태가_IN_PROGRESS로_변경된다() {
         Session session = sessionWithRoomUrl("abc-123");
 
         session.start();
@@ -29,8 +26,7 @@ class SessionTest {
     }
 
     @Test
-    @DisplayName("end() 호출 시 상태가 ENDED로 변경된다")
-    void end_호출시_상태가_ENDED로_변경된다() {
+    void 세션_종료시_상태가_ENDED로_변경된다() {
         Session session = sessionWithRoomUrl("abc-123");
 
         session.end(null);
@@ -40,8 +36,7 @@ class SessionTest {
     }
 
     @Test
-    @DisplayName("assignCurrentRuleSet() 호출 시 currentRuleSet이 설정된다")
-    void assignCurrentRuleSet_호출시_currentRuleSet이_설정된다() {
+    void 현재_룰셋_설정시_currentRuleSet이_적용된다() {
         Session session = sessionWithRoomUrl("abc-123");
         RuleSet ruleSet = RuleSet.builder().session(session).build();
 
@@ -51,8 +46,7 @@ class SessionTest {
     }
 
     @Test
-    @DisplayName("isHostedBy()는 영속화 전 호스트는 어떤 ID와도 일치하지 않는다")
-    void isHostedBy_영속화전_호스트는_어떤ID와도_일치하지_않는다() {
+    void 영속화전_호스트ID는_어떤ID와도_일치하지_않는다() {
         User host = User.builder()
                 .nickname("testHost")
                 .email("host@test.com")

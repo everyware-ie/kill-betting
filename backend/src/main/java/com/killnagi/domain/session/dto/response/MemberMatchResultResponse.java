@@ -1,10 +1,10 @@
 package com.killnagi.domain.session.dto.response;
 
 public record MemberMatchResultResponse(
-        Long userId,
+        Long playerId,
         Long teamId,
         String teamName,
-        String nickname,
+        String playerNickname,
         int kills,
         int bonusKills,
         int penaltyKills,

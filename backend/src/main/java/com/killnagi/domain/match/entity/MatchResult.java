@@ -1,6 +1,6 @@
 package com.killnagi.domain.match.entity;
 
-import com.killnagi.domain.team.entity.TeamMember;
+import com.killnagi.domain.team.entity.TeamPlayer;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -19,8 +19,8 @@ public class MatchResult {
     private Match match;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "team_member_id", nullable = false)
-    private TeamMember teamMember;
+    @JoinColumn(name = "team_player_id", nullable = false)
+    private TeamPlayer teamPlayer;
 
     @Column(nullable = false)
     private int kills;
@@ -38,9 +38,9 @@ public class MatchResult {
     private int penaltyKills = 0;
 
     @Builder
-    public MatchResult(Match match, TeamMember teamMember, int kills, Integer placement) {
+    public MatchResult(Match match, TeamPlayer teamPlayer, int kills, Integer placement) {
         this.match = match;
-        this.teamMember = teamMember;
+        this.teamPlayer = teamPlayer;
         this.kills = kills;
         this.placement = placement;
         this.isChicken = placement != null && placement == 1;

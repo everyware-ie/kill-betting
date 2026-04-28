@@ -1,14 +1,19 @@
 package com.killnagi.domain.team.entity;
 
-import com.killnagi.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "team_members")
+@Table(name = "team_players")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class TeamMember {
+@EntityListeners(AuditingEntityListener.class)
+public class TeamPlayer {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -18,12 +23,8 @@ public class TeamMember {
     @JoinColumn(name = "team_id", nullable = false)
     private Team team;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
-
-    @Column(name = "is_uploader", nullable = false)
-    private boolean isUploader = false;
+    @Column(name = "player_nickname", nullable = false, length = 100)
+    private String playerNickname;
 
     @Column(name = "total_kills", nullable = false)
     private int totalKills = 0;
@@ -34,15 +35,22 @@ public class TeamMember {
     @Column(name = "penalty_kills", nullable = false)
     private int penaltyKills = 0;
 
+    @CreatedDate
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
     @Builder
-    public TeamMember(Team team, User user, boolean isUploader) {
+    public TeamPlayer(Team team, String playerNickname) {
         this.team = team;
-        this.user = user;
-        this.isUploader = isUploader;
+        this.playerNickname = playerNickname;
     }
 
-    public int getEffectiveKills() {
-        return totalKills + bonusKills - penaltyKills;
+    public void updateNickname(String playerNickname) {
+        this.playerNickname = playerNickname;
     }
 
     public void addKills(int kills) {
@@ -57,19 +65,11 @@ public class TeamMember {
         this.penaltyKills += penalty;
     }
 
-    public Long getUserId() {
-        return this.user.getId();
-    }
-
-    public String getUserNickname() {
-        return this.user.getNickname();
+    public int getEffectiveKills() {
+        return totalKills + bonusKills - penaltyKills;
     }
 
     public Long getTeamId() {
         return this.team.getId();
-    }
-
-    public String getTeamName() {
-        return this.team.getName();
     }
 }

@@ -6,7 +6,6 @@ import com.killnagi.domain.match.event.TeamSnapshot;
 import com.killnagi.domain.scoreboard.dto.MemberResult;
 import com.killnagi.domain.scoreboard.dto.ScoreBoardUpdateMessage;
 import com.killnagi.domain.scoreboard.dto.TeamUpdate;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -34,8 +33,7 @@ class ScoreBoardBroadcasterTest {
     private ScoreBoardBroadcaster scoreBoardBroadcaster;
 
     @Test
-    @DisplayName("MatchConfirmedEvent 수신 시 올바른 세션 토픽으로 메시지를 전송한다")
-    void handleMatchConfirmed_올바른_토픽으로_메시지를_전송한다() {
+    void 매치확정_이벤트_수신시_올바른_세션_토픽으로_메시지를_전송한다() {
         MatchConfirmedEvent event = matchConfirmedEventFixture(1L, 5L);
 
         scoreBoardBroadcaster.handleMatchConfirmed(event);
@@ -45,8 +43,7 @@ class ScoreBoardBroadcasterTest {
     }
 
     @Test
-    @DisplayName("이벤트의 matchId와 sessionId가 메시지에 그대로 담긴다")
-    void handleMatchConfirmed_이벤트_식별자가_메시지에_포함된다() {
+    void 매치확정_이벤트의_matchId와_sessionId가_메시지에_포함된다() {
         MatchConfirmedEvent event = matchConfirmedEventFixture(10L, 3L);
         ArgumentCaptor<ScoreBoardUpdateMessage> captor = ArgumentCaptor.forClass(ScoreBoardUpdateMessage.class);
 
@@ -59,8 +56,7 @@ class ScoreBoardBroadcasterTest {
     }
 
     @Test
-    @DisplayName("이벤트의 팀 스냅샷이 메시지의 TeamUpdate로 변환된다")
-    void handleMatchConfirmed_팀_스냅샷이_TeamUpdate로_변환된다() {
+    void 매치확정_이벤트의_팀_스냅샷이_TeamUpdate로_변환된다() {
         MatchConfirmedEvent event = matchConfirmedEventFixture(1L, 1L);
         ArgumentCaptor<ScoreBoardUpdateMessage> captor = ArgumentCaptor.forClass(ScoreBoardUpdateMessage.class);
 
@@ -77,8 +73,7 @@ class ScoreBoardBroadcasterTest {
     }
 
     @Test
-    @DisplayName("이벤트의 팀원 스냅샷 목록이 메시지의 MemberResult 목록으로 변환된다")
-    void handleMatchConfirmed_팀원_스냅샷이_MemberResult로_변환된다() {
+    void 매치확정_이벤트의_팀원_스냅샷이_MemberResult로_변환된다() {
         MatchConfirmedEvent event = matchConfirmedEventFixture(1L, 1L);
         ArgumentCaptor<ScoreBoardUpdateMessage> captor = ArgumentCaptor.forClass(ScoreBoardUpdateMessage.class);
 
@@ -99,8 +94,7 @@ class ScoreBoardBroadcasterTest {
     }
 
     @Test
-    @DisplayName("이벤트의 mapName과 matchNumber가 메시지에 그대로 담긴다")
-    void handleMatchConfirmed_맵이름과_매치번호가_메시지에_포함된다() {
+    void 매치확정_이벤트의_맵이름과_매치번호가_메시지에_포함된다() {
         MatchConfirmedEvent event = matchConfirmedEventFixture(1L, 1L);
         ArgumentCaptor<ScoreBoardUpdateMessage> captor = ArgumentCaptor.forClass(ScoreBoardUpdateMessage.class);
 
