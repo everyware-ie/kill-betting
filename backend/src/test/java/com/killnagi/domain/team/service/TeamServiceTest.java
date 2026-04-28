@@ -94,7 +94,7 @@ class TeamServiceTest {
         AddMemberRequest request = new AddMemberRequest(newUser.getId());
 
         given(teamRepository.findByIdAndSessionId(TEAM_ID, SESSION_ID)).willReturn(Optional.of(team));
-        given(teamMemberRepository.existsByTeam_Session_IdAndUserId(SESSION_ID, newUser.getId())).willReturn(false);
+        given(teamMemberRepository.existsByTeam_Session_IdAndUser_Id(SESSION_ID, newUser.getId())).willReturn(false);
         given(userRepository.findById(newUser.getId())).willReturn(Optional.of(newUser));
         given(teamMemberRepository.save(any(TeamMember.class))).willReturn(TestFixtures.member(team, newUser));
 
@@ -130,7 +130,7 @@ class TeamServiceTest {
         AddMemberRequest request = new AddMemberRequest(HOST_ID);
 
         given(teamRepository.findByIdAndSessionId(TEAM_ID, SESSION_ID)).willReturn(Optional.of(team));
-        given(teamMemberRepository.existsByTeam_Session_IdAndUserId(SESSION_ID, HOST_ID)).willReturn(true);
+        given(teamMemberRepository.existsByTeam_Session_IdAndUser_Id(SESSION_ID, HOST_ID)).willReturn(true);
 
         assertThatThrownBy(() -> teamService.addMember(SESSION_ID, TEAM_ID, request))
                 .isInstanceOf(KillnagiException.class)

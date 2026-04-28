@@ -114,8 +114,7 @@ class MatchConfirmServiceTest {
     void 확정_성공시_팀원의_총_킬수가_업데이트된다() {
         given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
         given(matchResultRepository.findByMatch(pendingMatch)).willReturn(List.of(result));
-        given(teamMemberRepository.existsByTeam_Session_IdAndUser_IdAndIsUploaderTrue(SESSION_ID, USER_ID))
-                .willReturn(true);
+        given(teamMemberRepository.existsByTeam_Session_IdAndUser_IdAndIsUploaderTrue(SESSION_ID, USER_ID)).willReturn(true);
         given(ruleRepository.findByRuleSetSessionIdAndEnabled(SESSION_ID, true)).willReturn(List.of());
 
         matchConfirmService.confirm(MATCH_ID, USER_ID);
@@ -148,13 +147,25 @@ class MatchConfirmServiceTest {
         Rule penalty = TestFixtures.rule(session, RuleType.SURVIVAL_PENALTY, 2);
 
         given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
-        given(matchResultRepository.findByMatch(pendingMatch)).willReturn(List.of(lateResult));
         given(teamMemberRepository.existsByTeam_Session_IdAndUser_IdAndIsUploaderTrue(SESSION_ID, USER_ID)).willReturn(true);
+        given(matchResultRepository.findByMatch(pendingMatch)).willReturn(List.of(lateResult));
         given(ruleRepository.findByRuleSetSessionIdAndEnabled(SESSION_ID, true)).willReturn(List.of(penalty));
 
         matchConfirmService.confirm(MATCH_ID, USER_ID);
 
         assertThat(team.getPenaltyKills()).isEqualTo(2);
+    }
+
+    @Test
+    void 확정_성공시_매치_상태가_CONFIRMED로_변경된다() {
+        given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
+        given(teamMemberRepository.existsByTeam_Session_IdAndUser_IdAndIsUploaderTrue(SESSION_ID, USER_ID)).willReturn(true);
+        given(ruleRepository.findByRuleSetSessionIdAndEnabled(SESSION_ID, true)).willReturn(List.of());
+        given(matchResultRepository.findByMatch(pendingMatch)).willReturn(List.of(result));
+
+        matchConfirmService.confirm(MATCH_ID, USER_ID);
+
+        assertThat(pendingMatch.isConfirmed()).isTrue();
     }
 
     @Test
@@ -175,17 +186,5 @@ class MatchConfirmServiceTest {
         matchConfirmService.confirm(MATCH_ID, USER_ID);
 
         assertThat(team.getBonusKills()).isEqualTo(3);
-    }
-
-    @Test
-    void 확정_성공시_매치_상태가_CONFIRMED로_변경된다() {
-        given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
-        given(matchResultRepository.findByMatch(pendingMatch)).willReturn(List.of(result));
-        given(teamMemberRepository.existsByTeam_Session_IdAndUser_IdAndIsUploaderTrue(SESSION_ID, USER_ID)).willReturn(true);
-        given(ruleRepository.findByRuleSetSessionIdAndEnabled(SESSION_ID, true)).willReturn(List.of());
-
-        matchConfirmService.confirm(MATCH_ID, USER_ID);
-
-        assertThat(pendingMatch.isConfirmed()).isTrue();
     }
 }

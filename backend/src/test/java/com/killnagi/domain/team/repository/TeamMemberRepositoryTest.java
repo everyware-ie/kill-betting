@@ -43,25 +43,25 @@ class TeamMemberRepositoryTest {
     void 세션에_참여중인_유저가_존재하면_true를_반환한다() {
         teamMemberRepository.save(TestFixtures.member(team, user));
 
-        assertThat(teamMemberRepository.existsByTeam_Session_IdAndUserId(session.getId(), user.getId())).isTrue();
+        assertThat(teamMemberRepository.existsByTeam_Session_IdAndUser_Id(session.getId(), user.getId())).isTrue();
     }
 
     @Test
     void 세션에_참여하지_않은_유저는_false를_반환한다() {
-        assertThat(teamMemberRepository.existsByTeam_Session_IdAndUserId(session.getId(), user.getId())).isFalse();
+        assertThat(teamMemberRepository.existsByTeam_Session_IdAndUser_Id(session.getId(), user.getId())).isFalse();
     }
 
     @Test
     void 업로더_권한이_있는_유저가_존재하면_true를_반환한다() {
         teamMemberRepository.save(TestFixtures.uploader(team, user));
 
-        assertThat(teamMemberRepository.existsByTeam_Session_IdAndUserIdAndIsUploaderTrue(session.getId(), user.getId())).isTrue();
+        assertThat(teamMemberRepository.existsByTeam_Session_IdAndUser_IdAndIsUploaderTrue(session.getId(), user.getId())).isTrue();
     }
 
     @Test
     void 업로더_권한이_없는_유저는_false를_반환한다() {
         teamMemberRepository.save(TestFixtures.member(team, user));
 
-        assertThat(teamMemberRepository.existsByTeam_Session_IdAndUserIdAndIsUploaderTrue(session.getId(), user.getId())).isFalse();
+        assertThat(teamMemberRepository.existsByTeam_Session_IdAndUser_IdAndIsUploaderTrue(session.getId(), user.getId())).isFalse();
     }
 }
