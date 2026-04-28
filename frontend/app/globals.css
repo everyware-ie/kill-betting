@@ -1,0 +1,59 @@
+/* ============================================================
+   globals.css — 디자인 토큰 & 전역 스타일
+   ============================================================
+   색상, 폰트, 기본 리셋 등 프로젝트 전체에서 사용하는 값들을
+   CSS 변수로 정의합니다.
+   새로운 색상/폰트 추가 시 여기에 변수를 추가하세요.
+   ============================================================ */
+
+/* ── 디자인 토큰 (색상) ── */
+:root {
+  --color-bg:          #12100A;   /* 메인 배경 */
+  --color-bg-card:     #1C1A0C;   /* 카드 배경 */
+  --color-bg-input:    #141200;   /* 입력창 배경 */
+  --color-bg-hover:    #222010;   /* 호버 배경 */
+
+  --color-primary:     #F5A623;   /* 메인 강조색 (황금색) */
+  --color-primary-dim: rgba(245,166,35,0.15);
+
+  --color-text:        #E8DFC0;   /* 기본 텍스트 */
+  --color-text-muted:  #8A8060;   /* 보조 텍스트 */
+
+  --color-border:      rgba(200,155,0,0.2);
+  --color-border-focus:rgba(200,155,0,0.5);
+
+  --color-success:     #4CAF50;
+  --color-danger:      #E53935;
+  --color-info:        #4488CC;
+
+  /* ── 디자인 토큰 (사이즈) ── */
+  --radius-sm:   4px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+}
+
+/* ── 리셋 ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* ── 스크롤바 ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--color-bg-card); }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+
+/* ── number input 화살표 제거 ── */
+input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+input[type=number] { -moz-appearance: textfield; }
+
+/* ── 애니메이션 ── */
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
