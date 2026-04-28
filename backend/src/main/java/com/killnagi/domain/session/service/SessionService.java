@@ -171,7 +171,7 @@ public class SessionService {
                 .map(this::toMemberMatchResultResponse)
                 .toList();
         return new MatchSummaryResponse(
-                match.getId(), match.getMatchNumber(), match.getMapName(), match.getCreatedAt(), memberResults
+                match.getId(), match.getMatchNumber(), match.getMapName(), match.getScreenshotUrl(), match.getCreatedAt(), memberResults
         );
     }
 
