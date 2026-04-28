@@ -9,7 +9,7 @@ import com.killnagi.domain.match.repository.MatchResultRepository;
 import com.killnagi.domain.rule.entity.Rule;
 import com.killnagi.domain.rule.repository.RuleRepository;
 import com.killnagi.domain.team.entity.Team;
-import com.killnagi.domain.team.repository.TeamMemberRepository;
+import com.killnagi.domain.team.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,12 +24,12 @@ public class MatchConfirmService {
     private final MatchRepository matchRepository;
     private final MatchResultRepository matchResultRepository;
     private final RuleRepository ruleRepository;
-    private final TeamMemberRepository teamMemberRepository;
+    private final TeamRepository teamRepository;
 
     @Transactional
     public ConfirmResponse confirm(Long matchId, Long requesterId) {
         Match match = findValidMatch(matchId);
-        validateUploaderPermission(match.getSession().getId(), requesterId);
+        validateOperatorPermission(match.getSession().getId(), requesterId);
         List<MatchResult> results = findConfirmableResults(match);
 
         List<Rule> rules = ruleRepository.findByRuleSetSessionIdAndEnabled(match.getSession().getId(), true);
@@ -62,15 +62,15 @@ public class MatchConfirmService {
         return results;
     }
 
-    private void validateUploaderPermission(Long sessionId, Long requesterId) {
-        if (!teamMemberRepository.existsByTeam_Session_IdAndUser_IdAndIsUploaderTrue(sessionId, requesterId)) {
+    private void validateOperatorPermission(Long sessionId, Long requesterId) {
+        if (!teamRepository.existsBySessionIdAndOperatorUserId(sessionId, requesterId)) {
             throw KillnagiException.forbidden("업로더 권한이 있는 사용자만 결과를 확정할 수 있습니다.");
         }
     }
 
     private void applyResults(List<MatchResult> results, List<Rule> rules) {
         results.stream()
-                .collect(Collectors.groupingBy(r -> r.getTeamMember().getTeam()))
+                .collect(Collectors.groupingBy(r -> r.getTeamPlayer().getTeam()))
                 .forEach((team, teamResults) -> applyTeamResults(team, teamResults, rules));
     }
 
@@ -78,7 +78,7 @@ public class MatchConfirmService {
         int teamKills = teamResults.stream().mapToInt(MatchResult::getKills).sum();
         team.addKills(teamKills);
 
-        teamResults.forEach(r -> r.getTeamMember().addKills(r.getKills()));
+        teamResults.forEach(r -> r.getTeamPlayer().addKills(r.getKills()));
 
         boolean isChicken = teamResults.stream().anyMatch(MatchResult::isChicken);
         Integer placement = teamResults.get(0).getPlacement();

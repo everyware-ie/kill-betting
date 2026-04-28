@@ -16,9 +16,8 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
 
     @Query("SELECT DISTINCT m FROM Match m " +
            "JOIN FETCH m.results r " +
-           "JOIN FETCH r.teamMember tm " +
-           "JOIN FETCH tm.user " +
-           "JOIN FETCH tm.team " +
+           "JOIN FETCH r.teamPlayer tp " +
+           "JOIN FETCH tp.team " +
            "WHERE m.session.id = :sessionId AND m.status = :status " +
            "ORDER BY m.matchNumber ASC")
     List<Match> findConfirmedMatchesWithResults(
