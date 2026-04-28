@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -23,6 +24,12 @@ public class SessionUserController {
     private final SessionUserService sessionUserService;
     private final TeamConfigureService teamConfigureService;
     private final TeamConfigureBroadcaster configureBroadcaster;
+
+    @GetMapping("/configure")
+    public ResponseEntity<ApiResponse<ConfigureStateMessage>> getConfigureState(
+            @PathVariable Long sessionId) {
+        return ResponseEntity.ok(ApiResponse.ok(teamConfigureService.buildConfigureState(sessionId)));
+    }
 
     @PostMapping("/join")
     public ResponseEntity<ApiResponse<Void>> join(
