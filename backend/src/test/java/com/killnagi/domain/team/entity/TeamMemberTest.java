@@ -1,6 +1,5 @@
 package com.killnagi.domain.team.entity;
 
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -8,8 +7,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class TeamMemberTest {
 
     @Test
-    @DisplayName("addKills 호출 시 totalKills가 누적된다")
-    void addKills_호출시_totalKills가_누적된다() {
+    void 킬_추가시_totalKills가_누적된다() {
         TeamMember member = teamMemberFixture();
 
         member.addKills(3);
@@ -19,8 +17,7 @@ class TeamMemberTest {
     }
 
     @Test
-    @DisplayName("addBonus 호출 시 bonusKills가 누적된다")
-    void addBonus_호출시_bonusKills가_누적된다() {
+    void 보너스_추가시_bonusKills가_누적된다() {
         TeamMember member = teamMemberFixture();
 
         member.addBonus(2);
@@ -30,8 +27,7 @@ class TeamMemberTest {
     }
 
     @Test
-    @DisplayName("addPenalty 호출 시 penaltyKills가 누적된다")
-    void addPenalty_호출시_penaltyKills가_누적된다() {
+    void 패널티_추가시_penaltyKills가_누적된다() {
         TeamMember member = teamMemberFixture();
 
         member.addPenalty(1);
@@ -41,8 +37,7 @@ class TeamMemberTest {
     }
 
     @Test
-    @DisplayName("getEffectiveKills는 totalKills + bonusKills - penaltyKills를 반환한다")
-    void getEffectiveKills_totalKills에_보너스를_더하고_패널티를_뺀다() {
+    void 유효킬수는_totalKills에_보너스를_더하고_패널티를_뺀다() {
         TeamMember member = teamMemberFixture();
         member.addKills(10);
         member.addBonus(3);
@@ -52,7 +47,6 @@ class TeamMemberTest {
     }
 
     @Test
-    @DisplayName("초기 상태의 모든 킬 수치는 0이다")
     void 초기_상태의_킬_수치는_모두_0이다() {
         TeamMember member = teamMemberFixture();
 

@@ -32,8 +32,7 @@ class LocalFileStorageServiceTest {
     }
 
     @Test
-    @DisplayName("JPEG 파일 업로드 시 저장된 파일의 URL을 반환한다")
-    void should_ReturnUrl_when_JpegFileIsValid() {
+    void JPEG_파일_업로드시_저장된_파일의_URL을_반환한다() {
         // given
         MockMultipartFile file = new MockMultipartFile(
                 "image", "result.jpg", "image/jpeg", new byte[1024]
@@ -48,8 +47,7 @@ class LocalFileStorageServiceTest {
     }
 
     @Test
-    @DisplayName("PNG 파일 업로드 시 저장된 파일의 URL을 반환한다")
-    void should_ReturnUrl_when_PngFileIsValid() {
+    void PNG_파일_업로드시_저장된_파일의_URL을_반환한다() {
         // given
         MockMultipartFile file = new MockMultipartFile(
                 "image", "result.png", "image/png", new byte[1024]
@@ -64,8 +62,7 @@ class LocalFileStorageServiceTest {
     }
 
     @Test
-    @DisplayName("파일 저장 시 실제 파일 시스템에 파일이 생성된다")
-    void should_CreateFile_when_FileIsStored() throws IOException {
+    void 파일_저장시_실제_파일시스템에_파일이_생성된다() throws IOException {
         // given
         MockMultipartFile file = new MockMultipartFile(
                 "image", "result.jpg", "image/jpeg", new byte[1024]
@@ -81,8 +78,7 @@ class LocalFileStorageServiceTest {
     }
 
     @Test
-    @DisplayName("빈 파일 업로드 시 BadRequest 예외가 발생한다")
-    void should_ThrowBadRequest_when_FileIsEmpty() {
+    void 빈_파일_업로드시_BadRequest_예외가_발생한다() {
         // given
         MockMultipartFile file = new MockMultipartFile(
                 "image", "result.jpg", "image/jpeg", new byte[0]
@@ -95,8 +91,7 @@ class LocalFileStorageServiceTest {
     }
 
     @Test
-    @DisplayName("10MB 초과 파일 업로드 시 BadRequest 예외가 발생한다")
-    void should_ThrowBadRequest_when_FileSizeExceeds10MB() {
+    void 파일크기_10MB_초과시_BadRequest_예외가_발생한다() {
         // given
         byte[] oversized = new byte[10 * 1024 * 1024 + 1];
         MockMultipartFile file = new MockMultipartFile(
@@ -110,9 +105,8 @@ class LocalFileStorageServiceTest {
     }
 
     @ParameterizedTest(name = "ContentType: {0}")
-    @DisplayName("허용되지 않은 파일 형식(PDF, GIF 등) 업로드 시 BadRequest 예외가 발생한다")
     @ValueSource(strings = {"application/pdf", "image/gif", "text/plain", "video/mp4"})
-    void should_ThrowBadRequest_when_ContentTypeIsNotAllowed(String contentType) {
+    void 허용되지않은_파일형식_업로드시_BadRequest_예외가_발생한다(String contentType) {
         // given
         MockMultipartFile file = new MockMultipartFile(
                 "image", "result.pdf", contentType, new byte[1024]
@@ -125,8 +119,7 @@ class LocalFileStorageServiceTest {
     }
 
     @Test
-    @DisplayName("확장자 없는 파일명으로 업로드 시 URL이 정상 반환된다")
-    void should_ReturnUrlWithoutExtension_when_FilenameHasNoExtension() {
+    void 확장자_없는_파일명_업로드시_URL이_정상_반환된다() {
         // given
         MockMultipartFile file = new MockMultipartFile(
                 "image", "result", "image/jpeg", new byte[1024]
@@ -140,8 +133,7 @@ class LocalFileStorageServiceTest {
     }
 
     @Test
-    @DisplayName("동일 파일을 두 번 업로드해도 고유한 파일명이 생성된다")
-    void should_GenerateUniqueFilename_when_SameFileUploadedTwice() {
+    void 동일_파일을_두번_업로드해도_고유한_파일명이_생성된다() {
         // given
         MockMultipartFile file = new MockMultipartFile(
                 "image", "result.jpg", "image/jpeg", new byte[1024]
