@@ -56,7 +56,7 @@ export const createDefaultTeams = () => [
     id: 'team-alpha',
     name: 'TEAM ALPHA',
     players: [],   // 배그 닉네임 문자열 배열 (킬내기 참가자)
-    members: [],   // 로그인 유저 배열 (방 참여자) → { userId, username, role: 'OPERATOR'|'MEMBER' }
+    members: [],   // 로그인 유저 배열 (방 참여자) → { userId, username, role: 'LEADER'|'MEMBER' }
   },
   {
     id: 'team-bravo',

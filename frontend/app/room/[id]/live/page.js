@@ -10,7 +10,7 @@
  *   - 매치 히스토리 로그
  *   - 하단: [매치 결과 입력] [운영 메뉴]
  *
- *  [OPERATOR 전용]
+ *  [LEADER 전용]
  *   - 매치 결과 입력 모달 열기
  *   - 운영 메뉴 (점수 조정, 경기 종료)
  *
@@ -801,7 +801,7 @@ export default function LivePage() {
   const [matchError,      setMatchError]      = useState('');
   const [screenshotModal, setScreenshotModal] = useState(null);   // 열린 스크린샷 URL (null이면 닫힘)
 
-  // 내 팀 — 로그인 유저가 속한 팀 (있으면 해당 팀 OPERATOR)
+  // 내 팀 — 로그인 유저가 속한 팀 (있으면 해당 팀 LEADER)
   const myTeam = room?.teams.find((t) => t.members?.some((m) => m.userId === user?.id));
   // 방장(HOST) userId 및 여부 — 닉네임 관리·점수조정·경기종료·룰변경 권한
   const hostUserId = room?.participants?.find((p) => p.role === 'HOST')?.userId;
@@ -957,7 +957,7 @@ export default function LivePage() {
               <span>|</span>
               <span>매치 {matches.length}판</span>
               {isHost && <span style={{ color: '#FFD700', fontWeight: 700 }}>| 👑 방장</span>}
-              {myTeam && <span style={{ color: '#F5A623', fontWeight: 700 }}>| ★ {myTeam.name} OP</span>}
+              {myTeam && <span style={{ color: '#F5A623', fontWeight: 700 }}>| ★ {myTeam.name} LEADER</span>}
             </div>
           </div>
         </div>
@@ -1090,7 +1090,7 @@ export default function LivePage() {
                         </div>
                       );
                     })()}
-                    {/* 내 팀 유저면 누구나 결과 입력 가능 (각 팀 OPERATOR) */}
+                    {/* 내 팀 유저면 누구나 결과 입력 가능 (각 팀 LEADER) */}
                     {myTeam?.id === t.id && (
                       <button
                         onClick={() => openTeamModal(t.id)}
@@ -1240,10 +1240,10 @@ export default function LivePage() {
           ) : (
             <span style={{ color: '#8A8060' }}>
               {isHost && <span style={{ color: '#FFD700', fontWeight: 700, marginRight: 4 }}>👑 방장</span>}
-              {myTeam ? `★ ${myTeam.name} OPERATOR` : '관전자'} —&nbsp;
+              {myTeam ? `★ ${myTeam.name} LEADER` : '관전자'} —&nbsp;
               {myTeam
                 ? '게임이 끝날 때마다 내 팀 카드의 [결과 입력]으로 결과를 제출하세요'
-                : '각 팀 OPERATOR가 게임 결과를 입력합니다'}
+                : '각 팀 LEADER가 게임 결과를 입력합니다'}
             </span>
           )}
         </div>
