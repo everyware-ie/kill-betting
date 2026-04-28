@@ -86,7 +86,7 @@ class MatchConfirmServiceTest {
     @Test
     void Operator_권한이_없는_사용자는_확정할_수_없다() {
         given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
-        given(teamRepository.existsBySessionIdAndOperatorUserId(SESSION_ID, USER_ID)).willReturn(false);
+        given(teamRepository.existsBySessionIdAndOperator_Id(SESSION_ID, USER_ID)).willReturn(false);
 
         assertThatThrownBy(() -> matchConfirmService.confirm(MATCH_ID, USER_ID))
                 .isInstanceOf(KillnagiException.class)
@@ -96,7 +96,7 @@ class MatchConfirmServiceTest {
     @Test
     void 매치_결과_데이터가_없으면_확정할_수_없다() {
         given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
-        given(teamRepository.existsBySessionIdAndOperatorUserId(SESSION_ID, USER_ID)).willReturn(true);
+        given(teamRepository.existsBySessionIdAndOperator_Id(SESSION_ID, USER_ID)).willReturn(true);
         given(matchResultRepository.findByMatch(pendingMatch)).willReturn(List.of());
 
         assertThatThrownBy(() -> matchConfirmService.confirm(MATCH_ID, USER_ID))
@@ -108,7 +108,7 @@ class MatchConfirmServiceTest {
     void 확정_성공시_팀의_총_킬수가_누적된다() {
         given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
         given(matchResultRepository.findByMatch(pendingMatch)).willReturn(List.of(result));
-        given(teamRepository.existsBySessionIdAndOperatorUserId(SESSION_ID, USER_ID)).willReturn(true);
+        given(teamRepository.existsBySessionIdAndOperator_Id(SESSION_ID, USER_ID)).willReturn(true);
         given(ruleRepository.findByRuleSetSessionIdAndEnabled(SESSION_ID, true)).willReturn(List.of());
 
         matchConfirmService.confirm(MATCH_ID, USER_ID);
@@ -120,7 +120,7 @@ class MatchConfirmServiceTest {
     void 확정_성공시_팀원의_총_킬수가_업데이트된다() {
         given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
         given(matchResultRepository.findByMatch(pendingMatch)).willReturn(List.of(result));
-        given(teamRepository.existsBySessionIdAndOperatorUserId(SESSION_ID, USER_ID)).willReturn(true);
+        given(teamRepository.existsBySessionIdAndOperator_Id(SESSION_ID, USER_ID)).willReturn(true);
         given(ruleRepository.findByRuleSetSessionIdAndEnabled(SESSION_ID, true)).willReturn(List.of());
 
         matchConfirmService.confirm(MATCH_ID, USER_ID);
@@ -137,7 +137,7 @@ class MatchConfirmServiceTest {
 
         given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
         given(matchResultRepository.findByMatch(pendingMatch)).willReturn(List.of(chickenResult));
-        given(teamRepository.existsBySessionIdAndOperatorUserId(SESSION_ID, USER_ID)).willReturn(true);
+        given(teamRepository.existsBySessionIdAndOperator_Id(SESSION_ID, USER_ID)).willReturn(true);
         given(ruleRepository.findByRuleSetSessionIdAndEnabled(SESSION_ID, true)).willReturn(List.of(chickenBonus));
 
         matchConfirmService.confirm(MATCH_ID, USER_ID);
@@ -153,7 +153,7 @@ class MatchConfirmServiceTest {
         Rule penalty = TestFixtures.rule(session, RuleType.SURVIVAL_PENALTY, 2);
 
         given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
-        given(teamRepository.existsBySessionIdAndOperatorUserId(SESSION_ID, USER_ID)).willReturn(true);
+        given(teamRepository.existsBySessionIdAndOperator_Id(SESSION_ID, USER_ID)).willReturn(true);
         given(matchResultRepository.findByMatch(pendingMatch)).willReturn(List.of(lateResult));
         given(ruleRepository.findByRuleSetSessionIdAndEnabled(SESSION_ID, true)).willReturn(List.of(penalty));
 
@@ -165,7 +165,7 @@ class MatchConfirmServiceTest {
     @Test
     void 확정_성공시_매치_상태가_CONFIRMED로_변경된다() {
         given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
-        given(teamRepository.existsBySessionIdAndOperatorUserId(SESSION_ID, USER_ID)).willReturn(true);
+        given(teamRepository.existsBySessionIdAndOperator_Id(SESSION_ID, USER_ID)).willReturn(true);
         given(ruleRepository.findByRuleSetSessionIdAndEnabled(SESSION_ID, true)).willReturn(List.of());
         given(matchResultRepository.findByMatch(pendingMatch)).willReturn(List.of(result));
 
@@ -188,7 +188,7 @@ class MatchConfirmServiceTest {
 
         given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
         given(matchResultRepository.findByMatch(pendingMatch)).willReturn(List.of(top3Result));
-        given(teamRepository.existsBySessionIdAndOperatorUserId(SESSION_ID, USER_ID)).willReturn(true);
+        given(teamRepository.existsBySessionIdAndOperator_Id(SESSION_ID, USER_ID)).willReturn(true);
         given(ruleRepository.findByRuleSetSessionIdAndEnabled(SESSION_ID, true)).willReturn(List.of(placementBonus));
 
         matchConfirmService.confirm(MATCH_ID, USER_ID);
