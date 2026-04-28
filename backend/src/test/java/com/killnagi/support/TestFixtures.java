@@ -3,7 +3,9 @@ package com.killnagi.support;
 import com.killnagi.domain.match.entity.Match;
 import com.killnagi.domain.match.entity.MatchResult;
 import com.killnagi.domain.rule.entity.Rule;
-import com.killnagi.domain.rule.entity.RuleType;
+import com.killnagi.domain.rule.entity.Rule.RuleType;
+import com.killnagi.domain.rule.entity.Rule.Operator;
+import com.killnagi.domain.rule.entity.RuleSet;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.team.entity.Team;
 import com.killnagi.domain.team.entity.TeamMember;
@@ -40,6 +42,7 @@ public class TestFixtures {
     public static Session session(User host) {
         return Session.builder()
                 .name("킬내기 세션")
+                .roomUrl(java.util.UUID.randomUUID().toString())
                 .host(host)
                 .targetKills(50)
                 .timeLimitMinutes(60)
@@ -105,11 +108,23 @@ public class TestFixtures {
                 .build();
     }
 
-    public static Rule rule(Session session, RuleType type, int killValue) {
+    public static Rule rule(Session session, RuleType type, int value) {
+        RuleSet ruleSet = RuleSet.builder().session(session).build();
         return Rule.builder()
-                .session(session)
+                .ruleSet(ruleSet)
                 .ruleType(type)
-                .killValue(killValue)
+                .operator(Operator.EQ)
+                .value(value)
+                .build();
+    }
+
+    public static Rule rule(Session session, RuleType type, Operator operator, int value) {
+        RuleSet ruleSet = RuleSet.builder().session(session).build();
+        return Rule.builder()
+                .ruleSet(ruleSet)
+                .ruleType(type)
+                .operator(operator)
+                .value(value)
                 .build();
     }
 }
