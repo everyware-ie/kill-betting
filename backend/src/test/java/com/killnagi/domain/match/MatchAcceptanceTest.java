@@ -15,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -81,9 +82,9 @@ class MatchAcceptanceTest extends AcceptanceTestSupport {
 
         // When
         ResponseEntity<String> response = post("/api/matches/" + matchId + "/confirm",
-                """
-                {"playerResults":[{"matchResultId":%d,"isTop10":true}]}
-                """.formatted(savedResult.getId()), leaderToken);
+                toJson(Map.of("playerResults", List.of(
+                        Map.of("matchResultId", savedResult.getId(), "isTop10", true)))),
+                leaderToken);
 
         // Then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);

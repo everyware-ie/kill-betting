@@ -2,6 +2,8 @@ package com.killnagi.support;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
+import java.util.Map;
 import com.killnagi.common.storage.FileStorageService;
 import com.killnagi.infra.ocr.OcrClient;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,10 +46,10 @@ public abstract class AcceptanceTestSupport {
     // ── Auth Steps ────────────────────────────────────────────────────────────
 
     protected String 회원가입하고_토큰을_반환한다(String nickname, String email) {
-        String body = """
-                {"nickname":"%s","email":"%s","password":"password1!"}
-                """.formatted(nickname, email);
-        return parseBody(post("/api/auth/signup", body)).at("/data/accessToken").asText();
+        return parseBody(post("/api/auth/signup", toJson(Map.of(
+                "nickname", nickname,
+                "email", email,
+                "password", "password1!")))).at("/data/accessToken").asText();
     }
 
     protected long 사용자_ID를_조회한다(String token) {
@@ -61,39 +63,34 @@ public abstract class AcceptanceTestSupport {
     }
 
     protected long 세션을_생성한다(String token, String name) {
-        String body = """
-                {"name":"%s","targetKills":50,"timeLimitMinutes":60,"rules":[]}
-                """.formatted(name);
-        return parseBody(post("/api/sessions", body, token)).at("/data/id").asLong();
+        return parseBody(post("/api/sessions", toJson(Map.of(
+                "name", name,
+                "targetKills", 50,
+                "timeLimitMinutes", 60,
+                "rules", List.of())), token)).at("/data/id").asLong();
     }
 
     // ── SessionUser Steps ────────────────────────────────────────────────────
 
     protected void 세션에_참가한다(long sessionId, String token) {
-        post("/api/sessions/" + sessionId + "/join", "{}", token);
+        post("/api/sessions/" + sessionId + "/join", toJson(Map.of()), token);
     }
 
     // ── Team Steps ────────────────────────────────────────────────────────────
 
     protected long 팀을_생성한다(long sessionId, String teamName, String token) {
         return parseBody(post("/api/sessions/" + sessionId + "/teams",
-                """
-                {"name":"%s"}
-                """.formatted(teamName), token)).at("/data/id").asLong();
+                toJson(Map.of("name", teamName)), token)).at("/data/id").asLong();
     }
 
     protected void 플레이어를_추가한다(long sessionId, long teamId, String nickname, String token) {
         post("/api/sessions/" + sessionId + "/teams/" + teamId + "/players",
-                """
-                {"playerNickname":"%s"}
-                """.formatted(nickname), token);
+                toJson(Map.of("playerNickname", nickname)), token);
     }
 
     protected void 리더를_배정한다(long sessionId, long teamId, long userId, String token) {
         put("/api/sessions/" + sessionId + "/teams/" + teamId + "/leader",
-                """
-                {"userId":%d}
-                """.formatted(userId), token);
+                toJson(Map.of("userId", userId)), token);
     }
 
     // ── Match Steps ───────────────────────────────────────────────────────────
@@ -165,6 +162,14 @@ public abstract class AcceptanceTestSupport {
             return objectMapper.readTree(response.getBody());
         } catch (Exception e) {
             throw new RuntimeException("응답 파싱 실패: " + response.getBody(), e);
+        }
+    }
+
+    protected String toJson(Object obj) {
+        try {
+            return objectMapper.writeValueAsString(obj);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 }
