@@ -7,6 +7,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import java.util.List;
+import java.util.Map;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("Session 인수 테스트")
@@ -19,9 +22,8 @@ class SessionAcceptanceTest extends AcceptanceTestSupport {
 
         // When
         ResponseEntity<String> response = post("/api/sessions",
-                """
-                {"name":"킬내기 세션","targetKills":50,"timeLimitMinutes":60,"rules":[]}
-                """, hostToken);
+                toJson(Map.of("name", "킬내기 세션", "targetKills", 50, "timeLimitMinutes", 60, "rules", List.of())),
+                hostToken);
 
         // Then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
@@ -34,9 +36,8 @@ class SessionAcceptanceTest extends AcceptanceTestSupport {
         // Given
         String hostToken = 회원가입하고_토큰을_반환한다("host", "host@test.com");
         JsonNode created = parseBody(post("/api/sessions",
-                """
-                {"name":"킬내기 세션","targetKills":50,"timeLimitMinutes":60,"rules":[]}
-                """, hostToken));
+                toJson(Map.of("name", "킬내기 세션", "targetKills", 50, "timeLimitMinutes", 60, "rules", List.of())),
+                hostToken));
         String roomUrl = created.at("/data/roomUrl").asText();
 
         // When
@@ -71,10 +72,11 @@ class SessionAcceptanceTest extends AcceptanceTestSupport {
         팀을_생성한다(sessionId, "팀B", hostToken);
 
         // When
-        ResponseEntity<String> response = post("/api/sessions/" + sessionId + "/start", "{}", hostToken);
+        post("/api/sessions/" + sessionId + "/start", toJson(Map.of()), hostToken);
 
         // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        ResponseEntity<String> scoreboard = get("/api/sessions/" + sessionId + "/scoreboard", hostToken);
+        assertThat(parseBody(scoreboard).at("/data/status").asText()).isEqualTo("IN_PROGRESS");
     }
 
     @Test

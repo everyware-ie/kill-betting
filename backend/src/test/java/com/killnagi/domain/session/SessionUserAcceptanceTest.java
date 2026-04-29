@@ -17,12 +17,15 @@ class SessionUserAcceptanceTest extends AcceptanceTestSupport {
         String hostToken = 회원가입하고_토큰을_반환한다("host", "host@test.com");
         long sessionId = 세션을_생성한다(hostToken);
         String participantToken = 회원가입하고_토큰을_반환한다("player1", "player1@test.com");
+        세션에_참가한다(sessionId, participantToken);
 
         // When
-        ResponseEntity<String> response = post("/api/sessions/" + sessionId + "/join", "{}", participantToken);
+        ResponseEntity<String> response = get("/api/sessions/" + sessionId + "/configure", hostToken);
 
         // Then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(parseBody(response).at("/data/waitingUsers").size()).isEqualTo(1);
+        assertThat(parseBody(response).at("/data/waitingUsers/0/nickname").asText()).isEqualTo("player1");
     }
 
     @Test
@@ -34,25 +37,10 @@ class SessionUserAcceptanceTest extends AcceptanceTestSupport {
         세션에_참가한다(sessionId, participantToken);
 
         // When
-        ResponseEntity<String> response = delete("/api/sessions/" + sessionId + "/leave", participantToken);
+        delete("/api/sessions/" + sessionId + "/leave", participantToken);
 
         // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-    }
-
-    @Test
-    void 세션에_참가자가_입장하면_대기석에서_확인할_수_있다() {
-        // Given
-        String hostToken = 회원가입하고_토큰을_반환한다("host", "host@test.com");
-        long sessionId = 세션을_생성한다(hostToken);
-        String participantToken = 회원가입하고_토큰을_반환한다("player1", "player1@test.com");
-        세션에_참가한다(sessionId, participantToken);
-
-        // When
-        ResponseEntity<String> response = get("/api/sessions/" + sessionId + "/configure", hostToken);
-
-        // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(parseBody(response).at("/data/waitingUsers").size()).isEqualTo(1);
+        ResponseEntity<String> configure = get("/api/sessions/" + sessionId + "/configure", hostToken);
+        assertThat(parseBody(configure).at("/data/waitingUsers").size()).isZero();
     }
 }

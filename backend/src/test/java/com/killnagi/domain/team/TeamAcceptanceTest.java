@@ -7,6 +7,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import java.util.Map;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("Team 인수 테스트")
@@ -25,9 +27,7 @@ class TeamAcceptanceTest extends AcceptanceTestSupport {
     void 호스트가_팀을_생성하면_팀이_등록된다() {
         // When
         ResponseEntity<String> response = post("/api/sessions/" + sessionId + "/teams",
-                """
-                {"name":"팀A"}
-                """, hostToken);
+                toJson(Map.of("name", "팀A")), hostToken);
 
         // Then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
@@ -54,14 +54,12 @@ class TeamAcceptanceTest extends AcceptanceTestSupport {
         long teamId = 팀을_생성한다(sessionId, "팀A", hostToken);
 
         // When
-        ResponseEntity<String> response = post(
-                "/api/sessions/" + sessionId + "/teams/" + teamId + "/players",
-                """
-                {"playerNickname":"PlayerOne"}
-                """, hostToken);
+        post("/api/sessions/" + sessionId + "/teams/" + teamId + "/players",
+                toJson(Map.of("playerNickname", "PlayerOne")), hostToken);
 
         // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        ResponseEntity<String> configure = get("/api/sessions/" + sessionId + "/configure", hostToken);
+        assertThat(parseBody(configure).at("/data/teams/0/players/0/playerNickname").asText()).isEqualTo("PlayerOne");
     }
 
     @Test
@@ -73,14 +71,12 @@ class TeamAcceptanceTest extends AcceptanceTestSupport {
                 .at("/data/teams/0/players/0/playerId").asLong();
 
         // When
-        ResponseEntity<String> response = patch(
-                "/api/sessions/" + sessionId + "/teams/" + teamId + "/players/" + playerId,
-                """
-                {"playerNickname":"UpdatedPlayer"}
-                """, hostToken);
+        patch("/api/sessions/" + sessionId + "/teams/" + teamId + "/players/" + playerId,
+                toJson(Map.of("playerNickname", "UpdatedPlayer")), hostToken);
 
         // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        ResponseEntity<String> configure = get("/api/sessions/" + sessionId + "/configure", hostToken);
+        assertThat(parseBody(configure).at("/data/teams/0/players/0/playerNickname").asText()).isEqualTo("UpdatedPlayer");
     }
 
     @Test
@@ -92,12 +88,11 @@ class TeamAcceptanceTest extends AcceptanceTestSupport {
                 .at("/data/teams/0/players/0/playerId").asLong();
 
         // When
-        ResponseEntity<String> response = delete(
-                "/api/sessions/" + sessionId + "/teams/" + teamId + "/players/" + playerId,
-                hostToken);
+        delete("/api/sessions/" + sessionId + "/teams/" + teamId + "/players/" + playerId, hostToken);
 
         // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        ResponseEntity<String> configure = get("/api/sessions/" + sessionId + "/configure", hostToken);
+        assertThat(parseBody(configure).at("/data/teams/0/players").size()).isZero();
     }
 
     @Test
@@ -109,13 +104,11 @@ class TeamAcceptanceTest extends AcceptanceTestSupport {
         세션에_참가한다(sessionId, participantToken);
 
         // When
-        ResponseEntity<String> response = put(
-                "/api/sessions/" + sessionId + "/teams/" + teamId + "/leader",
-                """
-                {"userId":%d}
-                """.formatted(participantId), hostToken);
+        put("/api/sessions/" + sessionId + "/teams/" + teamId + "/leader",
+                toJson(Map.of("userId", participantId)), hostToken);
 
         // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        ResponseEntity<String> configure = get("/api/sessions/" + sessionId + "/configure", hostToken);
+        assertThat(parseBody(configure).at("/data/teams/0/leaderNickname").asText()).isEqualTo("player1");
     }
 }
