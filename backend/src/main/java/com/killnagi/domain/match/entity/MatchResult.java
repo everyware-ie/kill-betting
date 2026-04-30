@@ -31,30 +31,16 @@ public class MatchResult {
     @Column(name = "is_chicken", nullable = false)
     private boolean isChicken = false;
 
-    @Column(name = "bonus_kills", nullable = false)
-    private int bonusKills = 0;
-
-    @Column(name = "penalty_kills", nullable = false)
-    private int penaltyKills = 0;
+    @Column(name = "is_top10", nullable = false)
+    private boolean isTop10 = false;
 
     @Builder
-    public MatchResult(Match match, TeamPlayer teamPlayer, int kills, Integer placement) {
+    public MatchResult(Match match, TeamPlayer teamPlayer, int kills, Integer placement, boolean isTop10) {
         this.match = match;
         this.teamPlayer = teamPlayer;
         this.kills = kills;
         this.placement = placement;
         this.isChicken = placement != null && placement == 1;
-    }
-
-    public int getEffectiveKills() {
-        return kills + bonusKills - penaltyKills;
-    }
-
-    public void applyBonus(int bonus) {
-        this.bonusKills += bonus;
-    }
-
-    public void applyPenalty(int penalty) {
-        this.penaltyKills += penalty;
+        this.isTop10 = isTop10;
     }
 }
