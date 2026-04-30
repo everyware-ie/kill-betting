@@ -49,6 +49,10 @@ public class TeamPlayer {
         this.playerNickname = playerNickname;
     }
 
+    public boolean hasNickname(String nickname) {
+        return this.playerNickname.equals(nickname);
+    }
+
     public void updateNickname(String playerNickname) {
         this.playerNickname = playerNickname;
     }

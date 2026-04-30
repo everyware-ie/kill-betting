@@ -46,6 +46,10 @@ public class Rule {
         PLACEMENT_BONUS             // 특정 순위 달성 보너스
     }
 
+    public boolean isType(RuleType type) {
+        return this.ruleType == type;
+    }
+
     public enum Operator {
         EQ,   // ==
         GTE,  // >=
