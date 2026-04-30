@@ -1,5 +1,7 @@
 package com.killnagi.domain.match.entity;
 
+import com.killnagi.domain.rule.entity.Rule;
+import com.killnagi.domain.rule.entity.Rule.RuleType;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.team.entity.Team;
 import jakarta.persistence.*;
@@ -58,8 +60,29 @@ public class Match {
         this.screenshotUrl = screenshotUrl;
     }
 
-    public void confirm() {
+    public void confirm(List<MatchResult> matchResults, List<Rule> rules) {
+        accumulateKills(matchResults);
+        applyRules(matchResults, rules);
         this.status = MatchStatus.CONFIRMED;
+    }
+
+    private void accumulateKills(List<MatchResult> matchResults) {
+        int totalKills = matchResults.stream().mapToInt(MatchResult::getKills).sum();
+        this.team.addKills(totalKills);
+        matchResults.forEach(matchResult -> matchResult.getTeamPlayer().addKills(matchResult.getKills()));
+    }
+
+    private void applyRules(List<MatchResult> matchResults, List<Rule> rules) {
+        boolean isChicken = matchResults.stream().anyMatch(MatchResult::isChicken);
+        long failedTop10Count = matchResults.stream().filter(matchResult -> !matchResult.isTop10()).count();
+
+        for (Rule rule : rules) {
+            if (rule.isType(RuleType.CHICKEN_BONUS) && isChicken) {
+                this.team.addBonus(rule.getValue());
+            } else if (rule.isType(RuleType.SURVIVAL_PENALTY) && failedTop10Count > 0) {
+                this.team.addPenalty((int) failedTop10Count * rule.getValue());
+            }
+        }
     }
 
     public void updateScreenshotUrl(String screenshotUrl) {
