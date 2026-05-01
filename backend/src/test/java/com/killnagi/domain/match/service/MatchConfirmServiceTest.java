@@ -8,7 +8,7 @@ import com.killnagi.domain.match.entity.MatchStatus;
 import com.killnagi.domain.match.repository.MatchRepository;
 import com.killnagi.domain.match.repository.MatchResultRepository;
 import com.killnagi.domain.rule.entity.Rule;
-import com.killnagi.domain.rule.entity.Rule.RuleType;
+import com.killnagi.domain.rule.entity.RuleType;
 import com.killnagi.domain.rule.repository.RuleRepository;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.team.entity.Team;
@@ -155,9 +155,9 @@ class MatchConfirmServiceTest {
         given(matchResultRepository.saveAll(any())).willAnswer(inv -> inv.getArgument(0));
         given(ruleRepository.findByRuleSetSessionIdAndEnabled(SESSION_ID, true)).willReturn(List.of(chickenBonus));
 
-        matchConfirmService.confirm(MATCH_ID, USER_ID, confirmRequest("PlayerOne", 3, 1, true));
+        matchConfirmService.confirm(MATCH_ID, USER_ID, chickenConfirmRequest("PlayerOne", 3));
 
-        assertThat(team.getBonusKills()).isEqualTo(3);
+        assertThat(team.getRuleScore()).isEqualTo(3);
     }
 
     @Test
@@ -174,7 +174,7 @@ class MatchConfirmServiceTest {
 
         matchConfirmService.confirm(MATCH_ID, USER_ID, confirmRequest("PlayerOne", 2, 15, false));
 
-        assertThat(team.getPenaltyKills()).isEqualTo(2);
+        assertThat(team.getRuleScore()).isEqualTo(-2);
     }
 
     @Test
@@ -191,6 +191,10 @@ class MatchConfirmServiceTest {
     }
 
     private ConfirmRequest confirmRequest(String nickname, int kills, int placement, boolean isTop10) {
-        return new ConfirmRequest(List.of(new PlayerResult(nickname, kills, placement, isTop10)));
+        return new ConfirmRequest(List.of(new PlayerResult(nickname, kills, placement, isTop10)), false);
+    }
+
+    private ConfirmRequest chickenConfirmRequest(String nickname, int kills) {
+        return new ConfirmRequest(List.of(new PlayerResult(nickname, kills, 1, true)), true);
     }
 }

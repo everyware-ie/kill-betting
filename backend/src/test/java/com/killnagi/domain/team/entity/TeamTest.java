@@ -40,24 +40,24 @@ class TeamTest {
     }
 
     @Test
-    void 보너스_추가시_유효킬이_증가한다() {
+    void 룰_보너스_추가시_유효킬이_증가한다() {
         team.addKills(5);
-        team.addBonus(3);
+        team.addRuleScore(3);
         assertThat(team.getEffectiveKills()).isEqualTo(8);
     }
 
     @Test
-    void 패널티_추가시_유효킬이_감소한다() {
+    void 룰_패널티_추가시_유효킬이_감소한다() {
         team.addKills(5);
-        team.addPenalty(2);
+        team.addRuleScore(-2);
         assertThat(team.getEffectiveKills()).isEqualTo(3);
     }
 
     @Test
-    void 유효킬은_총킬_더하기_보너스_빼기_패널티다() {
+    void 유효킬은_총킬_더하기_룰스코어다() {
         team.addKills(10);
-        team.addBonus(3);
-        team.addPenalty(2);
+        team.addRuleScore(3);
+        team.addRuleScore(-2);
         assertThat(team.getEffectiveKills()).isEqualTo(11);
     }
 }

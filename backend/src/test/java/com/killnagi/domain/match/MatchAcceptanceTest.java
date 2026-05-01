@@ -60,8 +60,9 @@ class MatchAcceptanceTest extends AcceptanceTestSupport {
 
         // When
         ResponseEntity<String> response = post("/api/matches/" + matchId + "/confirm",
-                toJson(Map.of("playerResults", List.of(
-                        Map.of("nickname", "PlayerOne", "kills", 3, "placement", 5, "isTop10", true)))),
+                toJson(Map.of(
+                        "playerResults", List.of(Map.of("nickname", "PlayerOne", "kills", 3, "placement", 5, "isTop10", true)),
+                        "isChicken", false)),
                 leaderToken);
 
         // Then
