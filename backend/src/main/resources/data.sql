@@ -14,9 +14,9 @@ INSERT IGNORE INTO `rule_sets` VALUES
 INSERT IGNORE INTO `rules` VALUES
   (1,b'1','EQ','CHICKEN_BONUS',1,1);
 
-INSERT IGNORE INTO `teams` VALUES
-  (1,0,'팀1',0,0,2,1),
-  (2,0,'팀2',0,0,3,1);
+INSERT IGNORE INTO `teams` (id, total_kills, name, rule_score, leader_user_id, session_id) VALUES
+  (1, 0, '팀1', 0, 2, 1),
+  (2, 0, '팀2', 0, 3, 1);
 
 INSERT IGNORE INTO `team_players` VALUES
   (1,0,'2026-04-30 15:05:01.507932',0,'JEONCHMDAN',0,'2026-04-30 15:05:01.507932',1),

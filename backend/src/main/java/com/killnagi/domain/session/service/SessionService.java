@@ -154,7 +154,7 @@ public class SessionService {
                 .toList();
         return new TeamScoreResponse(
                 team.getId(), team.getName(),
-                team.getTotalKills(), team.getBonusKills(), team.getPenaltyKills(), team.getEffectiveKills(),
+                team.getTotalKills(), team.getRuleScore(), team.getEffectiveKills(),
                 members
         );
     }

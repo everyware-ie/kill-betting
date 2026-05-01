@@ -32,11 +32,8 @@ public class Team {
     @Column(name = "total_kills", nullable = false)
     private int totalKills = 0;
 
-    @Column(name = "bonus_kills", nullable = false)
-    private int bonusKills = 0;
-
-    @Column(name = "penalty_kills", nullable = false)
-    private int penaltyKills = 0;
+    @Column(name = "rule_score", nullable = false)
+    private int ruleScore = 0;
 
     @OneToMany(mappedBy = "team", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TeamPlayer> players = new ArrayList<>();
@@ -68,18 +65,14 @@ public class Team {
     }
 
     public int getEffectiveKills() {
-        return totalKills + bonusKills - penaltyKills;
+        return totalKills + ruleScore;
     }
 
     public void addKills(int kills) {
         this.totalKills += kills;
     }
 
-    public void addBonus(int bonus) {
-        this.bonusKills += bonus;
-    }
-
-    public void addPenalty(int penalty) {
-        this.penaltyKills += penalty;
+    public void addRuleScore(int score) {
+        this.ruleScore += score;
     }
 }

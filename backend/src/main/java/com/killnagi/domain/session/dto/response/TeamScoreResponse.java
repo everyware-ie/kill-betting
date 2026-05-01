@@ -6,8 +6,7 @@ public record TeamScoreResponse(
         Long teamId,
         String teamName,
         int totalKills,
-        int bonusKills,
-        int penaltyKills,
+        int ruleScore,
         int effectiveKills,
         List<MemberScoreResponse> members
 ) {}
