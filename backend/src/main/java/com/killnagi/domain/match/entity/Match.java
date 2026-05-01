@@ -1,7 +1,6 @@
 package com.killnagi.domain.match.entity;
 
 import com.killnagi.domain.rule.entity.Rule;
-import com.killnagi.domain.rule.entity.Rule.RuleType;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.team.entity.Team;
 import jakarta.persistence.*;
@@ -45,8 +44,11 @@ public class Match {
     @Column(nullable = false, length = 20)
     private MatchStatus status = MatchStatus.PENDING;
 
-    @OneToMany(mappedBy = "match", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<MatchResult> results = new ArrayList<>();
+    @Column(name = "is_chicken", nullable = false)
+    private boolean isChicken = false;
+
+    @Column(name = "failed_top10_count", nullable = false)
+    private long failedTop10Count = 0;
 
     @CreatedDate
     @Column(name = "created_at", updatable = false)
@@ -60,9 +62,10 @@ public class Match {
         this.screenshotUrl = screenshotUrl;
     }
 
-    public void confirm(List<MatchResult> matchResults, List<Rule> rules) {
+    public void confirm(List<MatchResult> matchResults, List<Rule> rules, boolean isChicken) {
         accumulateKills(matchResults);
-        applyRules(matchResults, rules);
+        computeMatchStats(matchResults, isChicken);
+        applyRules(rules);
         this.status = MatchStatus.CONFIRMED;
     }
 
@@ -72,17 +75,13 @@ public class Match {
         matchResults.forEach(matchResult -> matchResult.getTeamPlayer().addKills(matchResult.getKills()));
     }
 
-    private void applyRules(List<MatchResult> matchResults, List<Rule> rules) {
-        boolean isChicken = matchResults.stream().anyMatch(MatchResult::isChicken);
-        long failedTop10Count = matchResults.stream().filter(matchResult -> !matchResult.isTop10()).count();
+    private void computeMatchStats(List<MatchResult> matchResults, boolean isChicken) {
+        this.isChicken = isChicken;
+        this.failedTop10Count = matchResults.stream().filter(r -> !r.isTop10()).count();
+    }
 
-        for (Rule rule : rules) {
-            if (rule.isType(RuleType.CHICKEN_BONUS) && isChicken) {
-                this.team.addBonus(rule.getValue());
-            } else if (rule.isType(RuleType.SURVIVAL_PENALTY) && failedTop10Count > 0) {
-                this.team.addPenalty((int) failedTop10Count * rule.getValue());
-            }
-        }
+    private void applyRules(List<Rule> rules) {
+        rules.forEach(rule -> this.team.addRuleScore(rule.calculateScore(this.isChicken, this.failedTop10Count)));
     }
 
     public void updateScreenshotUrl(String screenshotUrl) {

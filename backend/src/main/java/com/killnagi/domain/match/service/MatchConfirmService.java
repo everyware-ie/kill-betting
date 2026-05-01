@@ -38,7 +38,7 @@ public class MatchConfirmService {
         List<MatchResult> results = createAndSaveMatchResults(match, request.playerResults());
 
         List<Rule> rules = ruleRepository.findByRuleSetSessionIdAndEnabled(match.getSession().getId(), true);
-        match.confirm(results, rules);
+        match.confirm(results, rules, request.isChicken());
         return new ConfirmResponse(matchId, match.getStatus().name());
     }
 

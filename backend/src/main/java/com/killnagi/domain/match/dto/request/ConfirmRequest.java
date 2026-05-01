@@ -6,7 +6,7 @@ import com.killnagi.domain.team.entity.TeamPlayer;
 
 import java.util.List;
 
-public record ConfirmRequest(List<PlayerResult> playerResults) {
+public record ConfirmRequest(List<PlayerResult> playerResults, boolean isChicken) {
     public record PlayerResult(String nickname, int kills, Integer placement, boolean isTop10) {
         public MatchResult toMatchResult(Match match, TeamPlayer teamPlayer) {
             return MatchResult.builder()
