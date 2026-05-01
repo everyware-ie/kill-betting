@@ -39,22 +39,17 @@ public class Rule {
         this.value = value;
     }
 
-    public enum RuleType {
-        CHICKEN_BONUS,              // 치킨 달성 시 보너스
-        SURVIVAL_PENALTY,           // TOP10 진입 실패 시 패널티
-        CONSECUTIVE_DEATH_PENALTY,  // 연속 사망 패널티
-        PLACEMENT_BONUS             // 특정 순위 달성 보너스
-    }
-
     public boolean isType(RuleType type) {
         return this.ruleType == type;
     }
 
-    public enum Operator {
-        EQ,   // ==
-        GTE,  // >=
-        LTE,  // <=
-        GT,   // >
-        LT    // <
+    public int calculateScore(boolean isChicken, long failedTop10Count) {
+        if (isType(RuleType.CHICKEN_BONUS) && isChicken) {
+            return value;
+        }
+        if (isType(RuleType.SURVIVAL_PENALTY) && failedTop10Count > 0) {
+            return -(int) failedTop10Count * value;
+        }
+        return 0;
     }
 }
