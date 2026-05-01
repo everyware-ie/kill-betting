@@ -58,7 +58,7 @@ class TeamAcceptanceTest extends AcceptanceTestSupport {
                 toJson(Map.of("playerNickname", "PlayerOne")), hostToken);
 
         // Then
-        ResponseEntity<String> configure = get("/api/sessions/" + sessionId + "/configure", hostToken);
+        ResponseEntity<String> configure = get("/api/sessions/" + sessionId + "/participants", hostToken);
         assertThat(parseBody(configure).at("/data/teams/0/players/0/playerNickname").asText()).isEqualTo("PlayerOne");
     }
 
@@ -67,7 +67,7 @@ class TeamAcceptanceTest extends AcceptanceTestSupport {
         // Given
         long teamId = 팀을_생성한다(sessionId, "팀A", hostToken);
         플레이어를_추가한다(sessionId, teamId, "PlayerOne", hostToken);
-        long playerId = parseBody(get("/api/sessions/" + sessionId + "/configure", hostToken))
+        long playerId = parseBody(get("/api/sessions/" + sessionId + "/participants", hostToken))
                 .at("/data/teams/0/players/0/playerId").asLong();
 
         // When
@@ -75,7 +75,7 @@ class TeamAcceptanceTest extends AcceptanceTestSupport {
                 toJson(Map.of("playerNickname", "UpdatedPlayer")), hostToken);
 
         // Then
-        ResponseEntity<String> configure = get("/api/sessions/" + sessionId + "/configure", hostToken);
+        ResponseEntity<String> configure = get("/api/sessions/" + sessionId + "/participants", hostToken);
         assertThat(parseBody(configure).at("/data/teams/0/players/0/playerNickname").asText()).isEqualTo("UpdatedPlayer");
     }
 
@@ -84,14 +84,14 @@ class TeamAcceptanceTest extends AcceptanceTestSupport {
         // Given
         long teamId = 팀을_생성한다(sessionId, "팀A", hostToken);
         플레이어를_추가한다(sessionId, teamId, "PlayerOne", hostToken);
-        long playerId = parseBody(get("/api/sessions/" + sessionId + "/configure", hostToken))
+        long playerId = parseBody(get("/api/sessions/" + sessionId + "/participants", hostToken))
                 .at("/data/teams/0/players/0/playerId").asLong();
 
         // When
         delete("/api/sessions/" + sessionId + "/teams/" + teamId + "/players/" + playerId, hostToken);
 
         // Then
-        ResponseEntity<String> configure = get("/api/sessions/" + sessionId + "/configure", hostToken);
+        ResponseEntity<String> configure = get("/api/sessions/" + sessionId + "/participants", hostToken);
         assertThat(parseBody(configure).at("/data/teams/0/players").size()).isZero();
     }
 
@@ -108,7 +108,7 @@ class TeamAcceptanceTest extends AcceptanceTestSupport {
                 toJson(Map.of("userId", participantId)), hostToken);
 
         // Then
-        ResponseEntity<String> configure = get("/api/sessions/" + sessionId + "/configure", hostToken);
+        ResponseEntity<String> configure = get("/api/sessions/" + sessionId + "/participants", hostToken);
         assertThat(parseBody(configure).at("/data/teams/0/leaderNickname").asText()).isEqualTo("player1");
     }
 }
