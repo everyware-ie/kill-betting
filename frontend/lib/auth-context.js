@@ -31,6 +31,9 @@ export function AuthProvider({ children }) {
     AuthAPI.me().then((res) => {
       if (res.ok) setUser(res.user);
       setLoading(false);
+    }).catch(() => {
+      // 네트워크 오류 시에도 로딩 상태를 해제해 빈 화면 방지
+      setLoading(false);
     });
   }, []);
 

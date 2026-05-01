@@ -33,7 +33,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth }  from '@/lib/auth-context';
 import { RoomAPI }  from '@/lib/room-api';
-import { OcrAPI }  from '@/lib/ocr-api';
+// OcrAPI 제거: 서버 OCR 흐름으로 전환 (RoomAPI.uploadMatchImage 사용)
 import Button from '@/components/ui/Button';
 import RoleGuideModal from '@/components/ui/RoleGuideModal';
 
@@ -56,7 +56,7 @@ function calcTeamScore(teamId, matches, rule, adjustments = []) {
     // 치킨 보너스 (자신의 게임에서 치킨을 먹었는지)
     if (rule.chickenBonusOn && m.chickenTeamId === teamId) bonus += rule.chickenBonus;
 
-    for (const r of m.results) {
+    for (const r of (m.results || [])) {
       kills += r.kills;
       if (rule.headShotBonusOn  && r.headShot)   bonus   += rule.headShotBonus;
       if (rule.assistBonusOn    && r.assist)      bonus   += rule.assistBonus;
@@ -76,7 +76,7 @@ function calcTeamScore(teamId, matches, rule, adjustments = []) {
 function calcPlayerStats(nick, matches, rule) {
   let kills = 0, bonus = 0, penalty = 0, damage = 0;
   for (const m of matches) {
-    for (const r of m.results) {
+    for (const r of (m.results || [])) {
       if (r.nick !== nick) continue;
       kills  += r.kills;
       damage += r.damage || 0;
@@ -134,15 +134,18 @@ function TeamResultModal({ room, teamId, matchNumber, onSubmit, onClose }) {
   const [submitting, setSubmitting] = useState(false);
 
   // ── OCR 관련 상태 ──
-  const [ocrFile,      setOcrFile]      = useState(null);       // 선택된 이미지 파일
-  const [ocrPreview,   setOcrPreview]   = useState(null);       // 이미지 미리보기 URL
-  const [ocrLoading,   setOcrLoading]   = useState(false);      // OCR 처리 중 여부
-  const [ocrError,     setOcrError]     = useState('');         // OCR 오류 메시지
-  const [ocrDone,      setOcrDone]      = useState(false);      // OCR 완료 여부
-  const [ocrIsMock,    setOcrIsMock]    = useState(false);      // Mock 결과 여부
-  const [ocrUnmatched, setOcrUnmatched] = useState([]);         // 매칭 안 된 닉네임
-  // OCR로 채워진 필드를 하이라이트하기 위한 닉네임 세트
+  const [ocrFile,        setOcrFile]        = useState(null);   // 선택된 이미지 파일
+  const [ocrPreview,     setOcrPreview]     = useState(null);   // 이미지 미리보기 URL
+  const [ocrLoading,     setOcrLoading]     = useState(false);  // 업로드+OCR 처리 중
+  const [ocrError,       setOcrError]       = useState('');     // 오류 메시지
+  const [ocrDone,        setOcrDone]        = useState(false);  // OCR 완료 여부
+  const [ocrIsMock,      setOcrIsMock]      = useState(false);  // Mock 결과 여부
+  const [ocrUnmatched,   setOcrUnmatched]   = useState([]);     // 매칭 안 된 닉네임
   const [ocrFilledNicks, setOcrFilledNicks] = useState(new Set());
+  // 서버가 반환한 matchId — confirmMatch 호출 시 사용
+  const [uploadedMatchId, setUploadedMatchId] = useState(null);
+  // 서버 OCR 결과 메타 (배치, 맵 등)
+  const [ocrMeta,        setOcrMeta]        = useState(null);
 
   const setR = (nick, key, val) =>
     setResults((prev) => prev.map((r) => r.nick === nick ? { ...r, [key]: val } : r));
@@ -171,46 +174,63 @@ function TeamResultModal({ room, teamId, matchNumber, onSubmit, onClose }) {
     if (file) handleFileChange(file);
   };
 
-  // ── OCR 분석 실행 ──
+  // ── OCR 분석 실행 (이미지 업로드 → 서버 OCR) ──
+  // POST /api/sessions/{roomId}/matches → { matchId, screenshotUrl, ocrResult }
+  // ocrResult.playerStats: [{ nickname, kills, damage, assists }]
   const handleOcr = async () => {
     if (!ocrFile) return;
     setOcrLoading(true);
     setOcrError('');
+    setUploadedMatchId(null);
+    setOcrMeta(null);
 
-    // 이 팀의 닉네임만 힌트로 전달 (팀별 입력이므로)
-    const teamNicks = team.players;
-    const res = await OcrAPI.parseScreenshot(ocrFile, teamNicks);
-
-    setOcrLoading(false);
+    let res;
+    try {
+      res = await RoomAPI.uploadMatchImage(room.id, ocrFile);
+    } catch (err) {
+      // 예외 발생 시에도 finally에서 로딩 해제 보장
+      setOcrError('네트워크 오류가 발생했습니다. 다시 시도해주세요.');
+      return;
+    } finally {
+      setOcrLoading(false);
+    }
 
     if (!res.ok) {
-      setOcrError(res.error || 'OCR 처리에 실패했습니다');
+      setOcrError(res.error || '업로드/OCR 처리에 실패했습니다');
       return;
     }
 
-    // OCR 결과를 results 테이블에 자동으로 채우기
-    // res.players 배열의 nick 으로 매칭하여 해당 행만 업데이트
+    // 서버가 반환한 matchId 저장 (confirm 시 사용)
+    setUploadedMatchId(res.matchId);
+
+    // OCR 메타 정보 (배치, 맵명 등) 저장
+    const { playerStats = [], ...meta } = res.ocrResult || {};
+    setOcrMeta(meta);
+
+    // playerStats → results 테이블 자동 채우기
+    // 백엔드 OCR: { nickname, kills, damage, assists }
+    // 프론트 폼:  { nick, kills, damage, assist, headShot, teamKills, earlyDeath }
     const filled = new Set();
     setResults((prev) => prev.map((row) => {
-      const matched = res.players.find(
-        // 대소문자 무시하고 닉네임 매칭
-        (p) => p.nick.toLowerCase() === row.nick.toLowerCase()
+      const stat = playerStats.find(
+        (s) => s.nickname.toLowerCase() === row.nick.toLowerCase()
       );
-      if (!matched) return row; // 매칭 안 되면 기존 값 유지
+      if (!stat) return row;
       filled.add(row.nick);
       return {
         ...row,
-        kills:      matched.kills      ?? row.kills,
-        damage:     matched.damage     ?? row.damage,
-        headShot:   matched.headShot   ?? row.headShot,
-        assist:     matched.assist     ?? row.assist,
-        teamKills:  matched.teamKills  ?? row.teamKills,
-        earlyDeath: matched.earlyDeath ?? row.earlyDeath,
+        kills:  stat.kills  ?? row.kills,
+        damage: stat.damage ?? row.damage,
+        assist: (stat.assists ?? 0) > 0,  // assists 수치 → assist 여부 변환
       };
     }));
 
     setOcrFilledNicks(filled);
-    setOcrUnmatched(res.unmatched || []);
+    setOcrUnmatched(
+      playerStats
+        .filter((s) => !team.players.some((p) => p.toLowerCase() === s.nickname.toLowerCase()))
+        .map((s) => s.nickname)
+    );
     setOcrIsMock(res.isMock || false);
     setOcrDone(true);
   };
@@ -228,9 +248,9 @@ function TeamResultModal({ room, teamId, matchNumber, onSubmit, onClose }) {
 
   const handleSubmit = async () => {
     setSubmitting(true);
-    // onSubmit(results 배열, 치킨 여부, 스크린샷 파일) — 팀 ID는 부모에서 이미 알고 있음
-    // ocrFile이 있으면 제출 후 S3에 업로드됨
-    await onSubmit(results, claimsChicken, ocrFile || null);
+    // uploadedMatchId 가 있으면 서버 OCR 흐름 → confirmMatch 호출
+    // 없으면 mock 수동 입력 흐름 (개발/테스트용)
+    await onSubmit(results, claimsChicken, ocrFile || null, uploadedMatchId);
     setSubmitting(false);
   };
 
@@ -336,12 +356,14 @@ function TeamResultModal({ room, teamId, matchNumber, onSubmit, onClose }) {
             {/* OCR 완료 메시지 */}
             {ocrDone && !ocrError && (
               <div style={{ marginTop: 8, padding: '8px 12px', background: 'rgba(76,175,80,0.1)', border: '1px solid rgba(76,175,80,0.3)', borderRadius: 4, fontSize: 11, color: '#4CAF50', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <span>✓ OCR 완료 — {ocrFilledNicks.size}명 자동 입력됨</span>
+                <span>✓ 업로드 & OCR 완료 — {ocrFilledNicks.size}명 자동 입력됨</span>
+                {ocrMeta?.mapName  && <span style={{ color: '#C8B878' }}>📍 {ocrMeta.mapName}</span>}
+                {ocrMeta?.placement && <span style={{ color: '#C8B878' }}>#{ocrMeta.placement}위</span>}
                 {ocrIsMock && <span style={{ color: '#8A8060' }}>[MOCK 데이터]</span>}
                 {ocrUnmatched.length > 0 && (
                   <span style={{ color: '#F5A623' }}>미매칭: {ocrUnmatched.join(', ')}</span>
                 )}
-                <span style={{ color: '#8A8060' }}>아래에서 수치를 직접 수정할 수 있습니다</span>
+                <span style={{ color: '#8A8060' }}>아래에서 수치를 직접 수정 후 확정하세요</span>
               </div>
             )}
 
@@ -581,7 +603,7 @@ const rBtnStyle = { width: 26, height: 28, background: '#141200', border: '1px s
 function AdminModal({ room, onAdjust, onEnd, onRuleUpdate, onClose }) {
   const [view, setView] = useState('menu'); // 'menu' | 'adjust' | 'rule' | 'end'
   const [adjTeamId, setAdjTeamId] = useState(room.teams[0]?.id || '');
-  const [adjAmount, setAdjAmount] = useState(0);
+  const [adjAmount, setAdjAmount] = useState(1);   // 최소 1 이상 유지
   const [adjSign,   setAdjSign]   = useState('+');
   const [adjReason, setAdjReason] = useState('');
   const [endConfirm, setEndConfirm] = useState('');
@@ -593,12 +615,17 @@ function AdminModal({ room, onAdjust, onEnd, onRuleUpdate, onClose }) {
   // 룰 필드 업데이트 헬퍼
   const setR = (key, val) => setRule((prev) => ({ ...prev, [key]: val }));
 
-  // 저장 처리
+  // 저장 처리 — 실패 시 모달 유지, 성공 시에만 닫기
   const handleRuleSave = async () => {
     setRuleSaving(true);
-    await onRuleUpdate(rule);
-    setRuleSaving(false);
-    onClose();
+    try {
+      const res = await onRuleUpdate(rule);
+      // onRuleUpdate가 { ok } 형태를 반환하거나 명시적으로 false를 반환하면 실패 처리
+      if (res === false || (res && res.ok === false)) return;
+      onClose();
+    } finally {
+      setRuleSaving(false);
+    }
   };
 
   return (
@@ -854,28 +881,44 @@ export default function LivePage() {
   }, [matches]);
 
   // ── 팀 매치 결과 제출 ──
-  // 각 팀이 자신의 게임이 끝날 때마다 독립적으로 호출
-  // 다른 팀의 진행과 무관하게 즉시 스코어보드에 반영
-  // screenshotFile: OCR에 사용한 이미지 파일 (없으면 null)
-  const handleSubmitTeamResult = async (results, claimsChicken, screenshotFile) => {
-    const res = await RoomAPI.addTeamMatch(roomId, selectedTeamId, results, claimsChicken);
-    if (!res.ok) { setMatchError(res.error); return; }
+  // uploadedMatchId 있음 → 서버 OCR 흐름: confirmMatch 호출 후 getMatches로 갱신
+  // uploadedMatchId 없음 → mock 수동 입력 흐름 (개발/테스트용)
+  const handleSubmitTeamResult = async (results, claimsChicken, screenshotFile, uploadedMatchId) => {
+    if (uploadedMatchId) {
+      // ── 실제 API 흐름: 업로드 완료된 매치를 확정 ──
+      const res = await RoomAPI.confirmMatch(uploadedMatchId);
+      if (!res.ok) { setMatchError(res.error); return; }
 
-    let match = res.match;
+      setShowTeamModal(false);
+      setMatchError('');
 
-    // 스크린샷이 있으면 업로드 완료까지 모달을 유지 (버튼 로딩 상태 표시됨)
-    // 업로드 실패해도 매치 결과 자체는 정상 등록됨
-    if (screenshotFile) {
-      const uploadRes = await RoomAPI.uploadMatchScreenshot(roomId, match.id, screenshotFile);
-      if (uploadRes.ok) match = { ...match, screenshotUrl: uploadRes.screenshotUrl };
+      // 확정 후 서버 최신 매치 목록으로 갱신
+      const matchRes = await RoomAPI.getMatches(roomId);
+      if (matchRes.ok) setMatches(matchRes.matches);
+    } else {
+      // ── Mock 흐름: 수동 입력 결과를 로컬 상태에 반영 ──
+      const res = await RoomAPI.addTeamMatch(roomId, selectedTeamId, results, claimsChicken);
+      if (!res.ok) { setMatchError(res.error); return; }
+
+      let match = res.match;
+      if (screenshotFile) {
+        const uploadRes = await RoomAPI.uploadMatchScreenshot(roomId, match.id, screenshotFile);
+        if (uploadRes.ok) match = { ...match, screenshotUrl: uploadRes.screenshotUrl };
+      }
+
+      setShowTeamModal(false);
+      setMatchError('');
+      // id 기준 upsert — 폴링과의 중복 반영 방지
+      setMatches((prev) => {
+        const idx = prev.findIndex((m) => m.id === match.id);
+        if (idx !== -1) {
+          const next = [...prev];
+          next[idx] = match;
+          return next;
+        }
+        return [...prev, match];
+      });
     }
-
-    // 업로드까지 완료된 후 모달 닫기
-    setShowTeamModal(false);
-    setMatchError('');
-
-    // 제출 즉시 로컬 상태에 반영 (폴링 전에 바로 화면에 보임)
-    setMatches((prev) => [...prev, match]);
   };
 
   // ── 점수 조정 ──
@@ -890,6 +933,7 @@ export default function LivePage() {
   const handleRuleUpdate = async (newRule) => {
     const res = await RoomAPI.updateRule(roomId, newRule);
     if (res.ok) setRoom((prev) => ({ ...prev, rule: newRule }));
+    return res;  // handleRuleSave가 성공 여부를 판단할 수 있도록 반환
   };
 
   // ── 경기 종료 ──
@@ -924,8 +968,9 @@ export default function LivePage() {
   const timeLeft  = timeLimit ? Math.max(0, timeLimit - elapsed) : null;
 
   // ── 경기 종료 조건 체크 ──
-  // 목표 킬에 먼저 도달한 팀이 있거나, 제한 시간이 만료되면 종료 안내
-  const targetReachedTeam = teamScores.find((t) => t.kills >= rule.targetKills);
+  // targetKills가 0이면 즉시 종료되는 문제를 방지: 0일 때는 Infinity 처리
+  const safeTarget        = rule.targetKills > 0 ? rule.targetKills : Infinity;
+  const targetReachedTeam = teamScores.find((t) => t.kills >= safeTarget);
   const timeOver          = timeLeft !== null && timeLeft === 0;
   const gameOver          = !!targetReachedTeam || timeOver;
 
@@ -997,7 +1042,7 @@ export default function LivePage() {
               {targetReachedTeam ? (
                 <>
                   <div style={{ fontSize: 14, fontWeight: 700, color: '#F5A623' }}>
-                    {targetReachedTeam.name} — 목표 킬 {rule.targetKills}킬 달성!
+                    {targetReachedTeam.name} — 목표 킬 {safeTarget}킬 달성!
                   </div>
                   <div style={{ fontSize: 11, color: '#8A8060', marginTop: 2 }}>
                     경기를 종료하고 최종 결과를 확정하세요
@@ -1194,7 +1239,7 @@ export default function LivePage() {
                       </div>
                       <div style={{ fontSize: 11, color: '#8A8060' }}>
                         킬: <b style={{ color: '#E8DFC0' }}>{totalKills}</b>
-                        {m.results.map((r) => (
+                        {(m.results || []).map((r) => (
                           <span key={r.nick} style={{ marginLeft: 6 }}>{r.nick} {r.kills}킬</span>
                         ))}
                       </div>

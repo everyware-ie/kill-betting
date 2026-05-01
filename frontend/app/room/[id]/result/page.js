@@ -35,7 +35,7 @@ function calcTeamScore(teamId, matches, rule, adjustments = []) {
   let kills = 0, bonus = 0, penalty = 0;
   for (const m of matches) {
     if (rule.chickenBonusOn && m.chickenTeamId === teamId) bonus += rule.chickenBonus;
-    for (const r of m.results) {
+    for (const r of (m.results || [])) {
       if (r.teamId !== teamId) continue;
       kills += r.kills;
       if (rule.headShotBonusOn  && r.headShot)   bonus   += rule.headShotBonus;
@@ -54,7 +54,7 @@ function calcTeamScore(teamId, matches, rule, adjustments = []) {
 function calcPlayerStats(nick, matches, rule) {
   let kills = 0, bonus = 0, penalty = 0, damage = 0, chickens = 0;
   for (const m of matches) {
-    for (const r of m.results) {
+    for (const r of (m.results || [])) {
       if (r.nick !== nick) continue;
       kills  += r.kills;
       damage += r.damage || 0;
@@ -63,8 +63,9 @@ function calcPlayerStats(nick, matches, rule) {
       if (rule.teamKillPenaltyOn)                 penalty += (r.teamKills || 0) * rule.teamKillPenalty;
       if (rule.deathPenaltyOn   && r.earlyDeath)  penalty += rule.deathPenalty;
     }
-    // 이 플레이어가 속한 팀이 치킨을 먹었는지 확인
-    if (m.chickenTeamId) chickens++;
+    // 이 플레이어가 속한 팀이 치킨을 먹었는지 확인 (r.teamId 기준으로 정확히 판별)
+    const playerResult = (m.results || []).find((r) => r.nick === nick);
+    if (playerResult && m.chickenTeamId === playerResult.teamId) chickens++;
   }
   return { kills, bonus, penalty, damage, chickens, total: kills + bonus - penalty };
 }
@@ -125,7 +126,7 @@ export default function ResultPage() {
   // ── 로그인 체크 ──
   useEffect(() => {
     if (!user) router.push('/auth/login');
-  }, [user]);
+  }, [user, router]);
 
   // ── 로딩/에러 화면 ──
   if (loading) return (

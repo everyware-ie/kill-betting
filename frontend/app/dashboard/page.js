@@ -133,7 +133,7 @@ export default function DashboardPage() {
   // ── 로그인 체크 ──
   useEffect(() => {
     if (!authLoading && !user) router.push('/auth/login');
-  }, [user, authLoading]);
+  }, [user, authLoading, router]);
 
   // ── 방 목록 불러오기 ──
   useEffect(() => {

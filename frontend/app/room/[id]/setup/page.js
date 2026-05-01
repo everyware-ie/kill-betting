@@ -237,7 +237,7 @@ function RuleEditModal({ rule, onSave, onClose }) {
 export default function SetupPage() {
   const router = useRouter();
   const { id: roomId } = useParams();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   const [room,     setRoom]     = useState(null);
   const [loading,  setLoading]  = useState(true);
@@ -257,6 +257,11 @@ export default function SetupPage() {
   const hostUserId = room?.participants?.find((p) => p.role === 'HOST')?.userId;
   // 내가 방장인지 여부
   const isHost = sameId(hostUserId, user?.id);
+
+  // ── 로그인 체크 ──
+  useEffect(() => {
+    if (!authLoading && !user) router.push('/auth/login');
+  }, [user, authLoading, router]);
 
   // 드롭다운 외부 클릭 시 닫기
   useEffect(() => {
@@ -340,8 +345,12 @@ export default function SetupPage() {
       t.id === teamId ? { ...t, players: [...t.players, nick] } : t
     );
     const res = await RoomAPI.updateTeams(roomId, updatedTeams);
-    if (res.ok) setRoom((r) => ({ ...r, teams: updatedTeams }));
-    setInputs((p) => ({ ...p, [teamId]: '' }));
+    if (res.ok) {
+      setRoom((r) => ({ ...r, teams: updatedTeams }));
+      setInputs((p) => ({ ...p, [teamId]: '' }));  // 성공 시에만 입력값 초기화
+    } else {
+      setError(res.error || '닉네임 추가에 실패했습니다');
+    }
     isActionInProgress.current = false;
   };
 
@@ -459,6 +468,9 @@ export default function SetupPage() {
   const visibleWaitingUsers = !myTeam && user && !waitingUsers.some((p) => sameId(p.userId, user.id))
     ? [{ userId: normalizeId(user.id), username: user.username, role: 'MEMBER', isLocalUser: true }, ...waitingUsers]
     : waitingUsers;
+
+  // 인증 로딩 중이거나 미로그인 상태 — auth useEffect가 리다이렉트 처리
+  if (authLoading || !user) return null;
 
   if (loading) return <div style={{ minHeight: '100vh', background: '#12100A', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8A8060' }}>불러오는 중...</div>;
   if (error && !room) return <div style={{ minHeight: '100vh', background: '#12100A', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#E53935' }}>{error}</div>;

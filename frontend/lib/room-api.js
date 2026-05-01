@@ -156,23 +156,24 @@ function buildMatchesFromBackend(scoreboard, matchHistory) {
   const historyMatches = (matchHistory?.matches || []).flatMap((match) => {
     const teamIds = [...new Set((match.memberResults || []).map((result) => result.teamId))];
     return teamIds.map((teamId) => ({
-      id: `${match.matchId}-${teamId}`,
-      matchId: match.matchId,
-      teamId: String(teamId),
-      matchNumber: match.matchNumber,
-      mapName: match.mapName,
-      playedAt: match.playedAt,
+      id:            `${match.matchId}-${teamId}`,
+      matchId:       match.matchId,
+      teamId:        String(teamId),
+      matchNumber:   match.matchNumber,
+      mapName:       match.mapName,
+      screenshotUrl: match.screenshotUrl || null,  // PR #14: MatchSummaryResponse에 추가됨
+      playedAt:      match.playedAt,
       results: (match.memberResults || [])
         .filter((result) => result.teamId === teamId)
         .map((result) => ({
-          playerId: String(result.playerId),
-          playerName: result.playerNickname,
-          kills: result.kills,
-          bonusKills: result.bonusKills,
-          penaltyKills: result.penaltyKills,
+          playerId:       String(result.playerId),
+          playerName:     result.playerNickname,
+          kills:          result.kills,
+          bonusKills:     result.bonusKills,
+          penaltyKills:   result.penaltyKills,
           effectiveKills: result.effectiveKills,
-          placement: result.placement,
-          isChicken: result.isChicken,
+          placement:      result.placement,
+          isChicken:      result.isChicken,
         })),
     }));
   });
@@ -550,33 +551,104 @@ export const RoomAPI = {
     return err('실제 API에서는 매치 결과가 이미지 업로드 OCR 흐름으로 생성됩니다.');
   },
 
-  uploadMatchScreenshot: async (roomId, matchId, file) => {
+  // ── 매치 이미지 업로드 + 서버 OCR ──────────────────────
+  /**
+   * POST /api/sessions/{sessionId}/matches  (multipart)
+   *
+   * 서버가 이미지를 받아 OCR 처리 후 플레이어별 결과를 함께 반환합니다.
+   *
+   * Response:
+   *   {
+   *     matchId      : number,
+   *     screenshotUrl: string,
+   *     ocrResult    : {
+   *       placement  : number,
+   *       mapName    : string,
+   *       playTime   : string,
+   *       playerStats: [{ nickname, kills, damage, assists }]
+   *     }
+   *   }
+   */
+  uploadMatchImage: async (roomId, file) => {
     if (USE_MOCK) {
-      await delay(300);
+      await delay(1200);
+      // Mock: 방에 등록된 닉네임으로 임의 OCR 결과 생성
       const room = _runtimeRooms.find((r) => r.id === roomId);
-      if (!room) return err('방을 찾을 수 없습니다');
-      const match = room.matches?.find((m) => m.id === matchId);
-      if (!match) return err('매치를 찾을 수 없습니다');
-      const screenshotUrl = URL.createObjectURL(file);
-      match.screenshotUrl = screenshotUrl;
-      return ok({ screenshotUrl });
+      const allNicks = (room?.teams || []).flatMap((t) => t.players);
+      return ok({
+        matchId:       `mock-match-${Date.now()}`,
+        screenshotUrl: file ? URL.createObjectURL(file) : null,
+        ocrResult: {
+          placement:   Math.floor(Math.random() * 10) + 1,
+          mapName:     'Erangel',
+          playTime:    '28:34',
+          playerStats: allNicks.map((nickname) => ({
+            nickname,
+            kills:   Math.floor(Math.random() * 8),
+            damage:  Math.floor(Math.random() * 600 + 50),
+            assists: Math.floor(Math.random() * 3),
+          })),
+        },
+      });
     }
 
+    // 실제 API: multipart 업로드 (Authorization 헤더 수동 첨부)
     const formData = new FormData();
     formData.append('image', file);
     const token = getToken();
     const res = await fetch(`${API_BASE_URL}/api/sessions/${roomId}/matches`, {
       method: 'POST',
       credentials: 'include',
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: formData,
     });
     if (!res.ok) {
       const json = await res.json().catch(() => ({}));
-      return err(json.message || `요청 실패 (${res.status})`);
+      return err(json.message || `업로드 실패 (${res.status})`);
     }
     const json = await res.json().catch(() => ({}));
-    return ok({ screenshotUrl: json.data?.screenshotUrl || json.screenshotUrl, match: json.data || json });
+    const data = json.data || json;
+    return ok({
+      matchId:       data.matchId,
+      screenshotUrl: data.screenshotUrl,
+      ocrResult:     data.ocrResult || null,
+    });
+  },
+
+  // ── 매치 결과 확정 ───────────────────────────────────────
+  /**
+   * POST /api/matches/{matchId}/confirm
+   *
+   * 업로드된 매치를 확정합니다.
+   * playerResults: [{ matchResultId, isTop10 }]
+   *   - isTop10: TOP10 진입 여부 (false 시 SURVIVAL_PENALTY 적용)
+   *   - matchResultId: 서버에서 발급한 개별 플레이어 결과 ID
+   *     (현재 업로드 응답에 포함되지 않아 빈 배열로 전송)
+   *
+   * TODO: 업로드 응답에 matchResultId 포함되면 playerResults 채우기
+   */
+  confirmMatch: async (matchId, playerResults = []) => {
+    if (USE_MOCK) {
+      await delay(300);
+      return ok({ matchId, status: 'CONFIRMED' });
+    }
+
+    const res = await apiFetch(`/api/matches/${matchId}/confirm`, {
+      method: 'POST',
+      body:   JSON.stringify({ playerResults }),
+    });
+    return res.ok ? ok({ matchId, status: res.data?.status || 'CONFIRMED' }) : res;
+  },
+
+  // ── 하위 호환: mock 전용 스크린샷 업로드 (삭제 예정) ────
+  uploadMatchScreenshot: async (roomId, matchId, file) => {
+    // 실제 API 모드에서는 uploadMatchImage 사용
+    if (!USE_MOCK) return RoomAPI.uploadMatchImage(roomId, file);
+    await delay(300);
+    const room = _runtimeRooms.find((r) => r.id === roomId);
+    const match = room?.matches?.find((m) => m.id === matchId);
+    if (match) match.screenshotUrl = file ? URL.createObjectURL(file) : null;
+    return ok({ screenshotUrl: match?.screenshotUrl });
   },
 
   addAdjustment: async () => ok({ adjustments: [] }),

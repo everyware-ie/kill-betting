@@ -44,7 +44,7 @@ function calcTeamTotal(teamId, matches, rule, adjustments = []) {
 
   for (const m of matches.filter((m) => m.teamId === teamId)) {
     if (rule.chickenBonusOn && m.chickenTeamId === teamId) bonus += rule.chickenBonus;
-    for (const r of m.results) {
+    for (const r of m.results || []) {
       kills += r.kills;
       if (rule.headShotBonusOn  && r.headShot)   bonus   += rule.headShotBonus;
       if (rule.assistBonusOn    && r.assist)      bonus   += rule.assistBonus;
@@ -309,7 +309,7 @@ export default function MyPage() {
   // ── 로그인 체크 ──
   useEffect(() => {
     if (!authLoading && !user) router.push('/auth/login');
-  }, [user, authLoading]);
+  }, [user, authLoading, router]);
 
   // ── 1단계: 프로필 + 방 목록 로드 ──
   useEffect(() => {

@@ -85,7 +85,7 @@ export default function AuthLayout({ children }) {
         fontSize: 10, color: 'rgba(200,155,0,0.2)',
         letterSpacing: 1.5, position: 'relative', zIndex: 1,
       }}>
-        © 2024 KILL CHALLENGE TERMINAL — ALL RIGHTS RESERVED
+        © 2026 KILL CHALLENGE TERMINAL — ALL RIGHTS RESERVED
       </div>
     </div>
   );

@@ -143,7 +143,7 @@ export default function CreateRoomPage() {
   // ── 로그인 체크: 로그인 안 되어 있으면 로그인 페이지로 이동 ──
   useEffect(() => {
     if (!loading && !user) router.push('/auth/login');
-  }, [user, loading]);
+  }, [user, loading, router]);
 
   if (loading || !user) return null;
 
@@ -176,6 +176,12 @@ export default function CreateRoomPage() {
 
     if (!res.ok) {
       setErrMsg(res.error || '방 생성에 실패했습니다');
+      return;
+    }
+
+    // 응답 구조 검증
+    if (!res.room?.id) {
+      setErrMsg('방 생성 응답이 올바르지 않습니다');
       return;
     }
 
