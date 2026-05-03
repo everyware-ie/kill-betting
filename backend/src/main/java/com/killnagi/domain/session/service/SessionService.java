@@ -33,6 +33,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 @RequiredArgsConstructor
@@ -40,6 +41,8 @@ import java.util.UUID;
 public class SessionService {
 
     private static final int MIN_TEAMS_TO_START = 2;
+    private static final String ROOM_CODE_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    private static final int ROOM_CODE_LENGTH = 6;
 
     private final SessionRepository sessionRepository;
     private final UserRepository userRepository;
@@ -57,6 +60,7 @@ public class SessionService {
         Session session = sessionRepository.save(Session.builder()
                 .name(request.name())
                 .roomUrl(generateUniqueRoomUrl())
+                .roomCode(generateUniqueRoomCode())
                 .host(host)
                 .targetKills(request.targetKills())
                 .timeLimitMinutes(request.timeLimitMinutes())
@@ -107,6 +111,18 @@ public class SessionService {
         return toResponse(session);
     }
 
+    public List<SessionResponse> getWaitingSessions() {
+        return sessionRepository.findByStatus(Session.SessionStatus.WAITING).stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    public SessionResponse getSessionByRoomCode(String roomCode) {
+        Session session = sessionRepository.findByRoomCode(roomCode.toUpperCase())
+                .orElseThrow(() -> KillnagiException.notFound("방 코드에 해당하는 세션을 찾을 수 없습니다."));
+        return toResponse(session);
+    }
+
     public MatchHistoryResponse getMatchHistory(Long sessionId) {
         Session session = getSessionOrThrow(sessionId);
         List<Match> matches = matchRepository.findConfirmedMatchesWithResults(sessionId, MatchStatus.CONFIRMED);
@@ -142,6 +158,7 @@ public class SessionService {
                 session.getHostNickname(),
                 session.getStatus(),
                 session.getRoomUrl(),
+                session.getRoomCode(),
                 session.getTargetKills(),
                 session.getTimeLimitMinutes(),
                 session.getCreatedAt()
@@ -190,5 +207,17 @@ public class SessionService {
             roomUrl = UUID.randomUUID().toString();
         } while (sessionRepository.existsByRoomUrl(roomUrl));
         return roomUrl;
+    }
+
+    private String generateUniqueRoomCode() {
+        String code;
+        do {
+            StringBuilder sb = new StringBuilder(ROOM_CODE_LENGTH);
+            for (int i = 0; i < ROOM_CODE_LENGTH; i++) {
+                sb.append(ROOM_CODE_CHARS.charAt(ThreadLocalRandom.current().nextInt(ROOM_CODE_CHARS.length())));
+            }
+            code = sb.toString();
+        } while (sessionRepository.existsByRoomCode(code));
+        return code;
     }
 }

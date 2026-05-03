@@ -28,6 +28,9 @@ public class Session {
     @Column(name = "room_url", nullable = false, unique = true, length = 36)
     private String roomUrl;
 
+    @Column(name = "room_code", nullable = false, unique = true, length = 6)
+    private String roomCode;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "host_user_id", nullable = false)
     private User host;
@@ -66,9 +69,10 @@ public class Session {
     private LocalDateTime updatedAt;
 
     @Builder
-    public Session(String name, String roomUrl, User host, Integer targetKills, Integer timeLimitMinutes) {
+    public Session(String name, String roomUrl, String roomCode, User host, Integer targetKills, Integer timeLimitMinutes) {
         this.name = name;
         this.roomUrl = roomUrl;
+        this.roomCode = roomCode;
         this.host = host;
         this.targetKills = targetKills;
         this.timeLimitMinutes = timeLimitMinutes;

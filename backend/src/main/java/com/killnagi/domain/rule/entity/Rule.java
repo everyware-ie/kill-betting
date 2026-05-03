@@ -42,8 +42,6 @@ public class Rule {
     public enum RuleType {
         CHICKEN_BONUS,              // 치킨 달성 시 보너스
         SURVIVAL_PENALTY,           // TOP10 진입 실패 시 패널티
-        CONSECUTIVE_DEATH_PENALTY,  // 연속 사망 패널티
-        PLACEMENT_BONUS             // 특정 순위 달성 보너스
     }
 
     public enum Operator {

@@ -10,6 +10,7 @@ public record SessionResponse(
         String hostNickname,
         SessionStatus status,
         String roomUrl,
+        String roomCode,
         Integer targetKills,
         Integer timeLimitMinutes,
         LocalDateTime createdAt
