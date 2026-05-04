@@ -3,9 +3,9 @@ package com.killnagi.domain.session.service;
 import com.killnagi.common.exception.KillnagiException;
 import com.killnagi.domain.match.dto.response.ScreenshotUploadResponse;
 import com.killnagi.domain.match.entity.Match;
-import com.killnagi.domain.match.entity.MatchResult;
 import com.killnagi.domain.match.entity.MatchStatus;
 import com.killnagi.domain.match.repository.MatchRepository;
+import com.killnagi.domain.match.repository.MatchResultRepository;
 import com.killnagi.domain.match.service.MatchService;
 import com.killnagi.domain.rule.entity.Rule;
 import com.killnagi.domain.rule.entity.RuleSet;
@@ -15,14 +15,12 @@ import com.killnagi.domain.session.dto.request.CreateRequest;
 import com.killnagi.domain.session.dto.response.MatchHistoryResponse;
 import com.killnagi.domain.session.dto.response.MatchSummaryResponse;
 import com.killnagi.domain.session.dto.response.MemberMatchResultResponse;
-import com.killnagi.domain.session.dto.response.MemberScoreResponse;
 import com.killnagi.domain.session.dto.response.ScoreboardResponse;
 import com.killnagi.domain.session.dto.response.SessionResponse;
 import com.killnagi.domain.session.dto.response.TeamScoreResponse;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.session.repository.SessionRepository;
 import com.killnagi.domain.team.entity.Team;
-import com.killnagi.domain.team.entity.TeamPlayer;
 import com.killnagi.domain.team.repository.TeamRepository;
 import com.killnagi.domain.user.entity.User;
 import com.killnagi.domain.user.repository.UserRepository;
@@ -47,6 +45,7 @@ public class SessionService {
     private final RuleRepository ruleRepository;
     private final RuleSetRepository ruleSetRepository;
     private final MatchRepository matchRepository;
+    private final MatchResultRepository matchResultRepository;
     private final MatchService matchService;
 
     @Transactional
@@ -96,7 +95,7 @@ public class SessionService {
     public ScoreboardResponse getScoreboard(Long sessionId) {
         Session session = getSessionOrThrow(sessionId);
         List<TeamScoreResponse> teamScores = teamRepository.findBySessionId(sessionId).stream()
-                .map(this::toTeamScoreResponse)
+                .map(TeamScoreResponse::from)
                 .toList();
         return new ScoreboardResponse(session.getId(), session.getName(), session.getStatus(), teamScores);
     }
@@ -148,40 +147,11 @@ public class SessionService {
         );
     }
 
-    private TeamScoreResponse toTeamScoreResponse(Team team) {
-        List<MemberScoreResponse> members = team.getPlayers().stream()
-                .map(this::toMemberScoreResponse)
-                .toList();
-        return new TeamScoreResponse(
-                team.getId(), team.getName(),
-                team.getTotalKills(), team.getRuleScore(), team.getEffectiveKills(),
-                members
-        );
-    }
-
-    private MemberScoreResponse toMemberScoreResponse(TeamPlayer player) {
-        return new MemberScoreResponse(
-                player.getId(), player.getPlayerNickname(),
-                player.getTotalKills(), player.getBonusKills(), player.getPenaltyKills(), player.getEffectiveKills()
-        );
-    }
-
     private MatchSummaryResponse toMatchSummaryResponse(Match match) {
-        List<MemberMatchResultResponse> memberResults = match.getResults().stream()
-                .map(this::toMemberMatchResultResponse)
+        List<MemberMatchResultResponse> memberResults = matchResultRepository.findByMatch(match).stream()
+                .map(MemberMatchResultResponse::from)
                 .toList();
-        return new MatchSummaryResponse(
-                match.getId(), match.getMatchNumber(), match.getMapName(), match.getScreenshotUrl(), match.getCreatedAt(), memberResults
-        );
-    }
-
-    private MemberMatchResultResponse toMemberMatchResultResponse(MatchResult result) {
-        TeamPlayer player = result.getTeamPlayer();
-        return new MemberMatchResultResponse(
-                player.getId(), player.getTeamId(), player.getTeam().getName(), player.getPlayerNickname(),
-                result.getKills(), result.getBonusKills(), result.getPenaltyKills(), result.getEffectiveKills(),
-                result.getPlacement(), result.isChicken()
-        );
+        return MatchSummaryResponse.from(match, memberResults);
     }
 
     private String generateUniqueRoomUrl() {
