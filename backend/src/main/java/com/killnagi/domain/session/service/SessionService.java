@@ -108,7 +108,7 @@ public class SessionService {
 
     public MatchHistoryResponse getMatchHistory(Long sessionId) {
         Session session = getSessionOrThrow(sessionId);
-        List<Match> matches = matchRepository.findConfirmedMatchesWithResults(sessionId, MatchStatus.CONFIRMED);
+        List<Match> matches = matchRepository.findBySessionIdAndStatusOrderByMatchNumberAsc(sessionId, MatchStatus.CONFIRMED);
         List<MatchSummaryResponse> summaries = matches.stream()
                 .map(this::toMatchSummaryResponse)
                 .toList();
