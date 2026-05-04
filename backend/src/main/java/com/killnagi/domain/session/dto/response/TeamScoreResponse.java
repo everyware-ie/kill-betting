@@ -1,13 +1,28 @@
 package com.killnagi.domain.session.dto.response;
 
+import com.killnagi.domain.team.entity.Team;
+
 import java.util.List;
 
 public record TeamScoreResponse(
         Long teamId,
         String teamName,
         int totalKills,
-        int bonusKills,
-        int penaltyKills,
+        int ruleScore,
         int effectiveKills,
         List<MemberScoreResponse> members
-) {}
+) {
+    public static TeamScoreResponse from(Team team) {
+        List<MemberScoreResponse> members = team.getPlayers().stream()
+                .map(MemberScoreResponse::from)
+                .toList();
+        return new TeamScoreResponse(
+                team.getId(), 
+                team.getName(),
+                team.getTotalKills(), 
+                team.getRuleScore(), 
+                team.getEffectiveKills(),
+                members
+        );
+    }
+}

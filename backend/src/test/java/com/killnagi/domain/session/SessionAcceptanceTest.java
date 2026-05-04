@@ -1,16 +1,17 @@
 package com.killnagi.domain.session;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.killnagi.support.AcceptanceTestSupport;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.List;
+import java.util.Map;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import java.util.List;
-import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.killnagi.support.AcceptanceTestSupport;
 
 @DisplayName("Session 인수 테스트")
 class SessionAcceptanceTest extends AcceptanceTestSupport {

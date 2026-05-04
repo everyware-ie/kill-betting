@@ -1,5 +1,7 @@
 package com.killnagi.domain.match.entity;
 
+import com.killnagi.common.exception.KillnagiException;
+import com.killnagi.domain.rule.entity.Rule;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.team.entity.Team;
 import jakarta.persistence.*;
@@ -8,7 +10,6 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -43,23 +44,57 @@ public class Match {
     @Column(nullable = false, length = 20)
     private MatchStatus status = MatchStatus.PENDING;
 
-    @OneToMany(mappedBy = "match", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<MatchResult> results = new ArrayList<>();
+    @Column(name = "is_chicken", nullable = false)
+    private boolean isChicken = false;
+
+    @Column(name = "failed_top10_count", nullable = false)
+    private long failedTop10Count = 0;
 
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
+    private static final int MIN_MATCH_NUMBER = 1;
+
     @Builder
     public Match(Session session, Team team, int matchNumber, String screenshotUrl) {
+        validate(matchNumber);
         this.session = session;
         this.team = team;
         this.matchNumber = matchNumber;
         this.screenshotUrl = screenshotUrl;
     }
 
-    public void confirm() {
+    private void validate(int matchNumber) {
+        if (matchNumber < MIN_MATCH_NUMBER) {
+            throw KillnagiException.badRequest("매치 번호는 1 이상이어야 합니다.");
+        }
+    }
+
+    public void confirm(List<MatchResult> matchResults, List<Rule> rules, boolean isChicken) {
+        if (!isConfirmable()) {
+            throw KillnagiException.badRequest("이미 확정된 매치는 다시 확정할 수 없습니다.");
+        }
+
+        accumulateKills(matchResults);
+        computeMatchStats(matchResults, isChicken);
+        applyRules(rules);
         this.status = MatchStatus.CONFIRMED;
+    }
+
+    private void accumulateKills(List<MatchResult> matchResults) {
+        int totalKills = matchResults.stream().mapToInt(MatchResult::getKills).sum();
+        this.team.addKills(totalKills);
+        matchResults.forEach(matchResult -> matchResult.getTeamPlayer().addKills(matchResult.getKills()));
+    }
+
+    private void computeMatchStats(List<MatchResult> matchResults, boolean isChicken) {
+        this.isChicken = isChicken;
+        this.failedTop10Count = matchResults.stream().filter(r -> !r.isTop10()).count();
+    }
+
+    private void applyRules(List<Rule> rules) {
+        rules.forEach(rule -> this.team.addRuleScore(rule.calculateScore(this.isChicken, this.failedTop10Count)));
     }
 
     public void updateScreenshotUrl(String screenshotUrl) {

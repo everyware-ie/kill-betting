@@ -1,5 +1,6 @@
 package com.killnagi.domain.match.entity;
 
+import com.killnagi.common.exception.KillnagiException;
 import com.killnagi.domain.team.entity.TeamPlayer;
 import jakarta.persistence.*;
 import lombok.*;
@@ -31,30 +32,34 @@ public class MatchResult {
     @Column(name = "is_chicken", nullable = false)
     private boolean isChicken = false;
 
-    @Column(name = "bonus_kills", nullable = false)
-    private int bonusKills = 0;
+    @Column(name = "is_top10", nullable = false)
+    private boolean isTop10 = false;
 
-    @Column(name = "penalty_kills", nullable = false)
-    private int penaltyKills = 0;
+    private static final int MIN_KILLS = 0;
+    private static final int MIN_PLACEMENT = 1;
+    private static final int TOP10_MAX_PLACEMENT = 10;
+    private static final int CHICKEN_PLACEMENT = 1;
 
     @Builder
-    public MatchResult(Match match, TeamPlayer teamPlayer, int kills, Integer placement) {
+    public MatchResult(Match match, TeamPlayer teamPlayer, int kills, Integer placement, boolean isTop10) {
+        validate(kills, placement, isTop10);
         this.match = match;
         this.teamPlayer = teamPlayer;
         this.kills = kills;
         this.placement = placement;
-        this.isChicken = placement != null && placement == 1;
+        this.isChicken = placement != null && placement == CHICKEN_PLACEMENT;
+        this.isTop10 = isTop10;
     }
 
-    public int getEffectiveKills() {
-        return kills + bonusKills - penaltyKills;
-    }
-
-    public void applyBonus(int bonus) {
-        this.bonusKills += bonus;
-    }
-
-    public void applyPenalty(int penalty) {
-        this.penaltyKills += penalty;
+    private void validate(int kills, Integer placement, boolean isTop10) {
+        if (kills < MIN_KILLS) {
+            throw KillnagiException.badRequest("킬 수는 0 이상이어야 합니다.");
+        }
+        if (placement != null && placement < MIN_PLACEMENT) {
+            throw KillnagiException.badRequest("순위는 1 이상이어야 합니다.");
+        }
+        if (placement != null && placement > TOP10_MAX_PLACEMENT && isTop10) {
+            throw KillnagiException.badRequest("순위가 10위 초과이면 TOP10일 수 없습니다.");
+        }
     }
 }

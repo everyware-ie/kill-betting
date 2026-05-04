@@ -1,11 +1,9 @@
 package com.killnagi.domain.session.repository;
 
-import com.killnagi.config.JpaConfig;
-import com.killnagi.domain.session.entity.Session;
-import com.killnagi.domain.session.entity.SessionUser;
-import com.killnagi.domain.user.entity.User;
-import com.killnagi.domain.user.repository.UserRepository;
-import com.killnagi.support.TestFixtures;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,9 +11,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import com.killnagi.config.JpaConfig;
+import com.killnagi.domain.session.entity.Session;
+import com.killnagi.domain.session.entity.SessionUser;
+import com.killnagi.domain.user.entity.User;
+import com.killnagi.domain.user.repository.UserRepository;
+import com.killnagi.support.TestFixtures;
 
 @DataJpaTest
 @Import(JpaConfig.class)

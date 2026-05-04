@@ -1,15 +1,17 @@
 package com.killnagi.domain.match.entity;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.team.entity.Team;
 import com.killnagi.domain.team.entity.TeamPlayer;
 import com.killnagi.domain.user.entity.User;
 import com.killnagi.support.TestFixtures;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("MatchResult 엔티티 도메인 로직 테스트")
 class MatchResultTest {
@@ -45,24 +47,22 @@ class MatchResultTest {
     }
 
     @Test
-    void 보너스_적용시_유효킬이_증가한다() {
-        MatchResult result = TestFixtures.matchResult(match, player, 5, 3);
-        result.applyBonus(2);
-        assertThat(result.getEffectiveKills()).isEqualTo(7);
+    void 킬수가_음수이면_예외가_발생한다() {
+        assertThatThrownBy(() -> TestFixtures.matchResult(match, player, -1, 5))
+                .isInstanceOf(RuntimeException.class);
     }
 
     @Test
-    void 패널티_적용시_유효킬이_감소한다() {
-        MatchResult result = TestFixtures.matchResult(match, player, 5, 3);
-        result.applyPenalty(2);
-        assertThat(result.getEffectiveKills()).isEqualTo(3);
+    void 순위가_0이하이면_예외가_발생한다() {
+        assertThatThrownBy(() -> TestFixtures.matchResult(match, player, 3, 0))
+                .isInstanceOf(RuntimeException.class);
     }
 
     @Test
-    void 유효킬은_킬_더하기_보너스_빼기_패널티다() {
-        MatchResult result = TestFixtures.matchResult(match, player, 5, 3);
-        result.applyBonus(2);
-        result.applyPenalty(1);
-        assertThat(result.getEffectiveKills()).isEqualTo(6);
+    void 순위가_10위_초과인데_TOP10이면_예외가_발생한다() {
+        assertThatThrownBy(() -> MatchResult.builder()
+                .match(match).teamPlayer(player).kills(3).placement(15).isTop10(true).build())
+                .isInstanceOf(RuntimeException.class);
     }
+
 }

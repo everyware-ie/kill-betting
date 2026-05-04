@@ -1,10 +1,11 @@
 package com.killnagi.domain.user.entity;
 
-import com.killnagi.support.TestFixtures;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import com.killnagi.support.TestFixtures;
 
 @DisplayName("User 엔티티 도메인 로직 테스트")
 class UserTest {

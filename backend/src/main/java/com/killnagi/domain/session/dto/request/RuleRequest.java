@@ -1,7 +1,7 @@
 package com.killnagi.domain.session.dto.request;
 
-import com.killnagi.domain.rule.entity.Rule.Operator;
-import com.killnagi.domain.rule.entity.Rule.RuleType;
+import com.killnagi.domain.rule.entity.Operator;
+import com.killnagi.domain.rule.entity.RuleType;
 import jakarta.validation.constraints.NotNull;
 
 public record RuleRequest(

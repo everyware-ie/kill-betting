@@ -1,12 +1,13 @@
 package com.killnagi.domain.session;
 
-import com.killnagi.support.AcceptanceTestSupport;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import com.killnagi.support.AcceptanceTestSupport;
 
 @DisplayName("SessionUser 인수 테스트")
 class SessionUserAcceptanceTest extends AcceptanceTestSupport {
@@ -20,7 +21,7 @@ class SessionUserAcceptanceTest extends AcceptanceTestSupport {
         세션에_참가한다(sessionId, participantToken);
 
         // When
-        ResponseEntity<String> response = get("/api/sessions/" + sessionId + "/configure", hostToken);
+        ResponseEntity<String> response = get("/api/sessions/" + sessionId + "/participants", hostToken);
 
         // Then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -40,7 +41,7 @@ class SessionUserAcceptanceTest extends AcceptanceTestSupport {
         delete("/api/sessions/" + sessionId + "/leave", participantToken);
 
         // Then
-        ResponseEntity<String> configure = get("/api/sessions/" + sessionId + "/configure", hostToken);
+        ResponseEntity<String> configure = get("/api/sessions/" + sessionId + "/participants", hostToken);
         assertThat(parseBody(configure).at("/data/waitingUsers").size()).isZero();
     }
 }
