@@ -8,4 +8,5 @@ import java.util.List;
 
 public interface MatchResultRepository extends JpaRepository<MatchResult, Long> {
     List<MatchResult> findByMatch(Match match);
+    List<MatchResult> findByMatchIn(List<Match> matches);
 }

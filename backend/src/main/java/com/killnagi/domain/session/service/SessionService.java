@@ -30,7 +30,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -109,10 +111,23 @@ public class SessionService {
     public MatchHistoryResponse getMatchHistory(Long sessionId) {
         Session session = getSessionOrThrow(sessionId);
         List<Match> matches = matchRepository.findBySessionIdAndStatusOrderByMatchNumberAsc(sessionId, MatchStatus.CONFIRMED);
-        List<MatchSummaryResponse> summaries = matches.stream()
-                .map(this::toMatchSummaryResponse)
-                .toList();
+        Map<Long, List<MemberMatchResultResponse>> resultsByMatchId = groupResultsByMatchId(matches);
+        List<MatchSummaryResponse> summaries = toMatchSummaries(matches, resultsByMatchId);
         return new MatchHistoryResponse(session.getId(), session.getName(), matches.size(), summaries);
+    }
+
+    private Map<Long, List<MemberMatchResultResponse>> groupResultsByMatchId(List<Match> matches) {
+        return matchResultRepository.findByMatchIn(matches).stream()
+                .collect(Collectors.groupingBy(
+                        result -> result.getMatch().getId(),
+                        Collectors.mapping(MemberMatchResultResponse::from, Collectors.toList())
+                ));
+    }
+
+    private List<MatchSummaryResponse> toMatchSummaries(List<Match> matches, Map<Long, List<MemberMatchResultResponse>> resultsByMatchId) {
+        return matches.stream()
+                .map(match -> MatchSummaryResponse.from(match, resultsByMatchId.getOrDefault(match.getId(), List.of())))
+                .toList();
     }
 
     public List<SessionResponse> getMySessions(Long userId) {
@@ -145,13 +160,6 @@ public class SessionService {
                 session.getTimeLimitMinutes(),
                 session.getCreatedAt()
         );
-    }
-
-    private MatchSummaryResponse toMatchSummaryResponse(Match match) {
-        List<MemberMatchResultResponse> memberResults = matchResultRepository.findByMatch(match).stream()
-                .map(MemberMatchResultResponse::from)
-                .toList();
-        return MatchSummaryResponse.from(match, memberResults);
     }
 
     private String generateUniqueRoomUrl() {
