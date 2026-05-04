@@ -3,6 +3,7 @@ package com.killnagi.domain.user.controller;
 import com.killnagi.common.response.ApiResponse;
 import com.killnagi.domain.user.dto.request.LoginRequest;
 import com.killnagi.domain.user.dto.request.SignUpRequest;
+import com.killnagi.domain.user.dto.response.CheckUsernameResponse;
 import com.killnagi.domain.user.dto.response.TokenResponse;
 import com.killnagi.domain.user.dto.response.UserInfoResponse;
 import com.killnagi.domain.user.service.AuthService;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -44,5 +46,11 @@ public class AuthController implements AuthControllerDocs {
             @AuthenticationPrincipal UserDetails userDetails) {
         Long userId = Long.parseLong(userDetails.getUsername());
         return ResponseEntity.ok(ApiResponse.ok(authService.getMyInfo(userId)));
+    }
+
+    @GetMapping("check-nickname")
+    public ResponseEntity<ApiResponse<CheckUsernameResponse>> checkUsernameAvailability(
+            @RequestParam String nickname) {
+        return ResponseEntity.ok(ApiResponse.ok(authService.isUsernameAvailable(nickname)));
     }
 }
