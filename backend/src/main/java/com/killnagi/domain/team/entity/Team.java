@@ -1,5 +1,6 @@
 package com.killnagi.domain.team.entity;
 
+import com.killnagi.common.exception.KillnagiException;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.user.entity.User;
 import jakarta.persistence.*;
@@ -40,8 +41,15 @@ public class Team {
 
     @Builder
     public Team(Session session, String name) {
+        validate(name);
         this.session = session;
         this.name = name;
+    }
+
+    private void validate(String name) {
+        if (name == null || name.isBlank()) {
+            throw KillnagiException.badRequest("팀 이름은 비어있을 수 없습니다.");
+        }
     }
 
     public void assignLeader(User leader) {
@@ -50,10 +58,6 @@ public class Team {
 
     public boolean hasLeader() {
         return this.leader != null;
-    }
-
-    public boolean isLedBy(Long userId) {
-        return this.leader != null && this.leader.hasId(userId);
     }
 
     public Long getLeaderUserId() {

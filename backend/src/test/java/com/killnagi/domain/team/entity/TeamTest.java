@@ -1,6 +1,7 @@
 package com.killnagi.domain.team.entity;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.user.entity.User;
 import com.killnagi.support.TestFixtures;
+import org.junit.jupiter.api.DisplayName;
 
 @DisplayName("Team 엔티티 도메인 로직 테스트")
 class TeamTest {
@@ -20,6 +22,22 @@ class TeamTest {
         User host = TestFixtures.user(1L);
         Session session = TestFixtures.session(host);
         team = TestFixtures.team(session);
+    }
+
+    @Test
+    void 팀_이름이_빈_문자열이면_예외가_발생한다() {
+        User host = TestFixtures.user(1L);
+        Session session = TestFixtures.session(host);
+        assertThatThrownBy(() -> Team.builder().session(session).name("").build())
+                .isInstanceOf(RuntimeException.class);
+    }
+
+    @Test
+    void 팀_이름이_null이면_예외가_발생한다() {
+        User host = TestFixtures.user(1L);
+        Session session = TestFixtures.session(host);
+        assertThatThrownBy(() -> Team.builder().session(session).name(null).build())
+                .isInstanceOf(RuntimeException.class);
     }
 
     @Test

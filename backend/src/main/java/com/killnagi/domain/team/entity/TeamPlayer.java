@@ -1,5 +1,6 @@
 package com.killnagi.domain.team.entity;
 
+import com.killnagi.common.exception.KillnagiException;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -45,8 +46,15 @@ public class TeamPlayer {
 
     @Builder
     public TeamPlayer(Team team, String playerNickname) {
+        validate(playerNickname);
         this.team = team;
         this.playerNickname = playerNickname;
+    }
+
+    private void validate(String playerNickname) {
+        if (playerNickname == null || playerNickname.isBlank()) {
+            throw KillnagiException.badRequest("플레이어 닉네임은 비어있을 수 없습니다.");
+        }
     }
 
     public boolean hasNickname(String nickname) {
@@ -59,14 +67,6 @@ public class TeamPlayer {
 
     public void addKills(int kills) {
         this.totalKills += kills;
-    }
-
-    public void addBonus(int bonus) {
-        this.bonusKills += bonus;
-    }
-
-    public void addPenalty(int penalty) {
-        this.penaltyKills += penalty;
     }
 
     public int getEffectiveKills() {
