@@ -1,15 +1,16 @@
 package com.killnagi.domain.team;
 
-import com.killnagi.support.AcceptanceTestSupport;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.Map;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import com.killnagi.support.AcceptanceTestSupport;
 
 @DisplayName("Team 인수 테스트")
 class TeamAcceptanceTest extends AcceptanceTestSupport {

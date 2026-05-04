@@ -1,13 +1,12 @@
 package com.killnagi.domain.user.service;
 
-import com.killnagi.common.exception.KillnagiException;
-import com.killnagi.common.security.JwtTokenProvider;
-import com.killnagi.domain.user.dto.request.LoginRequest;
-import com.killnagi.domain.user.dto.request.SignUpRequest;
-import com.killnagi.domain.user.dto.response.TokenResponse;
-import com.killnagi.domain.user.entity.User;
-import com.killnagi.domain.user.repository.UserRepository;
-import com.killnagi.support.TestFixtures;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+
+import java.util.Optional;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,12 +15,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
+import com.killnagi.common.exception.KillnagiException;
+import com.killnagi.common.security.JwtTokenProvider;
+import com.killnagi.domain.user.dto.request.LoginRequest;
+import com.killnagi.domain.user.dto.request.SignUpRequest;
+import com.killnagi.domain.user.dto.response.TokenResponse;
+import com.killnagi.domain.user.entity.User;
+import com.killnagi.domain.user.repository.UserRepository;
+import com.killnagi.support.TestFixtures;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("AuthService 인증 테스트")

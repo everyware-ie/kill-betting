@@ -1,12 +1,13 @@
 package com.killnagi.domain.session;
 
-import com.killnagi.support.AcceptanceTestSupport;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import com.killnagi.support.AcceptanceTestSupport;
 
 @DisplayName("SessionUser 인수 테스트")
 class SessionUserAcceptanceTest extends AcceptanceTestSupport {

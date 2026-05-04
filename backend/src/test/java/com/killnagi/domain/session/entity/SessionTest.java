@@ -1,10 +1,11 @@
 package com.killnagi.domain.session.entity;
 
-import com.killnagi.domain.rule.entity.RuleSet;
-import com.killnagi.domain.user.entity.User;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.junit.jupiter.api.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import com.killnagi.domain.rule.entity.RuleSet;
+import com.killnagi.domain.user.entity.User;
 
 class SessionTest {
 

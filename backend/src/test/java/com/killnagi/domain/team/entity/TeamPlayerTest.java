@@ -1,9 +1,9 @@
 package com.killnagi.domain.team.entity;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("TeamPlayer 엔티티 도메인 로직 테스트")
 class TeamPlayerTest {

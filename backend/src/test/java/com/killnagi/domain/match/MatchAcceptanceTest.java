@@ -1,18 +1,19 @@
 package com.killnagi.domain.match;
 
-import com.killnagi.infra.ocr.MatchOcrResult;
-import com.killnagi.support.AcceptanceTestSupport;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+
+import java.util.List;
+import java.util.Map;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import java.util.List;
-import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
+import com.killnagi.infra.ocr.MatchOcrResult;
+import com.killnagi.support.AcceptanceTestSupport;
 
 @DisplayName("Match 인수 테스트")
 class MatchAcceptanceTest extends AcceptanceTestSupport {

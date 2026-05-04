@@ -1,13 +1,14 @@
 package com.killnagi.domain.team.entity;
 
-import com.killnagi.domain.session.entity.Session;
-import com.killnagi.domain.user.entity.User;
-import com.killnagi.support.TestFixtures;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import com.killnagi.domain.session.entity.Session;
+import com.killnagi.domain.user.entity.User;
+import com.killnagi.support.TestFixtures;
 
 @DisplayName("Team 엔티티 도메인 로직 테스트")
 class TeamTest {
