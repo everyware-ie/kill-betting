@@ -10,7 +10,6 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -55,12 +54,21 @@ public class Match {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
+    private static final int MIN_MATCH_NUMBER = 1;
+
     @Builder
     public Match(Session session, Team team, int matchNumber, String screenshotUrl) {
+        validate(matchNumber);
         this.session = session;
         this.team = team;
         this.matchNumber = matchNumber;
         this.screenshotUrl = screenshotUrl;
+    }
+
+    private void validate(int matchNumber) {
+        if (matchNumber < MIN_MATCH_NUMBER) {
+            throw KillnagiException.badRequest("매치 번호는 1 이상이어야 합니다.");
+        }
     }
 
     public void confirm(List<MatchResult> matchResults, List<Rule> rules, boolean isChicken) {

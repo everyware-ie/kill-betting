@@ -30,6 +30,15 @@ class MatchTest {
     }
 
     @Test
+    void 매치_번호가_0이하이면_예외가_발생한다() {
+        User host = TestFixtures.user(1L);
+        Session session = TestFixtures.session(host);
+        Team team = TestFixtures.team(session);
+        assertThatThrownBy(() -> Match.builder().session(session).team(team).matchNumber(0).build())
+                .isInstanceOf(RuntimeException.class);
+    }
+
+    @Test
     void PENDING_상태의_매치는_확정_가능하다() {
         assertThat(match.isConfirmable()).isTrue();
     }

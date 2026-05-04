@@ -1,5 +1,6 @@
 package com.killnagi.domain.rule.entity;
 
+import com.killnagi.common.exception.KillnagiException;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -31,12 +32,27 @@ public class Rule {
     @Column(nullable = false)
     private boolean enabled = true;
 
+    private static final int MIN_VALUE = 1;
+
     @Builder
     public Rule(RuleSet ruleSet, RuleType ruleType, Operator operator, int value) {
+        validate(ruleType, operator, value);
         this.ruleSet = ruleSet;
         this.ruleType = ruleType;
         this.operator = operator;
         this.value = value;
+    }
+
+    private void validate(RuleType ruleType, Operator operator, int value) {
+        if (ruleType == null) {
+            throw KillnagiException.badRequest("룰 타입은 필수입니다.");
+        }
+        if (operator == null) {
+            throw KillnagiException.badRequest("연산자는 필수입니다.");
+        }
+        if (value < MIN_VALUE) {
+            throw KillnagiException.badRequest("룰 값은 1 이상이어야 합니다.");
+        }
     }
 
     public boolean isType(RuleType type) {
