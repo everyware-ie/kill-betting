@@ -1,16 +1,18 @@
 package com.killnagi.domain.match.entity;
 
-import com.killnagi.domain.rule.entity.Rule;
-import com.killnagi.domain.session.entity.Session;
-import com.killnagi.domain.user.entity.User;
-import com.killnagi.support.TestFixtures;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import com.killnagi.domain.session.entity.Session;
+import com.killnagi.domain.team.entity.Team;
+import com.killnagi.domain.user.entity.User;
+import com.killnagi.support.TestFixtures;
 
 @DisplayName("Match 엔티티 상태 전이 테스트")
 class MatchTest {
@@ -21,7 +23,9 @@ class MatchTest {
     void setUp() {
         User host = TestFixtures.user(1L);
         Session session = TestFixtures.session(host);
-        match = TestFixtures.match(1L, session);
+        Team team = TestFixtures.team(session);
+        match = TestFixtures.match(session, team);
+        ReflectionTestUtils.setField(match, "id", 1L);
     }
 
     @Test
