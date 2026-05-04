@@ -21,7 +21,7 @@ import { MOCK_SESSIONS } from '@/mock/sessions';
 // ─────────────────────────────────────────
 
 /** true = Mock 데이터, false = 실제 API */
-export const USE_MOCK = true;
+export const USE_MOCK = false;
 
 /** 실제 백엔드 주소 */
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
@@ -50,16 +50,38 @@ const clearStoredUser = () => {
 // ─────────────────────────────────────────
 
 async function apiFetch(path, options = {}) {
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
+
+  const token = getStoredToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const res = await fetch(`${API_BASE_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
     ...options,
+    headers,
+    credentials: 'include',
   });
   return res.json().catch(() => ({}));
 }
 
-const ok    = (data = {}) => ({ ok: true,  ...data });
-const err   = (msg)       => ({ ok: false, error: msg });
+const getStoredToken = () => {
+  try { return sessionStorage.getItem('auth_token'); } catch { return null; }
+};
+
+const storeToken = (token) => {
+  try { sessionStorage.setItem('auth_token', token); } catch {}
+};
+
+const clearStoredToken = () => {
+  try { sessionStorage.removeItem('auth_token'); } catch {}
+};
+
+const ok    = (data = {}) => ({ success: true, data });
+const err   = (msg)       => ({ success: false, error: msg });
 const delay = (ms = 350)  => new Promise((r) => setTimeout(r, ms));
 
 const findUser = (username) =>
@@ -89,7 +111,7 @@ export const AuthAPI = {
       await delay(100);
       const user = getStoredUser();
       if (!user) return err('로그인이 필요합니다');
-      return ok({ user });
+      return ok(user);
     }
     return apiFetch('/auth/me');
   },
@@ -105,20 +127,25 @@ export const AuthAPI = {
    *
    * [Mock 계정] test / 1234
    */
-  login: async (username, password) => {
+  login: async (email, password) => {
     if (USE_MOCK) {
       await delay(400);
-      const user = findUser(username);
-      if (!user)                      return err('존재하지 않는 아이디입니다');
+      const user = _runtimeUsers.find((u) => u.email === email);
+      if (!user)                      return err('존재하지 않는 이메일입니다');
       if (user.password !== password) return err('비밀번호가 올바르지 않습니다');
-      const safeUser = { id: user.id, username: user.username };
-      storeUser(safeUser);
-      return ok({ user: safeUser });
+      const tokenResponse = { accessToken: `mock-token-${user.id}`, tokenType: 'Bearer', userId: user.id, nickname: user.nickname };
+      storeUser({ id: user.id, nickname: user.nickname });
+      storeToken(tokenResponse.accessToken);
+      return ok(tokenResponse);
     }
-    return apiFetch('/auth/login', {
+    const res = await apiFetch('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ email, password }),
     });
+    if (res.success && res.data?.accessToken) {
+      storeToken(res.data.accessToken);
+    }
+    return res;
   },
 
   /**
@@ -132,28 +159,33 @@ export const AuthAPI = {
    *
    * [참고] 닉네임 없음. 배그 닉네임은 방 팀 구성 시 직접 입력.
    */
-  signup: async (username, password) => {
+  signup: async (nickname, password, email) => {
     if (USE_MOCK) {
       await delay(500);
-      if (!/^[a-zA-Z0-9_]{2,20}$/.test(username))
-        return err('아이디는 영문·숫자·언더스코어 2~20자만 가능합니다');
-      if (!password || password.length < 4)
-        return err('비밀번호는 최소 4자 이상이어야 합니다');
-      if (findUser(username))
-        return err('이미 사용 중인 아이디입니다');
+      if (!/^[a-zA-Z0-9_]{2,20}$/.test(nickname))
+        return err('닉네임은 영문·숫자·언더스코어 2~20자만 가능합니다');
+      if (!password || password.length < 8)
+        return err('비밀번호는 최소 8자 이상이어야 합니다');
+      if (_runtimeUsers.some((u) => u.nickname === nickname))
+        return err('이미 사용 중인 닉네임입니다');
       const newUser = {
-        id: genId('user'), username, password,
+        id: genId('user'), nickname, password, email,
         createdAt: new Date().toISOString(),
       };
       _runtimeUsers.push(newUser);
-      const safeUser = { id: newUser.id, username: newUser.username };
-      storeUser(safeUser);
-      return ok({ user: safeUser });
+      const tokenResponse = { accessToken: `mock-token-${newUser.id}`, tokenType: 'Bearer', userId: newUser.id, nickname: newUser.nickname };
+      storeUser({ id: newUser.id, nickname: newUser.nickname });
+      storeToken(tokenResponse.accessToken);
+      return ok(tokenResponse);
     }
-    return apiFetch('/auth/signup', {
+    const res = await apiFetch('/auth/signup', {
       method: 'POST',
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ nickname, email, password }),
     });
+    if (res.success && res.data?.accessToken) {
+      storeToken(res.data.accessToken);
+    }
+    return res;
   },
 
   /**
@@ -167,7 +199,8 @@ export const AuthAPI = {
     if (USE_MOCK) {
       await delay(150);
       clearStoredUser();
-      return ok();
+      clearStoredToken();
+      return ok({});
     }
     return apiFetch('/auth/logout', { method: 'POST' });
   },
@@ -186,7 +219,7 @@ export const AuthAPI = {
       if (!stored) return err('로그인이 필요합니다');
       const full = _runtimeUsers.find((u) => u.id === stored.id);
       if (!full) return err('유저를 찾을 수 없습니다');
-      return ok({ user: { id: full.id, username: full.username, createdAt: full.createdAt } });
+      return ok({ id: full.id, nickname: full.nickname, email: full.email, createdAt: full.createdAt });
     }
     return apiFetch('/auth/profile');
   },
@@ -208,9 +241,9 @@ export const AuthAPI = {
       const user = _runtimeUsers.find((u) => u.id === stored.id);
       if (!user) return err('유저를 찾을 수 없습니다');
       if (user.password !== currentPassword) return err('현재 비밀번호가 올바르지 않습니다');
-      if (!newPassword || newPassword.length < 4) return err('새 비밀번호는 최소 4자 이상이어야 합니다');
+      if (!newPassword || newPassword.length < 8) return err('새 비밀번호는 최소 8자 이상이어야 합니다');
       user.password = newPassword;
-      return ok();
+      return ok({});
     }
     return apiFetch('/auth/password', {
       method: 'PUT',
@@ -226,16 +259,16 @@ export const AuthAPI = {
    *   Response 200: { available: true }
    *   Response 409: { error: '이미 사용 중인 아이디입니다' }
    */
-  checkUsername: async (username) => {
+  checkUsername: async (nickname) => {
     if (USE_MOCK) {
       await delay(300);
-      if (!/^[a-zA-Z0-9_]{2,20}$/.test(username))
+      if (!/^[a-zA-Z0-9_]{2,20}$/.test(nickname))
         return err('영문·숫자·언더스코어만 사용 가능 (2~20자)');
-      if (findUser(username))
-        return err('이미 사용 중인 아이디입니다');
-      return ok({ message: '사용 가능한 아이디입니다' });
+      if (_runtimeUsers.some((u) => u.nickname === nickname))
+        return err('이미 사용 중인 닉네임입니다');
+      return ok({ data: { available: true } });
     }
-    return apiFetch(`/auth/check-username?username=${encodeURIComponent(username)}`);
+    return apiFetch(`/auth/check-nickname?nickname=${encodeURIComponent(nickname)}`);
   },
 };
 
@@ -260,9 +293,9 @@ export const SessionAPI = {
       const sessions = _runtimeSessions
         .filter((s) => s.hostId === (user?.id || 'user-001'))
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      return ok({ sessions });
+      return ok(sessions);
     }
-    return apiFetch('/sessions');
+    return apiFetch('/api/sessions/my');
   },
 
   /**
@@ -292,9 +325,9 @@ export const SessionAPI = {
         createdAt: new Date().toISOString(),
       };
       _runtimeSessions.push(session);
-      return ok({ session });
+      return ok(session);
     }
-    return apiFetch('/sessions', {
+    return apiFetch('/api/sessions', {
       method: 'POST',
       body: JSON.stringify({ title, rule, teams }),
     });
@@ -313,9 +346,9 @@ export const SessionAPI = {
       await delay(200);
       const idx = _runtimeSessions.findIndex((s) => s.id === id);
       if (idx !== -1) _runtimeSessions[idx] = { ..._runtimeSessions[idx], ...data };
-      return ok({ session: _runtimeSessions[idx] });
+      return ok(_runtimeSessions[idx]);
     }
-    return apiFetch(`/sessions/${id}`, {
+    return apiFetch(`/api/sessions/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });

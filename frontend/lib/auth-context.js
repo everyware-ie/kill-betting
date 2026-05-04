@@ -29,7 +29,7 @@ export function AuthProvider({ children }) {
   // 앱 시작 시 기존 세션 확인
   useEffect(() => {
     AuthAPI.me().then((res) => {
-      if (res.ok) setUser(res.user);
+      if (res.success) setUser(res.data);
       setLoading(false);
     });
   }, []);
@@ -38,9 +38,9 @@ export function AuthProvider({ children }) {
    * 로그인
    * @returns {{ ok: boolean, error?: string }}
    */
-  const login = async (username, password) => {
-    const res = await AuthAPI.login(username, password);
-    if (res.ok) setUser(res.user);
+  const login = async (email, password) => {
+    const res = await AuthAPI.login(email, password);
+    if (res.success) setUser({ id: res.data.userId, nickname: res.data.nickname });
     return res;
   };
 
@@ -48,9 +48,9 @@ export function AuthProvider({ children }) {
    * 회원가입
    * @returns {{ ok: boolean, error?: string }}
    */
-  const signup = async (username, password) => {
-    const res = await AuthAPI.signup(username, password);
-    if (res.ok) setUser(res.user);
+  const signup = async (nickname, password, email) => {
+    const res = await AuthAPI.signup(nickname, password, email);
+    if (res.success) setUser({ id: res.data.userId, nickname: res.data.nickname });
     return res;
   };
 

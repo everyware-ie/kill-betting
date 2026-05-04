@@ -37,6 +37,7 @@ export default function SignupPage() {
 
   // ── 폼 상태 ──
   const [username, setUsername] = useState('');
+  const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
   const [showPw,   setShowPw]   = useState(false);
   const [agree,    setAgree]    = useState(false);
@@ -62,11 +63,12 @@ export default function SignupPage() {
       setIdCheck({ status: 'error', message: '아이디를 입력해주세요', checking: false });
       return;
     }
-    setIdCheck((p) => ({ ...p, checking: true }));
+    setIdCheck({ status: 'idle', message: '', checking: true });
     const res = await AuthAPI.checkUsername(username.trim());
+    const available = res.data?.available;
     setIdCheck({
-      status:   res.ok ? 'ok' : 'error',
-      message:  res.ok ? '사용 가능한 아이디입니다' : res.error,
+      status:   available ? 'ok' : 'error',
+      message:  available ? '사용 가능한 아이디입니다' : (res.error || '이미 사용 중인 아이디입니다'),
       checking: false,
     });
   };
@@ -74,15 +76,16 @@ export default function SignupPage() {
   // ── 회원가입 제출 ──
   const handleSubmit = async () => {
     setError('');
-    if (idCheck.status !== 'ok') { setError('아이디 중복 확인을 완료해주세요'); return; }
-    if (password.length < 4)     { setError('비밀번호는 최소 4자 이상이어야 합니다'); return; }
+    if (idCheck.status !== 'ok') { setError('닉네임 중복 확인을 완료해주세요'); return; }
+    if (!email.trim())           { setError('이메일을 입력해주세요'); return; }
+    if (password.length < 8)     { setError('비밀번호는 최소 8자 이상이어야 합니다'); return; }
     if (!agree)                  { setError('이용 약관에 동의해주세요'); return; }
 
     setLoading(true);
-    const res = await signup(username.trim(), password);
+    const res = await signup(username.trim(), password, email.trim());
     setLoading(false);
 
-    if (!res.ok) { setError(res.error || '회원가입에 실패했습니다'); return; }
+    if (!res.success) { setError(res.error || '회원가입에 실패했습니다'); return; }
     router.push('/dashboard');
   };
 
@@ -148,10 +151,36 @@ export default function SignupPage() {
         )}
       </div>
 
+      {/* 이메일 */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ marginBottom: 7 }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: '#C8B878' }}>이메일</span>
+        </div>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="예: gamer@example.com"
+          autoComplete="email"
+          style={{
+            width: '100%',
+            boxSizing: 'border-box',
+            background: '#1a1800',
+            border: '1px solid rgba(200,155,0,0.3)',
+            color: '#E8DFC0',
+            padding: '9px 12px',
+            borderRadius: 4,
+            fontSize: 13,
+            outline: 'none',
+            fontFamily: 'inherit',
+          }}
+        />
+      </div>
+
       {/* 비밀번호 */}
       <Input
         label="비밀번호"
-        hint="최소 4자리 이상"
+        hint="최소 8자리 이상"
         type={showPw ? 'text' : 'password'}
         placeholder="••••••••"
         value={password}
@@ -167,9 +196,9 @@ export default function SignupPage() {
         }
         style={{
           background: '#1a1800',
-          borderColor: password.length > 0 && password.length < 4
+          borderColor: password.length > 0 && password.length < 8
             ? 'rgba(229,57,53,0.5)'
-            : password.length >= 4
+            : password.length >= 8
             ? 'rgba(76,175,80,0.4)'
             : 'rgba(200,155,0,0.3)',
         }}

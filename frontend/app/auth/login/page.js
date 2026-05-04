@@ -35,7 +35,7 @@ export default function LoginPage() {
   const { login }     = useAuth();
 
   // ── 폼 상태 ──
-  const [username, setUsername] = useState('');
+  const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
   const [showPw,   setShowPw]   = useState(false);
   const [error,    setError]    = useState('');
@@ -46,14 +46,14 @@ export default function LoginPage() {
     setError('');
 
     // 클라이언트 유효성 검사
-    if (!username.trim()) { setError('아이디를 입력해주세요'); return; }
-    if (!password)         { setError('비밀번호를 입력해주세요'); return; }
+    if (!email.trim())   { setError('이메일을 입력해주세요'); return; }
+    if (!password)       { setError('비밀번호를 입력해주세요'); return; }
 
     setLoading(true);
-    const res = await login(username.trim(), password);
+    const res = await login(email.trim(), password);
     setLoading(false);
 
-    if (!res.ok) {
+    if (!res.success) {
       setError(res.error || '로그인에 실패했습니다');
       return;
     }
@@ -82,17 +82,18 @@ export default function LoginPage() {
         </p>
       </div>
 
-      {/* 아이디 입력 */}
+      {/* 이메일 입력 */}
       <Input
-        label="아이디"
-        placeholder="플레이어 아이디를 입력하세요"
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
+        type="email"
+        label="이메일"
+        placeholder="이메일을 입력하세요"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-        prefix="👤"
+        prefix="✉️"
         style={{ background: '#1a1800' }}
         containerStyle={{ marginBottom: 14 }}
-        autoComplete="username"
+        autoComplete="email"
       />
 
       {/* 비밀번호 입력 */}
