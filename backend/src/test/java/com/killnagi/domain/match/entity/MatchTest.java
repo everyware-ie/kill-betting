@@ -1,8 +1,11 @@
 package com.killnagi.domain.match.entity;
 
+import com.killnagi.domain.rule.entity.Rule;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.user.entity.User;
 import com.killnagi.support.TestFixtures;
+
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -33,13 +36,13 @@ class MatchTest {
 
     @Test
     void confirm_호출시_상태가_CONFIRMED로_변경된다() {
-        match.confirm();
+        match.confirm(List.of(), List.of(), false);
         assertThat(match.isConfirmed()).isTrue();
     }
 
     @Test
     void confirm_이후_매치는_다시_확정할_수_없다() {
-        match.confirm();
+        match.confirm(List.of(), List.of(), false);
         assertThat(match.isConfirmable()).isFalse();
     }
 }

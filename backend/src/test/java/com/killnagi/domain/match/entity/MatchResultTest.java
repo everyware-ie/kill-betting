@@ -44,25 +44,4 @@ class MatchResultTest {
         assertThat(result.isChicken()).isFalse();
     }
 
-    @Test
-    void 보너스_적용시_유효킬이_증가한다() {
-        MatchResult result = TestFixtures.matchResult(match, player, 5, 3);
-        result.applyBonus(2);
-        assertThat(result.getEffectiveKills()).isEqualTo(7);
-    }
-
-    @Test
-    void 패널티_적용시_유효킬이_감소한다() {
-        MatchResult result = TestFixtures.matchResult(match, player, 5, 3);
-        result.applyPenalty(2);
-        assertThat(result.getEffectiveKills()).isEqualTo(3);
-    }
-
-    @Test
-    void 유효킬은_킬_더하기_보너스_빼기_패널티다() {
-        MatchResult result = TestFixtures.matchResult(match, player, 5, 3);
-        result.applyBonus(2);
-        result.applyPenalty(1);
-        assertThat(result.getEffectiveKills()).isEqualTo(6);
-    }
 }
