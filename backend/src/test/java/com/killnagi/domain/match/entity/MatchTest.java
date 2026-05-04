@@ -1,6 +1,7 @@
 package com.killnagi.domain.match.entity;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 
@@ -48,5 +49,12 @@ class MatchTest {
     void confirm_이후_매치는_다시_확정할_수_없다() {
         match.confirm(List.of(), List.of(), false);
         assertThat(match.isConfirmable()).isFalse();
+    }
+
+    @Test
+    void 이미_확정된_매치를_다시_confirm하면_예외가_발생한다() {
+        match.confirm(List.of(), List.of(), false);
+        assertThatThrownBy(() -> match.confirm(List.of(), List.of(), false))
+                .isInstanceOf(RuntimeException.class);
     }
 }

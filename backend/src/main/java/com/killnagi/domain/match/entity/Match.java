@@ -1,5 +1,6 @@
 package com.killnagi.domain.match.entity;
 
+import com.killnagi.common.exception.KillnagiException;
 import com.killnagi.domain.rule.entity.Rule;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.team.entity.Team;
@@ -63,6 +64,10 @@ public class Match {
     }
 
     public void confirm(List<MatchResult> matchResults, List<Rule> rules, boolean isChicken) {
+        if (!isConfirmable()) {
+            throw KillnagiException.badRequest("이미 확정된 매치는 다시 확정할 수 없습니다.");
+        }
+
         accumulateKills(matchResults);
         computeMatchStats(matchResults, isChicken);
         applyRules(rules);
