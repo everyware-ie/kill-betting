@@ -183,7 +183,7 @@ function TeamResultModal({ room, teamId, matchNumber, onSubmit, onClose }) {
 
     setOcrLoading(false);
 
-    if (!res.ok) {
+    if (!res.success) {
       setOcrError(res.error || 'OCR 처리에 실패했습니다');
       return;
     }
@@ -192,7 +192,7 @@ function TeamResultModal({ room, teamId, matchNumber, onSubmit, onClose }) {
     // res.players 배열의 nick 으로 매칭하여 해당 행만 업데이트
     const filled = new Set();
     setResults((prev) => prev.map((row) => {
-      const matched = res.players.find(
+      const matched = res.data.players.find(
         // 대소문자 무시하고 닉네임 매칭
         (p) => p.nick.toLowerCase() === row.nick.toLowerCase()
       );
@@ -814,8 +814,8 @@ export default function LivePage() {
       RoomAPI.get(roomId),
       RoomAPI.getMatches(roomId),
     ]).then(([roomRes, matchRes]) => {
-      if (roomRes.ok)  { setRoom(roomRes.room); setAdjs(roomRes.room.adjustments || []); }
-      if (matchRes.ok) setMatches(matchRes.matches);
+      if (roomRes.success)  { setRoom(roomRes.data); setAdjs(roomRes.data.adjustments || []); }
+      if (matchRes.success) setMatches(matchRes.data);
       setLoading(false);
     });
   }, [roomId, user]);
@@ -833,7 +833,7 @@ export default function LivePage() {
   useEffect(() => {
     const id = setInterval(async () => {
       const matchRes = await RoomAPI.getMatches(roomId);
-      if (matchRes.ok) {
+      if (matchRes.success) {
         setMatches(matchRes.matches);
         setPollError(false);  // 복구되면 배너 제거
       } else {
@@ -859,7 +859,7 @@ export default function LivePage() {
   // screenshotFile: OCR에 사용한 이미지 파일 (없으면 null)
   const handleSubmitTeamResult = async (results, claimsChicken, screenshotFile) => {
     const res = await RoomAPI.addTeamMatch(roomId, selectedTeamId, results, claimsChicken);
-    if (!res.ok) { setMatchError(res.error); return; }
+    if (!res.success) { setMatchError(res.error); return; }
 
     let match = res.match;
 
@@ -867,7 +867,7 @@ export default function LivePage() {
     // 업로드 실패해도 매치 결과 자체는 정상 등록됨
     if (screenshotFile) {
       const uploadRes = await RoomAPI.uploadMatchScreenshot(roomId, match.id, screenshotFile);
-      if (uploadRes.ok) match = { ...match, screenshotUrl: uploadRes.screenshotUrl };
+      if (uploadRes.success) match = { ...match, screenshotUrl: uploadRes.data.screenshotUrl };
     }
 
     // 업로드까지 완료된 후 모달 닫기
@@ -881,7 +881,7 @@ export default function LivePage() {
   // ── 점수 조정 ──
   const handleAdjust = async (teamId, amount, reason) => {
     const res = await RoomAPI.addAdjustment(roomId, teamId, amount, reason);
-    if (res.ok) setAdjs(res.adjustments);
+    if (res.success) setAdjs(res.data.adjustments);
   };
 
   // ── 룰 변경 ──
@@ -889,13 +889,13 @@ export default function LivePage() {
   // 저장 후 room 상태를 갱신하면 calcTeamScore 등이 즉시 새 룰로 재계산됨
   const handleRuleUpdate = async (newRule) => {
     const res = await RoomAPI.updateRule(roomId, newRule);
-    if (res.ok) setRoom((prev) => ({ ...prev, rule: newRule }));
+    if (res.success) setRoom((prev) => ({ ...prev, rule: res.data.rule || newRule }));
   };
 
   // ── 경기 종료 ──
   const handleEnd = async () => {
     const res = await RoomAPI.end(roomId);
-    if (res.ok) router.push(`/room/${roomId}/result`);
+    if (res.success) router.push(`/room/${roomId}/result`);
   };
 
   if (loading) return (

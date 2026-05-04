@@ -227,8 +227,8 @@ export default function SetupPage() {
 
     // 최초 로드
     RoomAPI.get(roomId).then((res) => {
-      if (!res.ok) { setError(res.error); setLoading(false); return; }
-      setRoom(res.room);
+      if (!res.success) { setError(res.error); setLoading(false); return; }
+      setRoom(res.data);
       setLoading(false);
     });
 
@@ -236,7 +236,7 @@ export default function SetupPage() {
     const id = setInterval(async () => {
       if (isActionInProgress.current) return; // 내 액션 처리 중엔 건너뜀
       const res = await RoomAPI.get(roomId);
-      if (res.ok) setRoom(res.room);
+      if (res.success) setRoom(res.data);
       // 폴링 실패는 무시 (네트워크 일시 오류 허용)
     }, 5000);
 
@@ -249,7 +249,7 @@ export default function SetupPage() {
     if (myTeam?.id === newTeamId) return;
     isActionInProgress.current = true;
     const res = await RoomAPI.joinTeam(roomId, newTeamId, user);
-    if (res.ok) setRoom((r) => ({ ...r, teams: res.teams }));
+    if (res.success) setRoom((r) => ({ ...r, teams: res.data.teams }));
     else setError(res.error);
     isActionInProgress.current = false;
   };
@@ -259,7 +259,7 @@ export default function SetupPage() {
     if (!myTeam) return;
     isActionInProgress.current = true;
     const res = await RoomAPI.leaveTeam(roomId, myTeam.id, user.id);
-    if (res.ok) setRoom((r) => ({ ...r, teams: res.teams }));
+    if (res.success) setRoom((r) => ({ ...r, teams: res.data.teams }));
     else setError(res.error);
     isActionInProgress.current = false;
   };
@@ -267,7 +267,7 @@ export default function SetupPage() {
   // ── 운영자 위임 ──
   const handleSetLeader = async (teamId, targetUserId) => {
     const res = await RoomAPI.setLeader(roomId, teamId, targetUserId);
-    if (res.ok) setRoom((r) => ({ ...r, teams: res.teams }));
+    if (res.success) setRoom((r) => ({ ...r, teams: res.data.teams }));
     else setError(res.error);
   };
 
@@ -288,7 +288,7 @@ export default function SetupPage() {
       t.id === teamId ? { ...t, players: [...t.players, nick] } : t
     );
     const res = await RoomAPI.updateTeams(roomId, updatedTeams);
-    if (res.ok) setRoom((r) => ({ ...r, teams: updatedTeams }));
+    if (res.success) setRoom((r) => ({ ...r, teams: updatedTeams }));
     setInputs((p) => ({ ...p, [teamId]: '' }));
     isActionInProgress.current = false;
   };
@@ -300,7 +300,7 @@ export default function SetupPage() {
       t.id === teamId ? { ...t, players: t.players.filter((p) => p !== nick) } : t
     );
     const res = await RoomAPI.updateTeams(roomId, updatedTeams);
-    if (res.ok) setRoom((r) => ({ ...r, teams: updatedTeams }));
+    if (res.success) setRoom((r) => ({ ...r, teams: updatedTeams }));
     isActionInProgress.current = false;
   };
 
@@ -308,7 +308,7 @@ export default function SetupPage() {
   const handleAddTeam = async () => {
     isActionInProgress.current = true;
     const res = await RoomAPI.addTeam(roomId);
-    if (res.ok) setRoom((r) => ({ ...r, teams: res.teams }));
+    if (res.success) setRoom((r) => ({ ...r, teams: res.data.teams }));
     else setError(res.error);
     isActionInProgress.current = false;
   };
@@ -316,7 +316,7 @@ export default function SetupPage() {
   // ── 룰 저장 ──
   const handleSaveRule = async (newRule) => {
     const res = await RoomAPI.updateRule(roomId, newRule);
-    if (res.ok) { setRoom((r) => ({ ...r, rule: newRule })); setShowRuleModal(false); }
+    if (res.success) { setRoom((r) => ({ ...r, rule: newRule })); setShowRuleModal(false); }
     else setError(res.error);
   };
 
