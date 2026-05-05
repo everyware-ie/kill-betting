@@ -73,7 +73,7 @@ public class Session {
     private static final int MIN_TIME_LIMIT_MINUTES = 1;
 
     @Builder
-    public Session(String name, String roomUrl, User host, Integer targetKills, Integer timeLimitMinutes) {
+    public Session(String name, String roomUrl, String roomCode, User host, Integer targetKills, Integer timeLimitMinutes) {
         validate(name, targetKills, timeLimitMinutes);
         this.name = name;
         this.roomUrl = roomUrl;
