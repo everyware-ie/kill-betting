@@ -7,6 +7,7 @@ import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.session.entity.SessionUser;
 import com.killnagi.domain.session.repository.SessionRepository;
 import com.killnagi.domain.session.repository.SessionUserRepository;
+import com.killnagi.domain.session.service.SessionUserService;
 import com.killnagi.domain.user.entity.User;
 import com.killnagi.domain.user.repository.UserRepository;
 import com.killnagi.infra.ocr.OcrClient;
@@ -47,6 +48,9 @@ public abstract class AcceptanceTestSupport {
 
     @Autowired
     protected SessionUserRepository sessionUserRepository;
+
+    @Autowired
+    private SessionUserService sessionUserService;
 
     @MockBean
     protected OcrClient ocrClient;
@@ -97,6 +101,12 @@ public abstract class AcceptanceTestSupport {
         Session session = sessionRepository.findById(sessionId).orElseThrow();
         User user = userRepository.findById(userId).orElseThrow();
         sessionUserRepository.save(SessionUser.builder().session(session).user(user).build());
+    }
+
+    // WebSocket disconnect 시뮬레이션: @Transactional 보장을 위해 서비스 레이어 경유
+    protected void 세션에서_퇴장한다(long sessionId, String token) {
+        Long userId = 사용자_ID를_조회한다(token);
+        sessionUserService.leaveByWebSocket(sessionId, userId);
     }
 
     // ── Team Steps ────────────────────────────────────────────────────────────
