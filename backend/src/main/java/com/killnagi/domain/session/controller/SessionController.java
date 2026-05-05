@@ -41,6 +41,15 @@ public class SessionController implements SessionControllerDocs {
                 .body(ApiResponse.ok("세션이 생성되었습니다.", sessionService.createSession(userId, request)));
     }
 
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<SessionResponse>>> getSessions(
+            @RequestParam(required = false) String code) {
+        if (code != null && !code.isBlank()) {
+            return ResponseEntity.ok(ApiResponse.ok(List.of(sessionService.getSessionByRoomCode(code))));
+        }
+        return ResponseEntity.ok(ApiResponse.ok(sessionService.getWaitingSessions()));
+    }
+
     @GetMapping("/join/{roomUrl}")
     public ResponseEntity<ApiResponse<SessionResponse>> getSessionByRoomUrl(
             @PathVariable String roomUrl) {

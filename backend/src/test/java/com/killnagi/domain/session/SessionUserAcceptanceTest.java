@@ -37,8 +37,8 @@ class SessionUserAcceptanceTest extends AcceptanceTestSupport {
         String participantToken = 회원가입하고_토큰을_반환한다("player1", "player1@test.com");
         세션에_참가한다(sessionId, participantToken);
 
-        // When
-        delete("/api/sessions/" + sessionId + "/leave", participantToken);
+        // When - WebSocket disconnect 시뮬레이션
+        세션에서_퇴장한다(sessionId, participantToken);
 
         // Then
         ResponseEntity<String> configure = get("/api/sessions/" + sessionId + "/participants", hostToken);
