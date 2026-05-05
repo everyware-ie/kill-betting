@@ -5,14 +5,14 @@ INSERT IGNORE INTO `users` VALUES
   (2,'2026-04-30 14:27:40.010492','je@naver.com',0,'je','$2a$10$gQO7.HU97ehYDx9nthOoDOjZ.G/OhmYlU9O.gkLck0/tE11cK6VIq',NULL,NULL,0,'2026-04-30 14:27:40.010492',0),
   (3,'2026-04-30 14:35:29.010960','hs@naver.com',0,'hs','$2a$10$olow1YKgrJXvSgO0Im64/O4hpGYK9fakukFqdBAkiJZnWHipadqQK',NULL,NULL,0,'2026-04-30 14:35:29.010960',0);
 
-INSERT IGNORE INTO `sessions` VALUES
-  (1,'2026-04-30 14:30:18.985300',NULL,'방','6a94e657-4787-4fc6-a8fe-00e4ef50fbed','2026-04-30 15:06:19.999238','IN_PROGRESS',20,60,'2026-04-30 15:06:19.999466',1,1,NULL);
+INSERT IGNORE INTO `sessions` (id, created_at, ended_at, name, room_url, room_code, started_at, status, target_kills, time_limit_minutes, updated_at, current_rule_set_id, host_user_id, winner_team_id) VALUES
+  (1,'2026-04-30 14:30:18.985300',NULL,'방','6a94e657-4787-4fc6-a8fe-00e4ef50fbed','ABC123','2026-04-30 15:06:19.999238','IN_PROGRESS',20,60,'2026-04-30 15:06:19.999466',1,1,NULL);
 
 INSERT IGNORE INTO `rule_sets` VALUES
   (1,'2026-04-30 14:30:19.000690',1);
 
-INSERT IGNORE INTO `rules` VALUES
-  (1,b'1','EQ','CHICKEN_BONUS',1,1);
+INSERT IGNORE INTO `rules` (id, enabled, operator, rule_type, value, rule_set_id) VALUES
+  (1,true,'PLUS','CHICKEN_BONUS',1,1);
 
 INSERT IGNORE INTO `teams` (id, total_kills, name, rule_score, leader_user_id, session_id) VALUES
   (1, 0, '팀1', 0, 2, 1),

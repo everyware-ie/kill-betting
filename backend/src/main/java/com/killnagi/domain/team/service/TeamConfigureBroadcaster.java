@@ -1,5 +1,6 @@
 package com.killnagi.domain.team.service;
 
+import com.killnagi.domain.session.dto.response.SessionMessage;
 import com.killnagi.domain.team.dto.response.ConfigureStateMessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -13,8 +14,8 @@ public class TeamConfigureBroadcaster {
 
     public void broadcast(Long sessionId, ConfigureStateMessage message) {
         messagingTemplate.convertAndSend(
-                "/topic/sessions/" + sessionId + "/participants",
-                message
+                "/topic/sessions/" + sessionId,
+                new SessionMessage(SessionMessage.Type.PARTICIPANT_UPDATED, message)
         );
     }
 }
