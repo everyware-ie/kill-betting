@@ -31,6 +31,7 @@ services:
       NAVER_OCR_SECRET_KEY: ${NAVER_OCR_SECRET_KEY:-}
       FILE_UPLOAD_DIR: ${FILE_UPLOAD_DIR:-uploads}
       FILE_BASE_URL: ${FILE_BASE_URL:-http://localhost:8080/files}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-default}
     ports:
       - "8080:8080"
     depends_on:
