@@ -117,7 +117,7 @@ public class TestFixtures {
         return Rule.builder()
                 .ruleSet(ruleSet)
                 .ruleType(type)
-                .operator(Operator.EQ)
+                .operator(Operator.PLUS)
                 .value(value)
                 .build();
     }

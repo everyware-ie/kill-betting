@@ -73,7 +73,7 @@ class SessionServiceTest {
         RuleSet savedRuleSet = RuleSet.builder().session(savedSession).build();
         CreateRequest request = new CreateRequest(
                 "킬내기 세션", 50, 60,
-                List.of(new RuleRequest(RuleType.CHICKEN_BONUS, Operator.EQ, 3))
+                List.of(new RuleRequest(RuleType.CHICKEN_BONUS, Operator.PLUS, 3))
         );
 
         given(userRepository.findById(HOST_ID)).willReturn(Optional.of(host));
