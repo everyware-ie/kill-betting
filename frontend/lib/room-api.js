@@ -309,27 +309,38 @@ export const RoomAPI = {
    *
    * [실제 API]
    *   POST /sessions/:sessionId/teams
+   *   Body: { name: "TEAM-ABC123" }  ← 랜덤 이름
    *   Response 201: { team }
    *
    * [제한] 최대 6팀
    */
   addTeam: async (roomId) => {
+    // 랜덤 팀 이름 생성 (예: TEAM-A1B2C3)
+    const generateRandomTeamName = () => {
+      const NAMES = ['ALPHA', 'BRAVO', 'CHARLIE', 'DELTA', 'ECHO', 'FOXTROT', 'GOLF', 'HOTEL', 'INDIA', 'JULIET'];
+      const randomName = NAMES[Math.floor(Math.random() * NAMES.length)];
+      const randomSuffix = Math.random().toString(36).substring(2, 8).toUpperCase();
+      return `${randomName}-${randomSuffix}`;
+    };
+
     if (USE_MOCK) {
       await delay(200);
       const room = _runtimeRooms.find((r) => r.id === roomId);
       if (!room) return err('방을 찾을 수 없습니다');
       if (room.teams.length >= 6) return err('최대 6팀까지 가능합니다');
-      const NAMES = ['ALPHA', 'BRAVO', 'CHARLIE', 'DELTA', 'ECHO', 'FOXTROT'];
       const newTeam = {
         id:      `team-${Date.now()}`,
-        name:    `TEAM ${NAMES[room.teams.length] || room.teams.length + 1}`,
+        name:    generateRandomTeamName(),
         players: [],
         members: [],   // ← 누락 시 joinTeam에서 t.members.filter() 오류 발생
       };
       room.teams.push(newTeam);
       return ok({ teams: room.teams });
     }
-    return apiFetch(`/sessions/${roomId}/teams`, { method: 'POST' });
+    return apiFetch(`/sessions/${roomId}/teams`, {
+      method: 'POST',
+      body: JSON.stringify({ name: generateRandomTeamName() }),
+    });
   },
 
   /**
