@@ -115,9 +115,9 @@ export default function ResultPage() {
   useEffect(() => {
     if (!user) return;
     Promise.all([RoomAPI.get(roomId), RoomAPI.getMatches(roomId)]).then(([roomRes, matchRes]) => {
-      if (!roomRes.ok) { setError(roomRes.error); setLoading(false); return; }
-      setRoom(roomRes.room);
-      if (matchRes.ok) setMatches(matchRes.matches);
+      if (!roomRes.success) { setError(roomRes.error); setLoading(false); return; }
+      setRoom(roomRes.data);
+      if (matchRes.success) setMatches(matchRes.data);
       setLoading(false);
     });
   }, [roomId, user]);

@@ -24,6 +24,8 @@ spring:
 
   jackson:
     time-zone: Asia/Seoul
+    deserialization:
+      read-enums-using-to-string: true
 
   servlet:
     multipart:

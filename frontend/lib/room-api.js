@@ -26,22 +26,54 @@ import {
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 async function apiFetch(path, options = {}) {
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
+
+  const token = getStoredToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const res = await fetch(`${API_BASE_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
     ...options,
+    headers,
+    credentials: 'include',
   });
   return res.json().catch(() => ({}));
 }
 
-const ok    = (data = {}) => ({ ok: true,  ...data });
-const err   = (msg)       => ({ ok: false, error: msg });
+const getStoredToken = () => {
+  try { return sessionStorage.getItem('auth_token'); } catch { return null; }
+};
+
+const ok    = (data = {}) => ({ success: true, data });
+const err   = (msg)       => ({ success: false, error: msg });
 const delay = (ms = 300)  => new Promise((r) => setTimeout(r, ms));
 
 /** 방 코드 생성 (예: #1234-56) */
 const genCode = () =>
   `#${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(10 + Math.random() * 90)}`;
 
+/**
+ * 프론트엔드 rule 객체를 백엔드 RuleRequest[] 형식으로 변환
+ * 백엔드 RuleType: CHICKEN_BONUS, SURVIVAL_PENALTY만 지원
+ * 프론트: { chickenBonusOn: true, chickenBonus: 5, survivalPenaltyOn: true, survivalPenalty: 2 }
+ * 백엔드: [{ ruleType: 'CHICKEN_BONUS', operator: 'PLUS', value: 5 }, ...]
+ */
+const convertRuleToBackend = (rule) => {
+  const rules = [];
+
+  if (rule.chickenBonusOn && rule.chickenBonus > 0) {
+    rules.push({ ruleType: 'CHICKEN_BONUS', operator: 'PLUS', value: rule.chickenBonus });
+  }
+  if (rule.survivalPenaltyOn && rule.survivalPenalty > 0) {
+    rules.push({ ruleType: 'SURVIVAL_PENALTY', operator: 'MINUS', value: rule.survivalPenalty });
+  }
+
+  return rules;
+};
 
 export const RoomAPI = {
 
@@ -49,13 +81,15 @@ export const RoomAPI = {
    * 방 생성
    *
    * [실제 API]
-   *   POST /rooms
-   *   Body: { title: string, rule: RuleObject }
-   *   Response 201: { room: { id, title, code, status, rule, teams, participants, createdAt } }
+   *   POST /sessions
+   *   Body: { name, targetKills, timeLimitMinutes, rules }
+   *   Response 201: { session: SessionResponse }
    *
-   *   room.status: 'WAITING' | 'LIVE' | 'DONE'
-   *   room.teams: [{ id, name, players: [] }]  ← players는 배그 닉네임 문자열 배열
-   *   room.participants: [{ userId, joinedAt }] ← 방에 들어온 로그인 유저
+   * [백엔드 요구 필드]
+   *   name: 세션 이름 (required)
+   *   targetKills: 목표 킬 수
+   *   timeLimitMinutes: 제한 시간 (분) - null이면 제한 없음
+   *   rules: [{ ruleType, operator, value }]
    */
   create: async (title, rule, hostUser) => {
     const hostUserId = typeof hostUser === 'object' ? hostUser.id : hostUser;
@@ -77,9 +111,14 @@ export const RoomAPI = {
       _runtimeRooms.push(room);
       return ok({ room });
     }
-    return apiFetch('/rooms', {
+    return apiFetch('/sessions', {
       method: 'POST',
-      body: JSON.stringify({ title, rule }),
+      body: JSON.stringify({
+        name: title.trim(),
+        targetKills: rule.targetKills,
+        timeLimitMinutes: rule.noTimeLimit ? null : rule.timeLimitMin,
+        rules: convertRuleToBackend(rule),
+      }),
     });
   },
 
@@ -87,31 +126,29 @@ export const RoomAPI = {
    * 방 조회
    *
    * [실제 API]
-   *   GET /rooms/:id
-   *   Response 200: { room }
+   *   GET /sessions/join/{roomUrl}
+   *   Response 200: { session }
    *   Response 404: { error: '방을 찾을 수 없습니다' }
    */
-  get: async (roomId) => {
+  get: async (roomUrl) => {
     if (USE_MOCK) {
       await delay(200);
-      const room = _runtimeRooms.find((r) => r.id === roomId);
+      const room = _runtimeRooms.find((r) => r.id === roomUrl);
       if (!room) return err('방을 찾을 수 없습니다');
       return ok({ room });
     }
-    return apiFetch(`/rooms/${roomId}`);
+    return apiFetch(`/sessions/join/${roomUrl}`);
   },
 
   /**
-   * 팀 참여 (로그인 유저가 팀에 들어옴)
+   * 팀 참여 (로그인 유저가 세션에 들어옴)
    *
    * [실제 API]
-   *   POST /rooms/:id/teams/:teamId/join
-   *   Response 200: { teams }
+   *   POST /sessions/:sessionId/join
+   *   Response 200: { ok }
    *
    * [동작]
-   *   - 기존 팀에 있으면 자동으로 기존 팀에서 제거 후 새 팀에 추가
-   *   - 팀에 처음 들어온 유저 → 자동으로 LEADER 배정
-   *   - 이미 LEADER 있으면 MEMBER로 배정
+   *   - 로그인 유저가 세션에 입장
    */
   joinTeam: async (roomId, teamId, user) => {
     if (USE_MOCK) {
@@ -145,18 +182,18 @@ export const RoomAPI = {
 
       return ok({ teams: room.teams });
     }
-    return apiFetch(`/rooms/${roomId}/teams/${teamId}/join`, { method: 'POST' });
+    return apiFetch(`/sessions/${roomId}/join`, { method: 'POST' });
   },
 
   /**
    * 팀 나가기
    *
    * [실제 API]
-   *   POST /rooms/:id/teams/:teamId/leave
-   *   Response 200: { teams }
+   *   DELETE /sessions/:sessionId/leave
+   *   Response 200: { ok }
    *
    * [동작]
-   *   - LEADER가 나가면 남은 멤버 중 첫 번째가 자동으로 LEADER 승격
+   *   - 로그인 유저가 세션에서 퇴장
    */
   leaveTeam: async (roomId, teamId, userId) => {
     if (USE_MOCK) {
@@ -177,16 +214,16 @@ export const RoomAPI = {
 
       return ok({ teams: room.teams });
     }
-    return apiFetch(`/rooms/${roomId}/teams/${teamId}/leave`, { method: 'POST' });
+    return apiFetch(`/sessions/${roomId}/leave`, { method: 'DELETE' });
   },
 
   /**
    * 리더(Leader) 위임
    *
    * [실제 API]
-   *   PUT /rooms/:id/teams/:teamId/leader
+   *   PUT /sessions/:sessionId/teams/:teamId/leader
    *   Body: { userId: string }
-   *   Response 200: { teams }
+   *   Response 200: { ok }
    *
    * [권한]
    *   현재 LEADER만 위임 가능
@@ -210,7 +247,7 @@ export const RoomAPI = {
 
       return ok({ teams: room.teams });
     }
-    return apiFetch(`/rooms/${roomId}/teams/${teamId}/leader`, {
+    return apiFetch(`/sessions/${roomId}/teams/${teamId}/leader`, {
       method: 'PUT',
       body: JSON.stringify({ userId: newLeaderUserId }),
     });
@@ -220,9 +257,11 @@ export const RoomAPI = {
    * 룰 수정 (팀 구성 화면에서 [룰 수정] 버튼 → 모달 → [저장하기])
    *
    * [실제 API]
-   *   PUT /rooms/:id/rule
+   *   PUT /sessions/:sessionId/rule
    *   Body: { rule: RuleObject }
    *   Response 200: { rule }
+   *
+   * [NOTE] 백엔드 미구현 상태 - 추후 구현 예정
    */
   updateRule: async (roomId, rule) => {
     if (USE_MOCK) {
@@ -232,7 +271,7 @@ export const RoomAPI = {
       room.rule = { ...rule };
       return ok({ rule });
     }
-    return apiFetch(`/rooms/${roomId}/rule`, {
+    return apiFetch(`/sessions/${roomId}/rule`, {
       method: 'PUT',
       body: JSON.stringify({ rule }),
     });
@@ -242,7 +281,7 @@ export const RoomAPI = {
    * 팀 구성 업데이트 (닉네임 추가/삭제)
    *
    * [실제 API]
-   *   PUT /rooms/:id/teams
+   *   PUT /sessions/:sessionId/teams
    *   Body: { teams: [{ id, name, players: string[] }] }
    *         players = 배그 닉네임 문자열 배열
    *   Response 200: { teams }
@@ -259,7 +298,7 @@ export const RoomAPI = {
       room.teams = teams;
       return ok({ teams });
     }
-    return apiFetch(`/rooms/${roomId}/teams`, {
+    return apiFetch(`/sessions/${roomId}/teams`, {
       method: 'PUT',
       body: JSON.stringify({ teams }),
     });
@@ -269,8 +308,8 @@ export const RoomAPI = {
    * 팀 추가
    *
    * [실제 API]
-   *   POST /rooms/:id/teams
-   *   Response 200: { teams }
+   *   POST /sessions/:sessionId/teams
+   *   Response 201: { team }
    *
    * [제한] 최대 6팀
    */
@@ -290,29 +329,21 @@ export const RoomAPI = {
       room.teams.push(newTeam);
       return ok({ teams: room.teams });
     }
-    return apiFetch(`/rooms/${roomId}/teams`, { method: 'POST' });
+    return apiFetch(`/sessions/${roomId}/teams`, { method: 'POST' });
   },
 
   /**
-   * 팀 매치 결과 제출 (팀별 독립 제출)
+   * 매치 이미지 업로드 (이미지 기반 매치 결과 전송)
    *
    * [실제 API]
-   *   POST /rooms/:id/matches
-   *   Body: { teamId, results: PlayerResult[], claimsChicken: boolean }
-   *   Response 201: { match }
-   *
-   * [PlayerResult 구조]
-   *   { nick, teamId, kills, damage, headShot, assist, teamKills, earlyDeath }
+   *   POST /sessions/:sessionId/matches
+   *   Body: FormData { image: File }
+   *   Response 201: { screenshotUrl: string, matchResult: MatchResult }
    *
    * [동작]
-   *   - 각 팀은 자신의 게임이 끝날 때마다 독립적으로 결과를 제출
-   *   - 다른 팀의 진행 상황과 완전히 무관 (동기화 없음)
-   *   - 제출 즉시 스코어보드에 반영
-   *   - teamMatchNumber: 이 팀이 이번에 몇 번째 게임을 끝냈는지 (팀별 순번)
-   *
-   * [치킨]
-   *   - 팀별 게임이 독립적이므로 치킨 충돌 없음
-   *   - 자신의 게임에서 치킨을 먹었으면 claimsChicken = true
+   *   - 게임 결과 스크린샷을 이미지 파일로 업로드
+   *   - 백엔드에서 OCR로 파싱해 매치 결과 반환
+   *   - 반환된 결과를 사용자에게 보여주고 확정 버튼 클릭 시 POST /matches/{matchId}/confirm
    */
   addTeamMatch: async (roomId, teamId, results, claimsChicken) => {
     if (USE_MOCK) {
@@ -335,17 +366,22 @@ export const RoomAPI = {
       room.matches.push(match);
       return ok({ match });
     }
-    return apiFetch(`/rooms/${roomId}/matches`, {
+    // FormData 기반 이미지 업로드
+    const formData = new FormData();
+    formData.append('image', results); // results가 File 객체
+    const res = await fetch(`${API_BASE_URL}/sessions/${roomId}/matches`, {
       method: 'POST',
-      body: JSON.stringify({ teamId, results, claimsChicken }),
+      credentials: 'include',
+      body: formData,
     });
+    return res.json().catch(() => ({}));
   },
 
   /**
    * 매치 목록 조회
    *
    * [실제 API]
-   *   GET /rooms/:id/matches
+   *   GET /sessions/:sessionId/match-history
    *   Response 200: { matches: Match[] }
    *
    * [반환 데이터]
@@ -359,7 +395,7 @@ export const RoomAPI = {
       if (!room) return err('방을 찾을 수 없습니다');
       return ok({ matches: room.matches || [] });
     }
-    return apiFetch(`/rooms/${roomId}/matches`);
+    return apiFetch(`/sessions/${roomId}/match-history`);
   },
 
   /**
@@ -393,7 +429,7 @@ export const RoomAPI = {
     // 실제 API: FormData 사용 (Content-Type 헤더 자동 설정)
     const formData = new FormData();
     formData.append('screenshot', file);
-    const res = await fetch(`${API_BASE_URL}/rooms/${roomId}/matches/${matchId}/screenshot`, {
+    const res = await fetch(`${API_BASE_URL}/sessions/${roomId}/matches/${matchId}/screenshot`, {
       method: 'POST',
       credentials: 'include',
       body: formData,
@@ -405,9 +441,11 @@ export const RoomAPI = {
    * 점수 수동 조정 (운영자 전용)
    *
    * [실제 API]
-   *   POST /rooms/:id/adjustments
+   *   POST /sessions/:sessionId/adjustments
    *   Body: { teamId, amount, reason }
    *   Response 200: { adjustments }
+   *
+   * [NOTE] 백엔드 미구현 상태 - 추후 구현 예정
    */
   addAdjustment: async (roomId, teamId, amount, reason) => {
     if (USE_MOCK) {
@@ -419,7 +457,7 @@ export const RoomAPI = {
       room.adjustments.push(adj);
       return ok({ adjustments: room.adjustments });
     }
-    return apiFetch(`/rooms/${roomId}/adjustments`, {
+    return apiFetch(`/sessions/${roomId}/adjustments`, {
       method: 'POST',
       body: JSON.stringify({ teamId, amount, reason }),
     });
@@ -429,8 +467,10 @@ export const RoomAPI = {
    * 킬내기 종료
    *
    * [실제 API]
-   *   POST /rooms/:id/end
-   *   Response 200: { room }
+   *   POST /sessions/:sessionId/end
+   *   Response 200: { ok }
+   *
+   * [NOTE] 백엔드 미구현 상태 - 추후 구현 예정
    */
   end: async (roomId) => {
     if (USE_MOCK) {
@@ -441,15 +481,15 @@ export const RoomAPI = {
       room.endedAt = new Date().toISOString();
       return ok({ room });
     }
-    return apiFetch(`/rooms/${roomId}/end`, { method: 'POST' });
+    return apiFetch(`/sessions/${roomId}/end`, { method: 'POST' });
   },
 
   /**
    * 방 참여자 목록 조회
    *
    * [실제 API]
-   *   GET /rooms/:id/participants
-   *   Response 200: { participants }
+   *   GET /sessions/:sessionId/participants
+   *   Response 200: { configureState: ConfigureStateMessage }
    */
   getParticipants: async (roomId) => {
     if (USE_MOCK) {
@@ -458,18 +498,18 @@ export const RoomAPI = {
       if (!room) return err('방을 찾을 수 없습니다');
       return ok({ participants: room.participants || [] });
     }
-    return apiFetch(`/rooms/${roomId}/participants`);
+    return apiFetch(`/sessions/${roomId}/participants`);
   },
 
   /**
    * 내 방 목록 조회
    *
    * [실제 API]
-   *   GET /rooms?userId=:userId
-   *   Response 200: { rooms: Room[] }
+   *   GET /sessions/my
+   *   Response 200: { sessions: SessionResponse[] }
    *
    * [반환 데이터]
-   *   rooms 배열 — 각 방의 id, title, status, createdAt, teams, rule 포함
+   *   sessions 배열 — 각 방의 id, title, status, createdAt, teams, rule 포함
    *   status: 'WAITING' | 'LIVE' | 'DONE'
    */
   list: async (userId) => {
@@ -485,16 +525,16 @@ export const RoomAPI = {
       );
       return ok({ rooms: sorted });
     }
-    return apiFetch(`/rooms?userId=${userId}`);
+    return apiFetch(`/sessions/my`);
   },
 
   /**
    * 초대 코드로 방 참여
    *
    * [실제 API]
-   *   POST /rooms/join
-   *   Body: { code: string }
-   *   Response 200: { room }
+   *   GET /sessions/join/{roomUrl}  (세션 정보 조회)
+   *   POST /sessions/{sessionId}/join  (세션에 입장)
+   *   Response 200: { session }
    *   Response 404: { error: '초대 코드를 찾을 수 없습니다' }
    *   Response 410: { error: '이미 종료된 방입니다' }
    *
@@ -528,9 +568,8 @@ export const RoomAPI = {
       }
       return ok({ room });
     }
-    return apiFetch('/rooms/join', {
-      method: 'POST',
-      body: JSON.stringify({ code }),
+    return apiFetch(`/sessions/join/${code}`, {
+      method: 'GET',
     });
   },
 
@@ -538,8 +577,8 @@ export const RoomAPI = {
    * 킬내기 시작
    *
    * [실제 API]
-   *   POST /rooms/:id/start
-   *   Response 200: { room }
+   *   POST /sessions/:sessionId/start
+   *   Response 200: { ok }
    *
    * [조건] 각 팀에 최소 1명 이상의 플레이어가 있어야 함
    */
@@ -553,6 +592,6 @@ export const RoomAPI = {
       room.status = 'LIVE';
       return ok({ room });
     }
-    return apiFetch(`/rooms/${roomId}/start`, { method: 'POST' });
+    return apiFetch(`/sessions/${roomId}/start`, { method: 'POST' });
   },
 };
