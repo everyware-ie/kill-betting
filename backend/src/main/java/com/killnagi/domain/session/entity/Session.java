@@ -1,5 +1,6 @@
 package com.killnagi.domain.session.entity;
 
+import com.killnagi.common.exception.KillnagiException;
 import com.killnagi.domain.rule.entity.RuleSet;
 import com.killnagi.domain.team.entity.Team;
 import com.killnagi.domain.user.entity.User;
@@ -68,14 +69,30 @@ public class Session {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    private static final int MIN_TARGET_KILLS = 1;
+    private static final int MIN_TIME_LIMIT_MINUTES = 1;
+
     @Builder
-    public Session(String name, String roomUrl, String roomCode, User host, Integer targetKills, Integer timeLimitMinutes) {
+    public Session(String name, String roomUrl, User host, Integer targetKills, Integer timeLimitMinutes) {
+        validate(name, targetKills, timeLimitMinutes);
         this.name = name;
         this.roomUrl = roomUrl;
         this.roomCode = roomCode;
         this.host = host;
         this.targetKills = targetKills;
         this.timeLimitMinutes = timeLimitMinutes;
+    }
+
+    private void validate(String name, Integer targetKills, Integer timeLimitMinutes) {
+        if (name == null || name.isBlank()) {
+            throw KillnagiException.badRequest("세션 이름은 비어있을 수 없습니다.");
+        }
+        if (targetKills != null && targetKills < MIN_TARGET_KILLS) {
+            throw KillnagiException.badRequest("목표 킬 수는 1 이상이어야 합니다.");
+        }
+        if (timeLimitMinutes != null && timeLimitMinutes < MIN_TIME_LIMIT_MINUTES) {
+            throw KillnagiException.badRequest("제한 시간은 1분 이상이어야 합니다.");
+        }
     }
 
     public void assignCurrentRuleSet(RuleSet ruleSet) {

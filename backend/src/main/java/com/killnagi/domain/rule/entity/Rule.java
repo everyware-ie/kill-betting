@@ -1,5 +1,6 @@
 package com.killnagi.domain.rule.entity;
 
+import com.killnagi.common.exception.KillnagiException;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -31,8 +32,11 @@ public class Rule {
     @Column(nullable = false)
     private boolean enabled = true;
 
+    private static final int MIN_VALUE = 1;
+
     @Builder
     public Rule(RuleSet ruleSet, RuleType ruleType, Operator operator, int value) {
+        validate(ruleType, operator, value);
         this.ruleSet = ruleSet;
         this.ruleType = ruleType;
         this.operator = operator;
@@ -42,13 +46,32 @@ public class Rule {
     public enum RuleType {
         CHICKEN_BONUS,              // 치킨 달성 시 보너스
         SURVIVAL_PENALTY,           // TOP10 진입 실패 시 패널티
+      
+    }
+  
+    private void validate(RuleType ruleType, Operator operator, int value) {
+        if (ruleType == null) {
+            throw KillnagiException.badRequest("룰 타입은 필수입니다.");
+        }
+        if (operator == null) {
+            throw KillnagiException.badRequest("연산자는 필수입니다.");
+        }
+        if (value < MIN_VALUE) {
+            throw KillnagiException.badRequest("룰 값은 1 이상이어야 합니다.");
+        }
     }
 
-    public enum Operator {
-        EQ,   // ==
-        GTE,  // >=
-        LTE,  // <=
-        GT,   // >
-        LT    // <
+    public boolean isType(RuleType type) {
+        return this.ruleType == type;
+    }
+
+    public int calculateScore(boolean isChicken, long failedTop10Count) {
+        if (isType(RuleType.CHICKEN_BONUS) && isChicken) {
+            return value;
+        }
+        if (isType(RuleType.SURVIVAL_PENALTY) && failedTop10Count > 0) {
+            return -(int) failedTop10Count * value;
+        }
+        return 0;
     }
 }

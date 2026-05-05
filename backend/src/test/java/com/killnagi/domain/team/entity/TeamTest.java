@@ -1,13 +1,16 @@
 package com.killnagi.domain.team.entity;
 
-import com.killnagi.domain.session.entity.Session;
-import com.killnagi.domain.user.entity.User;
-import com.killnagi.support.TestFixtures;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import com.killnagi.domain.session.entity.Session;
+import com.killnagi.domain.user.entity.User;
+import com.killnagi.support.TestFixtures;
+import org.junit.jupiter.api.DisplayName;
 
 @DisplayName("Team 엔티티 도메인 로직 테스트")
 class TeamTest {
@@ -19,6 +22,22 @@ class TeamTest {
         User host = TestFixtures.user(1L);
         Session session = TestFixtures.session(host);
         team = TestFixtures.team(session);
+    }
+
+    @Test
+    void 팀_이름이_빈_문자열이면_예외가_발생한다() {
+        User host = TestFixtures.user(1L);
+        Session session = TestFixtures.session(host);
+        assertThatThrownBy(() -> Team.builder().session(session).name("").build())
+                .isInstanceOf(RuntimeException.class);
+    }
+
+    @Test
+    void 팀_이름이_null이면_예외가_발생한다() {
+        User host = TestFixtures.user(1L);
+        Session session = TestFixtures.session(host);
+        assertThatThrownBy(() -> Team.builder().session(session).name(null).build())
+                .isInstanceOf(RuntimeException.class);
     }
 
     @Test
@@ -40,24 +59,24 @@ class TeamTest {
     }
 
     @Test
-    void 보너스_추가시_유효킬이_증가한다() {
+    void 룰_보너스_추가시_유효킬이_증가한다() {
         team.addKills(5);
-        team.addBonus(3);
+        team.addRuleScore(3);
         assertThat(team.getEffectiveKills()).isEqualTo(8);
     }
 
     @Test
-    void 패널티_추가시_유효킬이_감소한다() {
+    void 룰_패널티_추가시_유효킬이_감소한다() {
         team.addKills(5);
-        team.addPenalty(2);
+        team.addRuleScore(-2);
         assertThat(team.getEffectiveKills()).isEqualTo(3);
     }
 
     @Test
-    void 유효킬은_총킬_더하기_보너스_빼기_패널티다() {
+    void 유효킬은_총킬_더하기_룰스코어다() {
         team.addKills(10);
-        team.addBonus(3);
-        team.addPenalty(2);
+        team.addRuleScore(3);
+        team.addRuleScore(-2);
         assertThat(team.getEffectiveKills()).isEqualTo(11);
     }
 }

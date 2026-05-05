@@ -1,37 +1,22 @@
 package com.killnagi.domain.match;
 
-import com.killnagi.domain.match.entity.Match;
-import com.killnagi.domain.match.entity.MatchResult;
-import com.killnagi.domain.match.repository.MatchRepository;
-import com.killnagi.domain.match.repository.MatchResultRepository;
-import com.killnagi.domain.team.entity.TeamPlayer;
-import com.killnagi.domain.team.repository.TeamPlayerRepository;
-import com.killnagi.infra.ocr.MatchOcrResult;
-import com.killnagi.support.AcceptanceTestSupport;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-
-import java.util.List;
-import java.util.Map;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 
+import java.util.List;
+import java.util.Map;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+
+import com.killnagi.infra.ocr.MatchOcrResult;
+import com.killnagi.support.AcceptanceTestSupport;
+
 @DisplayName("Match 인수 테스트")
 class MatchAcceptanceTest extends AcceptanceTestSupport {
-
-    @Autowired
-    private MatchRepository matchRepository;
-
-    @Autowired
-    private MatchResultRepository matchResultRepository;
-
-    @Autowired
-    private TeamPlayerRepository teamPlayerRepository;
 
     @Test
     void 리더가_경기_스크린샷을_업로드하면_OCR_결과와_함께_매치가_등록된다() {
@@ -74,16 +59,11 @@ class MatchAcceptanceTest extends AcceptanceTestSupport {
 
         long matchId = 매치_이미지를_업로드한다(sessionId, leaderToken);
 
-        // NOTE: MatchResult 생성 API 미구현 — OCR 결과 확인 후 저장하는 엔드포인트 추가 전까지 직접 생성
-        Match match = matchRepository.findById(matchId).orElseThrow();
-        TeamPlayer player = teamPlayerRepository.findByTeam_Id(teamId).get(0);
-        MatchResult savedResult = matchResultRepository.save(
-                MatchResult.builder().match(match).teamPlayer(player).kills(3).placement(5).build());
-
         // When
         ResponseEntity<String> response = post("/api/matches/" + matchId + "/confirm",
-                toJson(Map.of("playerResults", List.of(
-                        Map.of("matchResultId", savedResult.getId(), "isTop10", true)))),
+                toJson(Map.of(
+                        "playerResults", List.of(Map.of("nickname", "PlayerOne", "kills", 3, "placement", 5, "isTop10", true)),
+                        "isChicken", false)),
                 leaderToken);
 
         // Then

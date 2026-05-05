@@ -17,7 +17,7 @@ public class SessionUserController {
 
     private final TeamConfigureService teamConfigureService;
 
-    @GetMapping("/configure")
+    @GetMapping("/participants")
     public ResponseEntity<ApiResponse<ConfigureStateMessage>> getConfigureState(
             @PathVariable Long sessionId) {
         return ResponseEntity.ok(ApiResponse.ok(teamConfigureService.buildConfigureState(sessionId)));

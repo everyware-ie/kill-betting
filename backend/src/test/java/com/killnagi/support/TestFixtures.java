@@ -1,16 +1,17 @@
 package com.killnagi.support;
 
+import org.springframework.test.util.ReflectionTestUtils;
+
 import com.killnagi.domain.match.entity.Match;
 import com.killnagi.domain.match.entity.MatchResult;
+import com.killnagi.domain.rule.entity.Operator;
 import com.killnagi.domain.rule.entity.Rule;
-import com.killnagi.domain.rule.entity.Rule.RuleType;
-import com.killnagi.domain.rule.entity.Rule.Operator;
 import com.killnagi.domain.rule.entity.RuleSet;
+import com.killnagi.domain.rule.entity.RuleType;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.team.entity.Team;
 import com.killnagi.domain.team.entity.TeamPlayer;
 import com.killnagi.domain.user.entity.User;
-import org.springframework.test.util.ReflectionTestUtils;
 
 public class TestFixtures {
 
@@ -75,6 +76,14 @@ public class TestFixtures {
     public static Match match(Session session) {
         return Match.builder()
                 .session(session)
+                .matchNumber(1)
+                .build();
+    }
+
+    public static Match match(Session session, Team team) {
+        return Match.builder()
+                .session(session)
+                .team(team)
                 .matchNumber(1)
                 .build();
     }

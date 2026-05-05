@@ -1,5 +1,6 @@
 package com.killnagi.domain.team.entity;
 
+import com.killnagi.common.exception.KillnagiException;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.user.entity.User;
 import jakarta.persistence.*;
@@ -32,19 +33,23 @@ public class Team {
     @Column(name = "total_kills", nullable = false)
     private int totalKills = 0;
 
-    @Column(name = "bonus_kills", nullable = false)
-    private int bonusKills = 0;
-
-    @Column(name = "penalty_kills", nullable = false)
-    private int penaltyKills = 0;
+    @Column(name = "rule_score", nullable = false)
+    private int ruleScore = 0;
 
     @OneToMany(mappedBy = "team", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TeamPlayer> players = new ArrayList<>();
 
     @Builder
     public Team(Session session, String name) {
+        validate(name);
         this.session = session;
         this.name = name;
+    }
+
+    private void validate(String name) {
+        if (name == null || name.isBlank()) {
+            throw KillnagiException.badRequest("팀 이름은 비어있을 수 없습니다.");
+        }
     }
 
     public void assignLeader(User leader) {
@@ -53,10 +58,6 @@ public class Team {
 
     public boolean hasLeader() {
         return this.leader != null;
-    }
-
-    public boolean isLedBy(Long userId) {
-        return this.leader != null && this.leader.hasId(userId);
     }
 
     public Long getLeaderUserId() {
@@ -68,18 +69,14 @@ public class Team {
     }
 
     public int getEffectiveKills() {
-        return totalKills + bonusKills - penaltyKills;
+        return totalKills + ruleScore;
     }
 
     public void addKills(int kills) {
         this.totalKills += kills;
     }
 
-    public void addBonus(int bonus) {
-        this.bonusKills += bonus;
-    }
-
-    public void addPenalty(int penalty) {
-        this.penaltyKills += penalty;
+    public void addRuleScore(int score) {
+        this.ruleScore += score;
     }
 }
