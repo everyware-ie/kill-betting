@@ -13,7 +13,7 @@ public class TeamConfigureBroadcaster {
 
     public void broadcast(Long sessionId, ConfigureStateMessage message) {
         messagingTemplate.convertAndSend(
-                "/topic/sessions/" + sessionId + "/configure",
+                "/topic/sessions/" + sessionId + "/participants",
                 message
         );
     }

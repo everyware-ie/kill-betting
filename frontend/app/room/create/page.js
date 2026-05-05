@@ -273,11 +273,8 @@ export default function CreateRoomPage() {
             <SectionTitle sub>보너스 / 패널티</SectionTitle>
             <div style={{ background: '#1C1A0C', border: '1px solid rgba(200,155,0,0.15)', borderRadius: 8, overflow: 'hidden' }}>
               {[
-                { label: '헤드샷 보너스',  k: 'headShotBonus',   onK: 'headShotBonusOn',   sign: '+', color: '#F5A623' },
-                { label: '어시스트 보너스', k: 'assistBonus',     onK: 'assistBonusOn',     sign: '+', color: '#F5A623' },
                 { label: '치킨 보너스',    k: 'chickenBonus',    onK: 'chickenBonusOn',    sign: '+', color: '#F5A623' },
-                { label: '팀킬 패널티',    k: 'teamKillPenalty', onK: 'teamKillPenaltyOn', sign: '-', color: '#E53935' },
-                { label: '사망 패널티',    k: 'deathPenalty',    onK: 'deathPenaltyOn',    sign: '-', color: '#E53935' },
+                { label: '생존 페널티',    k: 'survivalPenalty', onK: 'survivalPenaltyOn', sign: '-', color: '#E53935', hint: '탑 10 못 들면 감점' },
               ].map((item, i, arr) => (
                 <div
                   key={item.k}
@@ -289,10 +286,13 @@ export default function CreateRoomPage() {
                     transition: 'opacity .2s',
                   }}
                 >
-                  {/* 토글 + 항목명 */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  {/* 토글 + 항목명 + 설명 */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
                     <Toggle on={rule[item.onK]} onChange={() => setRuleField(item.onK, !rule[item.onK])} />
-                    <span style={{ fontSize: 13 }}>{item.label}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <span style={{ fontSize: 13 }}>{item.label}</span>
+                      {item.hint && <span style={{ fontSize: 10, color: '#8A8060' }}>{item.hint}</span>}
+                    </div>
                   </div>
                   {/* 부호 + 수치 스테퍼 */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

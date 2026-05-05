@@ -101,6 +101,7 @@ export async function apiFetch(path, options = {}) {
   return { ok: true, ...(json.data !== undefined ? (json.data || {}) : json) };
 }
 
+// Mock 헬퍼: { ok } 포맷으로 통일 (apiFetch 반환 포맷과 동일)
 const ok    = (data = {}) => ({ ok: true,  ...data });
 const err   = (msg)       => ({ ok: false, error: msg });
 const delay = (ms = 350)  => new Promise((r) => setTimeout(r, ms));
@@ -135,7 +136,7 @@ export const AuthAPI = {
       await delay(100);
       const user = getStoredUser();
       if (!user) return err('로그인이 필요합니다');
-      return ok({ user });
+      return ok(user);
     }
     const token = getToken();
     if (!token) return err('로그인이 필요합니다');
@@ -158,13 +159,14 @@ export const AuthAPI = {
   login: async (email, password) => {
     if (USE_MOCK) {
       await delay(400);
-      // mock: email 필드에 username 입력 허용
+      // mock: email 필드에 username 입력도 허용 (유연한 로그인)
       const user = findUser(email);
       if (!user)                      return err('존재하지 않는 계정입니다');
       if (user.password !== password) return err('비밀번호가 올바르지 않습니다');
-      const safeUser = { id: user.id, username: user.username };
-      storeUser(safeUser);
-      return ok({ user: safeUser });
+      const tokenResponse = { accessToken: `mock-token-${user.id}`, tokenType: 'Bearer', userId: user.id, nickname: user.nickname };
+      storeUser({ id: user.id, nickname: user.nickname });
+      storeToken(tokenResponse.accessToken);
+      return ok(tokenResponse);
     }
     const res = await apiFetch('/api/auth/login', {
       method: 'POST',
@@ -190,18 +192,19 @@ export const AuthAPI = {
       await delay(500);
       if (!/^[a-zA-Z0-9_]{2,20}$/.test(nickname))
         return err('닉네임은 영문·숫자·언더스코어 2~20자만 가능합니다');
-      if (!password || password.length < 4)
-        return err('비밀번호는 최소 4자 이상이어야 합니다');
+      if (!password || password.length < 8)
+        return err('비밀번호는 최소 8자 이상이어야 합니다');
       if (findUser(nickname))
         return err('이미 사용 중인 닉네임입니다');
       const newUser = {
-        id: genId('user'), username: nickname, password,
+        id: genId('user'), username: nickname, nickname, password,
         email, createdAt: new Date().toISOString(),
       };
       _runtimeUsers.push(newUser);
-      const safeUser = { id: newUser.id, username: newUser.username };
-      storeUser(safeUser);
-      return ok({ user: safeUser });
+      const tokenResponse = { accessToken: `mock-token-${newUser.id}`, tokenType: 'Bearer', userId: newUser.id, nickname: newUser.nickname };
+      storeUser({ id: newUser.id, nickname: newUser.nickname });
+      storeToken(tokenResponse.accessToken);
+      return ok(tokenResponse);
     }
     const res = await apiFetch('/api/auth/signup', {
       method: 'POST',
@@ -221,7 +224,8 @@ export const AuthAPI = {
     if (USE_MOCK) {
       await delay(150);
       clearStoredUser();
-      return ok();
+      clearStoredToken();
+      return ok({});
     }
     clearToken();
     return ok();
@@ -242,7 +246,7 @@ export const AuthAPI = {
       if (!stored) return err('로그인이 필요합니다');
       const full = _runtimeUsers.find((u) => u.id === stored.id);
       if (!full) return err('유저를 찾을 수 없습니다');
-      return ok({ user: { id: full.id, username: full.username, createdAt: full.createdAt } });
+      return ok({ id: full.id, nickname: full.nickname, email: full.email, createdAt: full.createdAt });
     }
     const res = await apiFetch('/api/auth/me');
     if (!res.ok) return res;
@@ -273,9 +277,9 @@ export const AuthAPI = {
       const user = _runtimeUsers.find((u) => u.id === stored.id);
       if (!user) return err('유저를 찾을 수 없습니다');
       if (user.password !== currentPassword) return err('현재 비밀번호가 올바르지 않습니다');
-      if (!newPassword || newPassword.length < 4) return err('새 비밀번호는 최소 4자 이상이어야 합니다');
+      if (!newPassword || newPassword.length < 8) return err('새 비밀번호는 최소 8자 이상이어야 합니다');
       user.password = newPassword;
-      return ok();
+      return ok({});
     }
     // TODO: PUT /api/auth/password 구현 시 연결
     return err('비밀번호 변경은 아직 지원되지 않습니다');
@@ -286,19 +290,18 @@ export const AuthAPI = {
    *
    * TODO: 백엔드 중복 확인 엔드포인트 미구현 → mock 유지
    */
-  checkUsername: async (username) => {
+  checkUsername: async (nickname) => {
     if (USE_MOCK) {
       await delay(300);
-      if (!/^[a-zA-Z0-9_]{2,20}$/.test(username))
+      if (!/^[a-zA-Z0-9_]{2,20}$/.test(nickname))
         return err('영문·숫자·언더스코어만 사용 가능 (2~20자)');
-      if (findUser(username))
+      if (findUser(nickname))
         return err('이미 사용 중인 닉네임입니다');
-      return ok({ message: '사용 가능한 닉네임입니다' });
+      return ok({ available: true, message: '사용 가능한 닉네임입니다' });
     }
     // TODO: GET /api/auth/check-nickname 구현 시 연결
-    if (!/^[a-zA-Z0-9_]{2,20}$/.test(username))
-      return err('영문·숫자·언더스코어만 사용 가능 (2~20자)');
-    return ok({ message: '사용 가능한 닉네임입니다' });
+    const res = await apiFetch(`/api/auth/check-nickname?nickname=${encodeURIComponent(nickname)}`);
+    return res;
   },
 };
 
@@ -317,7 +320,7 @@ export const SessionAPI = {
       const sessions = _runtimeSessions
         .filter((s) => s.hostId === (user?.id || 'user-001'))
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      return ok({ sessions });
+      return ok(sessions);
     }
     return apiFetch('/api/sessions/my');
   },
@@ -333,7 +336,7 @@ export const SessionAPI = {
         rule, teams, createdAt: new Date().toISOString(),
       };
       _runtimeSessions.push(session);
-      return ok({ session });
+      return ok(session);
     }
     return apiFetch('/api/sessions', {
       method: 'POST',
@@ -346,7 +349,7 @@ export const SessionAPI = {
       await delay(200);
       const idx = _runtimeSessions.findIndex((s) => s.id === id);
       if (idx !== -1) _runtimeSessions[idx] = { ..._runtimeSessions[idx], ...data };
-      return ok({ session: _runtimeSessions[idx] });
+      return ok(_runtimeSessions[idx]);
     }
     return apiFetch(`/api/sessions/${id}`, {
       method: 'PUT',

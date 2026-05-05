@@ -1,16 +1,17 @@
 package com.killnagi.support;
 
+import org.springframework.test.util.ReflectionTestUtils;
+
 import com.killnagi.domain.match.entity.Match;
 import com.killnagi.domain.match.entity.MatchResult;
+import com.killnagi.domain.rule.entity.Operator;
 import com.killnagi.domain.rule.entity.Rule;
-import com.killnagi.domain.rule.entity.Rule.RuleType;
-import com.killnagi.domain.rule.entity.Rule.Operator;
 import com.killnagi.domain.rule.entity.RuleSet;
+import com.killnagi.domain.rule.entity.RuleType;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.team.entity.Team;
 import com.killnagi.domain.team.entity.TeamPlayer;
 import com.killnagi.domain.user.entity.User;
-import org.springframework.test.util.ReflectionTestUtils;
 
 public class TestFixtures {
 
@@ -42,6 +43,7 @@ public class TestFixtures {
         return Session.builder()
                 .name("킬내기 세션")
                 .roomUrl(java.util.UUID.randomUUID().toString())
+                .roomCode(java.util.UUID.randomUUID().toString().substring(0, 6).toUpperCase())
                 .host(host)
                 .targetKills(50)
                 .timeLimitMinutes(60)
@@ -79,6 +81,14 @@ public class TestFixtures {
                 .build();
     }
 
+    public static Match match(Session session, Team team) {
+        return Match.builder()
+                .session(session)
+                .team(team)
+                .matchNumber(1)
+                .build();
+    }
+
     public static Match match(Long id, Session session) {
         Match m = match(session);
         ReflectionTestUtils.setField(m, "id", id);
@@ -108,7 +118,7 @@ public class TestFixtures {
         return Rule.builder()
                 .ruleSet(ruleSet)
                 .ruleType(type)
-                .operator(Operator.EQ)
+                .operator(Operator.PLUS)
                 .value(value)
                 .build();
     }

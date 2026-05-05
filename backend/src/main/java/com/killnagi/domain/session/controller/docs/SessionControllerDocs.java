@@ -18,13 +18,13 @@ import java.util.List;
 @Tag(name = "Session", description = "세션 관리 API")
 public interface SessionControllerDocs {
 
+    @Operation(summary = "세션 목록 조회", description = "대기 중인 세션 목록을 조회합니다. code 파라미터로 방 코드 검색 가능.")
+    ResponseEntity<ApiResponse<List<SessionResponse>>> getSessions(String code);
+
     @Operation(summary = "세션 생성", description = "새로운 킬내기 세션을 생성합니다.")
     ResponseEntity<ApiResponse<SessionResponse>> createSession(
             UserDetails userDetails,
             @Valid CreateRequest request);
-
-    @Operation(summary = "세션 입장", description = "roomUrl로 세션 정보를 조회합니다.")
-    ResponseEntity<ApiResponse<SessionResponse>> getSessionByRoomUrl(String roomUrl);
 
     @Operation(summary = "세션 시작", description = "세션을 시작 상태로 변경합니다. 호스트만 가능합니다.")
     ResponseEntity<ApiResponse<Void>> startSession(UserDetails userDetails, Long sessionId);

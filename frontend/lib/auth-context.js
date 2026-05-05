@@ -29,7 +29,7 @@ export function AuthProvider({ children }) {
   // 앱 시작 시 기존 세션 확인
   useEffect(() => {
     AuthAPI.me().then((res) => {
-      if (res.ok) setUser(res.user);
+      if (res.success) setUser(res.data);
       setLoading(false);
     }).catch(() => {
       // 네트워크 오류 시에도 로딩 상태를 해제해 빈 화면 방지

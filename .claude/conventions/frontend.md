@@ -3,7 +3,7 @@
 ## 디렉토리 구조
 
 ```
-frontend/src/
+frontend/
 ├── app/                   # App Router 페이지
 │   ├── (auth)/
 │   ├── session/

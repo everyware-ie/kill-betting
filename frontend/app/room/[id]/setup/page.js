@@ -31,6 +31,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth }   from '@/lib/auth-context';
 import { RoomAPI }   from '@/lib/room-api';
+import { useWebSocket } from '@/lib/useWebSocket';
 import { MAX_PLAYERS_PER_TEAM } from '@/mock/rooms';
 import Button from '@/components/ui/Button';
 import RoleGuideModal from '@/components/ui/RoleGuideModal';
@@ -271,31 +272,42 @@ export default function SetupPage() {
     return () => document.removeEventListener('click', handler);
   }, [assignDropdown, memberDropdown]);
 
-  // ── 방 정보 폴링 ──
-  // TODO: 백엔드 WebSocket 연동 시 이 useEffect를 제거하고
-  //       stompClient.subscribe('/topic/room/{id}', handler) 로 교체
-  const isActionInProgress = useRef(false); // 내가 직접 액션 중일 때 폴링 덮어쓰기 방지
+  // ── 방 정보 초기 로드 ──
+  const isActionInProgress = useRef(false); // 내가 직접 액션 중일 때 업데이트 덮어쓰기 방지
 
   useEffect(() => {
     if (!user) return;
 
     // 최초 로드
     RoomAPI.get(roomId).then((res) => {
-      if (!res.ok) { setError(res.error); setLoading(false); return; }
-      setRoom(res.room);
+      if (!res.success) { setError(res.error); setLoading(false); return; }
+      setRoom(res.data);
       setLoading(false);
     });
-
-    // 5초마다 폴링 — 다른 유저의 팀 이동·닉네임 추가 등을 반영
-    const id = setInterval(async () => {
-      if (isActionInProgress.current) return; // 내 액션 처리 중엔 건너뜀
-      const res = await RoomAPI.get(roomId);
-      if (res.ok) setRoom(res.room);
-      // 폴링 실패는 무시 (네트워크 일시 오류 허용)
-    }, 5000);
-
-    return () => clearInterval(id);
   }, [roomId, user]);
+
+  // ── WebSocket 실시간 동기화 ──
+  // ConfigureStateMessage (팀 구성 상태 변경) 수신
+  useWebSocket(roomId, (configureState) => {
+    if (!configureState || isActionInProgress.current) return;
+
+    setRoom((prev) => ({
+      ...prev,
+      teams: prev.teams.map((team) => {
+        const newTeamState = configureState.teams.find((t) => t.teamId === team.id);
+        if (!newTeamState) return team;
+
+        // ConfigureStateMessage로부터 팀 상태 업데이트
+        return {
+          ...team,
+          name: newTeamState.teamName,
+          leaderUserId: newTeamState.leaderUserId,
+          leaderNickname: newTeamState.leaderNickname,
+          // players는 설정 화면에서 직접 수정하므로 유지
+        };
+      }),
+    }));
+  }, !!user && !!room);
 
   // ── 팀 참여 / 이동 ──
   // 대기석에서 처음 참여하거나, 이미 팀에 있을 때 다른 팀으로 이동
@@ -304,7 +316,7 @@ export default function SetupPage() {
     setError('');
     isActionInProgress.current = true;
     const res = await RoomAPI.joinTeam(roomId, newTeamId, user);
-    if (res.ok) setRoom((r) => ({ ...r, teams: res.teams }));
+    if (res.success) setRoom((r) => ({ ...r, teams: res.data.teams }));
     else setError(res.error);
     isActionInProgress.current = false;
   };
@@ -315,7 +327,7 @@ export default function SetupPage() {
     setError('');
     isActionInProgress.current = true;
     const res = await RoomAPI.leaveTeam(roomId, myTeam.id, user.id);
-    if (res.ok) setRoom((r) => ({ ...r, teams: res.teams }));
+    if (res.success) setRoom((r) => ({ ...r, teams: res.data.teams }));
     else setError(res.error);
     isActionInProgress.current = false;
   };
@@ -324,7 +336,7 @@ export default function SetupPage() {
   const handleSetLeader = async (teamId, targetUserId) => {
     setError('');
     const res = await RoomAPI.setLeader(roomId, teamId, targetUserId);
-    if (res.ok) setRoom((r) => ({ ...r, teams: res.teams }));
+    if (res.success) setRoom((r) => ({ ...r, teams: res.data.teams }));
     else setError(res.error);
   };
 
@@ -361,7 +373,7 @@ export default function SetupPage() {
       t.id === teamId ? { ...t, players: t.players.filter((p) => p !== nick) } : t
     );
     const res = await RoomAPI.updateTeams(roomId, updatedTeams);
-    if (res.ok) setRoom((r) => ({ ...r, teams: updatedTeams }));
+    if (res.success) setRoom((r) => ({ ...r, teams: updatedTeams }));
     isActionInProgress.current = false;
   };
 
@@ -370,7 +382,7 @@ export default function SetupPage() {
     setError('');
     isActionInProgress.current = true;
     const res = await RoomAPI.addTeam(roomId);
-    if (res.ok) setRoom((r) => ({ ...r, teams: res.teams }));
+    if (res.success) setRoom((r) => ({ ...r, teams: res.data.teams }));
     else setError(res.error);
     isActionInProgress.current = false;
   };
@@ -441,7 +453,7 @@ export default function SetupPage() {
   // ── 룰 저장 ──
   const handleSaveRule = async (newRule) => {
     const res = await RoomAPI.updateRule(roomId, newRule);
-    if (res.ok) { setRoom((r) => ({ ...r, rule: newRule })); setShowRuleModal(false); }
+    if (res.success) { setRoom((r) => ({ ...r, rule: newRule })); setShowRuleModal(false); }
     else setError(res.error);
   };
 

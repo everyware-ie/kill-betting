@@ -29,13 +29,14 @@ import AuthLayout    from '@/components/layout/AuthLayout';
 import Input         from '@/components/ui/Input';
 import Button        from '@/components/ui/Button';
 import { useAuth }   from '@/lib/auth-context';
+import { AuthAPI }   from '@/lib/api';
 
 export default function SignupPage() {
   const router     = useRouter();
   const { signup } = useAuth();
 
   // ── 폼 상태 ──
-  const [nickname, setNickname] = useState('');
+  const [username, setUsername] = useState('');   // 닉네임 (배그 외 계정 식별자)
   const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
   const [showPw,   setShowPw]   = useState(false);
@@ -43,23 +44,59 @@ export default function SignupPage() {
   const [error,    setError]    = useState('');
   const [loading,  setLoading]  = useState(false);
 
-  // 닉네임 형식 유효성 (영문·숫자·언더스코어 2~20자)
-  const nicknameValid = /^[a-zA-Z0-9_]{2,20}$/.test(nickname);
+  // 닉네임 형식 유효성 (실시간 표시용)
+  const nicknameValid = /^[a-zA-Z0-9_]{2,20}$/.test(username);
   // 이메일 형식 유효성
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+  // ── 중복 확인 상태 ──
+  const [idCheck, setIdCheck] = useState({
+    status: 'idle',   // 'idle' | 'ok' | 'error'
+    message: '',
+    checking: false,
+  });
+
+  // 닉네임 변경 시 중복확인 초기화
+  const handleUsernameChange = (e) => {
+    setUsername(e.target.value);
+    setIdCheck({ status: 'idle', message: '', checking: false });
+  };
+
+  // ── 닉네임 중복 확인 ──
+  const handleCheckId = async () => {
+    if (idCheck.checking) return;  // 연속 호출 방지
+    if (!username.trim()) {
+      setIdCheck({ status: 'error', message: '닉네임을 입력해주세요', checking: false });
+      return;
+    }
+    if (!nicknameValid) {
+      setIdCheck({ status: 'error', message: '닉네임은 영문·숫자·언더스코어 2~20자만 가능합니다', checking: false });
+      return;
+    }
+    setIdCheck({ status: 'idle', message: '', checking: true });
+    try {
+      const res = await AuthAPI.checkUsername(username.trim());
+      setIdCheck({
+        status:  res.ok ? 'ok' : 'error',
+        message: res.ok ? '사용 가능한 닉네임입니다' : (res.error || '이미 사용 중인 닉네임입니다'),
+        checking: false,
+      });
+    } catch {
+      setIdCheck({ status: 'error', message: '네트워크 오류가 발생했습니다', checking: false });
+    }
+  };
 
   // ── 회원가입 제출 ──
   const handleSubmit = async () => {
     setError('');
-    if (!nickname.trim())  { setError('닉네임을 입력해주세요'); return; }
-    if (!nicknameValid)    { setError('닉네임은 영문·숫자·언더스코어 2~20자만 가능합니다'); return; }
-    if (!email.trim())     { setError('이메일을 입력해주세요'); return; }
-    if (!emailValid)       { setError('올바른 이메일 형식을 입력해주세요'); return; }
-    if (password.length < 8) { setError('비밀번호는 최소 8자 이상이어야 합니다'); return; }
-    if (!agree)            { setError('이용 약관에 동의해주세요'); return; }
+    if (idCheck.status !== 'ok')   { setError('닉네임 중복 확인을 완료해주세요'); return; }
+    if (!email.trim())             { setError('이메일을 입력해주세요'); return; }
+    if (!emailValid)               { setError('올바른 이메일 형식을 입력해주세요'); return; }
+    if (password.length < 8)       { setError('비밀번호는 최소 8자 이상이어야 합니다'); return; }
+    if (!agree)                    { setError('이용 약관에 동의해주세요'); return; }
 
     setLoading(true);
-    const res = await signup(nickname.trim(), email.trim(), password);
+    const res = await signup(username.trim(), email.trim(), password);
     setLoading(false);
 
     if (!res.ok) { setError(res.error || '회원가입에 실패했습니다'); return; }
@@ -85,32 +122,55 @@ export default function SignupPage() {
           <span style={{ fontSize: 12, fontWeight: 600, color: '#C8B878' }}>닉네임</span>
           <span style={{ fontSize: 10, color: '#8A8060' }}>영문·숫자·언더스코어 2~20자</span>
         </div>
-        <input
-          value={nickname}
-          onChange={(e) => setNickname(e.target.value)}
-          placeholder="예: gamer01"
-          onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-          autoComplete="username"
-          style={{
-            width: '100%',
-            boxSizing: 'border-box',
-            background: '#1a1800',
-            border: `1px solid ${
-              nickname.length > 0 && nicknameValid  ? 'rgba(76,175,80,0.6)'  :
-              nickname.length > 0 && !nicknameValid ? 'rgba(229,57,53,0.6)'  :
-              'rgba(200,155,0,0.3)'
-            }`,
-            color: '#E8DFC0',
-            padding: '9px 12px',
-            borderRadius: 4,
-            fontSize: 13,
-            outline: 'none',
-            fontFamily: 'inherit',
-          }}
-        />
-        {nickname.length > 0 && (
-          <div style={{ marginTop: 5, fontSize: 11, color: nicknameValid ? '#4CAF50' : '#E53935' }}>
-            {nicknameValid ? '✓ 사용 가능한 형식입니다' : '⚠ 영문·숫자·언더스코어 2~20자만 가능합니다'}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input
+            value={username}
+            onChange={handleUsernameChange}
+            placeholder="예: gamer01"
+            onKeyDown={(e) => e.key === 'Enter' && handleCheckId()}
+            autoComplete="username"
+            style={{
+              flex: 1,
+              boxSizing: 'border-box',
+              background: '#1a1800',
+              border: `1px solid ${
+                idCheck.status === 'ok'    ? 'rgba(76,175,80,0.6)'  :
+                idCheck.status === 'error' ? 'rgba(229,57,53,0.6)'  :
+                username.length > 0 && !nicknameValid ? 'rgba(229,57,53,0.6)' :
+                'rgba(200,155,0,0.3)'
+              }`,
+              color: '#E8DFC0',
+              padding: '9px 12px',
+              borderRadius: 4,
+              fontSize: 13,
+              outline: 'none',
+              fontFamily: 'inherit',
+            }}
+          />
+          <button
+            type="button"
+            onClick={handleCheckId}
+            disabled={idCheck.checking}
+            style={{
+              background: 'rgba(200,155,0,0.1)',
+              border: '1px solid rgba(200,155,0,0.3)',
+              color: '#F5A623', padding: '0 12px',
+              borderRadius: 4, cursor: idCheck.checking ? 'wait' : 'pointer',
+              fontSize: 12, fontWeight: 700, fontFamily: 'inherit', whiteSpace: 'nowrap',
+              opacity: idCheck.checking ? 0.6 : 1,
+            }}
+          >
+            {idCheck.checking ? '확인 중...' : '중복 확인'}
+          </button>
+        </div>
+        {idCheck.message && (
+          <div style={{ marginTop: 5, fontSize: 11, color: idCheck.status === 'ok' ? '#4CAF50' : '#E53935' }}>
+            {idCheck.status === 'ok' ? '✓ ' : '⚠ '}{idCheck.message}
+          </div>
+        )}
+        {!idCheck.message && username.length > 0 && !nicknameValid && (
+          <div style={{ marginTop: 5, fontSize: 11, color: '#E53935' }}>
+            ⚠ 영문·숫자·언더스코어 2~20자만 가능합니다
           </div>
         )}
       </div>

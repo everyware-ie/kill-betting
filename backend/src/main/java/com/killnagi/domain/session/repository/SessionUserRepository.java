@@ -11,4 +11,5 @@ public interface SessionUserRepository extends JpaRepository<SessionUser, Long> 
     boolean existsBySession_IdAndUser_Id(Long sessionId, Long userId);
     Optional<SessionUser> findBySession_IdAndUser_Id(Long sessionId, Long userId);
     List<SessionUser> findBySession_IdAndStatus(Long sessionId, SessionUserStatus status);
+    void deleteBySession_IdAndUser_Id(Long sessionId, Long userId);
 }

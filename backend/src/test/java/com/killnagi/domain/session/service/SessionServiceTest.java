@@ -1,12 +1,27 @@
 package com.killnagi.domain.session.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.times;
+
+import java.util.List;
+import java.util.Optional;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
 import com.killnagi.common.exception.KillnagiException;
-import com.killnagi.domain.match.repository.MatchRepository;
-import com.killnagi.domain.match.service.MatchService;
+import com.killnagi.domain.rule.entity.Operator;
 import com.killnagi.domain.rule.entity.Rule;
-import com.killnagi.domain.rule.entity.Rule.Operator;
-import com.killnagi.domain.rule.entity.Rule.RuleType;
 import com.killnagi.domain.rule.entity.RuleSet;
+import com.killnagi.domain.rule.entity.RuleType;
 import com.killnagi.domain.rule.repository.RuleRepository;
 import com.killnagi.domain.rule.repository.RuleSetRepository;
 import com.killnagi.domain.session.dto.request.CreateRequest;
@@ -19,22 +34,6 @@ import com.killnagi.domain.team.repository.TeamRepository;
 import com.killnagi.domain.user.entity.User;
 import com.killnagi.domain.user.repository.UserRepository;
 import com.killnagi.support.TestFixtures;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.then;
-import static org.mockito.Mockito.times;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("SessionService 세션 관리 테스트")
@@ -74,7 +73,7 @@ class SessionServiceTest {
         RuleSet savedRuleSet = RuleSet.builder().session(savedSession).build();
         CreateRequest request = new CreateRequest(
                 "킬내기 세션", 50, 60,
-                List.of(new RuleRequest(RuleType.CHICKEN_BONUS, Operator.EQ, 3))
+                List.of(new RuleRequest(RuleType.CHICKEN_BONUS, Operator.PLUS, 3))
         );
 
         given(userRepository.findById(HOST_ID)).willReturn(Optional.of(host));

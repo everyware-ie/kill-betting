@@ -35,19 +35,11 @@ export const DEFAULT_RULE = {
   timeLimitMin: 60,           // 제한 시간 (분)
   noTimeLimit: false,         // 시간 제한 없음
 
-  // 보너스
-  headShotBonusOn: true,
-  headShotBonus: 2,
-  assistBonusOn: true,
-  assistBonus: 1,
+  // 보너스 / 패널티 (백엔드 RuleType: CHICKEN_BONUS, SURVIVAL_PENALTY만 지원)
   chickenBonusOn: true,
   chickenBonus: 5,
-
-  // 패널티
-  teamKillPenaltyOn: true,
-  teamKillPenalty: 5,
-  deathPenaltyOn: false,
-  deathPenalty: 1,
+  survivalPenaltyOn: false,
+  survivalPenalty: 1,         // 탑 10 못 들면 감점
 };
 
 /** 기본 팀 구조 생성 */

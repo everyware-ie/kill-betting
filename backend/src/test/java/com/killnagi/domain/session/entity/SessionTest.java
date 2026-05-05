@@ -1,12 +1,32 @@
 package com.killnagi.domain.session.entity;
 
-import com.killnagi.domain.rule.entity.RuleSet;
-import com.killnagi.domain.user.entity.User;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import org.junit.jupiter.api.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import com.killnagi.domain.rule.entity.RuleSet;
+import com.killnagi.domain.user.entity.User;
 
 class SessionTest {
+
+    @Test
+    void 세션_이름이_빈_문자열이면_예외가_발생한다() {
+        assertThatThrownBy(() -> Session.builder().name("").roomUrl("url").host(hostUser()).build())
+                .isInstanceOf(RuntimeException.class);
+    }
+
+    @Test
+    void 목표_킬_수가_0이하이면_예외가_발생한다() {
+        assertThatThrownBy(() -> Session.builder().name("세션").roomUrl("url").host(hostUser()).targetKills(0).build())
+                .isInstanceOf(RuntimeException.class);
+    }
+
+    @Test
+    void 제한_시간이_0이하이면_예외가_발생한다() {
+        assertThatThrownBy(() -> Session.builder().name("세션").roomUrl("url").host(hostUser()).timeLimitMinutes(0).build())
+                .isInstanceOf(RuntimeException.class);
+    }
 
     @Test
     void 세션_생성시_상태는_WAITING이다() {
@@ -60,6 +80,10 @@ class SessionTest {
 
         assertThat(session.isHostedBy(null)).isFalse();
         assertThat(session.isHostedBy(1L)).isFalse();
+    }
+
+    private User hostUser() {
+        return User.builder().nickname("host").email("host@test.com").password("pw").build();
     }
 
     private Session sessionWithRoomUrl(String roomUrl) {

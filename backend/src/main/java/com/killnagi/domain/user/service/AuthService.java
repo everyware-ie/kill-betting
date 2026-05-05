@@ -1,17 +1,20 @@
 package com.killnagi.domain.user.service;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.killnagi.common.exception.KillnagiException;
 import com.killnagi.common.security.JwtTokenProvider;
 import com.killnagi.domain.user.dto.request.LoginRequest;
 import com.killnagi.domain.user.dto.request.SignUpRequest;
+import com.killnagi.domain.user.dto.response.CheckUsernameResponse;
 import com.killnagi.domain.user.dto.response.TokenResponse;
 import com.killnagi.domain.user.dto.response.UserInfoResponse;
 import com.killnagi.domain.user.entity.User;
 import com.killnagi.domain.user.repository.UserRepository;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -74,5 +77,13 @@ public class AuthService {
                 user.getLosses(),
                 user.getWinRate()
         );
+    }
+
+    public CheckUsernameResponse isUsernameAvailable(String username) {
+        if (userRepository.existsByNickname(username)) {
+            return new CheckUsernameResponse(false);
+        }
+
+        return new CheckUsernameResponse(true);
     }
 }

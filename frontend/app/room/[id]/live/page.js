@@ -841,8 +841,8 @@ export default function LivePage() {
       RoomAPI.get(roomId),
       RoomAPI.getMatches(roomId),
     ]).then(([roomRes, matchRes]) => {
-      if (roomRes.ok)  { setRoom(roomRes.room); setAdjs(roomRes.room.adjustments || []); }
-      if (matchRes.ok) setMatches(matchRes.matches);
+      if (roomRes.success)  { setRoom(roomRes.data); setAdjs(roomRes.data.adjustments || []); }
+      if (matchRes.success) setMatches(matchRes.data);
       setLoading(false);
     });
   }, [roomId, user]);
@@ -860,7 +860,7 @@ export default function LivePage() {
   useEffect(() => {
     const id = setInterval(async () => {
       const matchRes = await RoomAPI.getMatches(roomId);
-      if (matchRes.ok) {
+      if (matchRes.success) {
         setMatches(matchRes.matches);
         setPollError(false);  // 복구되면 배너 제거
       } else {
@@ -939,7 +939,7 @@ export default function LivePage() {
   // ── 경기 종료 ──
   const handleEnd = async () => {
     const res = await RoomAPI.end(roomId);
-    if (res.ok) router.push(`/room/${roomId}/result`);
+    if (res.success) router.push(`/room/${roomId}/result`);
   };
 
   if (loading) return (
