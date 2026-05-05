@@ -161,4 +161,76 @@ class SessionServiceTest {
                 .isInstanceOf(KillnagiException.class)
                 .hasMessageContaining("세션을 찾을 수 없습니다");
     }
+
+    @Test
+    void 호스트가_룰_값을_수정하면_성공한다() {
+        User host = TestFixtures.user(HOST_ID);
+        Session session = TestFixtures.session(SESSION_ID, host);
+        RuleSet ruleSet = RuleSet.builder().session(session).build();
+        Rule rule = TestFixtures.rule(session, RuleType.CHICKEN_BONUS, Operator.PLUS, 5);
+
+        given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
+        given(ruleRepository.findById(rule.getId())).willReturn(Optional.of(rule));
+
+        sessionService.updateRule(SESSION_ID, rule.getId(), 10, HOST_ID);
+
+        assertThat(rule.getValue()).isEqualTo(10);
+    }
+
+    @Test
+    void 호스트가_아니면_룰_수정시_예외가_발생한다() {
+        Long otherUserId = 99L;
+        User host = TestFixtures.user(HOST_ID);
+        Session session = TestFixtures.session(SESSION_ID, host);
+        Rule rule = TestFixtures.rule(session, RuleType.CHICKEN_BONUS, Operator.PLUS, 5);
+
+        given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
+
+        assertThatThrownBy(() -> sessionService.updateRule(SESSION_ID, rule.getId(), 10, otherUserId))
+                .isInstanceOf(KillnagiException.class)
+                .hasMessage("세션 호스트만 룰을 수정할 수 있습니다.");
+    }
+
+    @Test
+    void 존재하지_않는_룰을_수정하려_하면_예외가_발생한다() {
+        User host = TestFixtures.user(HOST_ID);
+        Session session = TestFixtures.session(SESSION_ID, host);
+
+        given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
+        given(ruleRepository.findById(999L)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> sessionService.updateRule(SESSION_ID, 999L, 10, HOST_ID))
+                .isInstanceOf(KillnagiException.class)
+                .hasMessage("룰을 찾을 수 없습니다.");
+    }
+
+    @Test
+    void 다른_세션의_룰을_수정하려_하면_예외가_발생한다() {
+        User host = TestFixtures.user(HOST_ID);
+        Session session = TestFixtures.session(SESSION_ID, host);
+        User otherHost = TestFixtures.user(2L);
+        Session otherSession = TestFixtures.session(20L, otherHost);
+        Rule otherRule = TestFixtures.rule(otherSession, RuleType.CHICKEN_BONUS, Operator.PLUS, 5);
+
+        given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
+        given(ruleRepository.findById(otherRule.getId())).willReturn(Optional.of(otherRule));
+
+        assertThatThrownBy(() -> sessionService.updateRule(SESSION_ID, otherRule.getId(), 10, HOST_ID))
+                .isInstanceOf(KillnagiException.class)
+                .hasMessage("이 세션의 룰이 아닙니다.");
+    }
+
+    @Test
+    void 룰_값이_1_미만이면_예외가_발생한다() {
+        User host = TestFixtures.user(HOST_ID);
+        Session session = TestFixtures.session(SESSION_ID, host);
+        Rule rule = TestFixtures.rule(session, RuleType.CHICKEN_BONUS, Operator.PLUS, 5);
+
+        given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
+        given(ruleRepository.findById(rule.getId())).willReturn(Optional.of(rule));
+
+        assertThatThrownBy(() -> sessionService.updateRule(SESSION_ID, rule.getId(), 0, HOST_ID))
+                .isInstanceOf(KillnagiException.class)
+                .hasMessage("룰 값은 1 이상이어야 합니다.");
+    }
 }

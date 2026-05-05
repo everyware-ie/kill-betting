@@ -98,6 +98,23 @@ public class SessionService {
         session.start();
     }
 
+    @Transactional
+    public void updateRule(Long sessionId, Long ruleId, int newValue, Long userId) {
+        Session session = getSessionOrThrow(sessionId);
+        if (!session.isHostedBy(userId)) {
+            throw KillnagiException.forbidden("세션 호스트만 룰을 수정할 수 있습니다.");
+        }
+
+        Rule rule = ruleRepository.findById(ruleId)
+                .orElseThrow(() -> KillnagiException.notFound("룰을 찾을 수 없습니다."));
+
+        if (!rule.getRuleSet().getSession().getId().equals(sessionId)) {
+            throw KillnagiException.badRequest("이 세션의 룰이 아닙니다.");
+        }
+
+        rule.updateValue(newValue);
+    }
+
     public ScoreboardResponse getScoreboard(Long sessionId) {
         Session session = getSessionOrThrow(sessionId);
         List<TeamScoreResponse> teamScores = teamRepository.findBySessionId(sessionId).stream()
