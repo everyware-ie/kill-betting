@@ -2,6 +2,7 @@ package com.killnagi.domain.session.controller;
 
 import com.killnagi.common.response.ApiResponse;
 import com.killnagi.domain.match.dto.response.ScreenshotUploadResponse;
+import com.killnagi.domain.rule.dto.request.UpdateRuleRequest;
 import com.killnagi.domain.session.dto.request.CreateRequest;
 import com.killnagi.domain.session.dto.response.MatchHistoryResponse;
 import com.killnagi.domain.session.dto.response.ScoreboardResponse;
@@ -17,6 +18,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -92,5 +94,16 @@ public class SessionController implements SessionControllerDocs {
             @AuthenticationPrincipal UserDetails userDetails) {
         Long userId = Long.parseLong(userDetails.getUsername());
         return ResponseEntity.ok(ApiResponse.ok(sessionService.getMySessions(userId)));
+    }
+
+    @PutMapping("/{sessionId}/rules/{ruleId}")
+    public ResponseEntity<ApiResponse<Void>> updateRule(
+            @PathVariable Long sessionId,
+            @PathVariable Long ruleId,
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody UpdateRuleRequest request) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+        sessionService.updateRule(sessionId, ruleId, request.value(), userId);
+        return ResponseEntity.ok(ApiResponse.ok("룰이 수정되었습니다.", null));
     }
 }
