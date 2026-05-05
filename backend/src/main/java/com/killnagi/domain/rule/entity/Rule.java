@@ -43,12 +43,6 @@ public class Rule {
         this.value = value;
     }
 
-    public enum RuleType {
-        CHICKEN_BONUS,              // 치킨 달성 시 보너스
-        SURVIVAL_PENALTY,           // TOP10 진입 실패 시 패널티
-      
-    }
-  
     private void validate(RuleType ruleType, Operator operator, int value) {
         if (ruleType == null) {
             throw KillnagiException.badRequest("룰 타입은 필수입니다.");
