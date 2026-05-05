@@ -19,7 +19,9 @@ import com.killnagi.domain.session.dto.response.ScoreboardResponse;
 import com.killnagi.domain.session.dto.response.SessionResponse;
 import com.killnagi.domain.session.dto.response.TeamScoreResponse;
 import com.killnagi.domain.session.entity.Session;
+import com.killnagi.domain.session.entity.SessionUser;
 import com.killnagi.domain.session.repository.SessionRepository;
+import com.killnagi.domain.session.repository.SessionUserRepository;
 import com.killnagi.domain.team.entity.Team;
 import com.killnagi.domain.team.repository.TeamRepository;
 import com.killnagi.domain.user.entity.User;
@@ -45,6 +47,7 @@ public class SessionService {
     private static final int ROOM_CODE_LENGTH = 6;
 
     private final SessionRepository sessionRepository;
+    private final SessionUserRepository sessionUserRepository;
     private final UserRepository userRepository;
     private final TeamRepository teamRepository;
     private final RuleRepository ruleRepository;
@@ -52,6 +55,7 @@ public class SessionService {
     private final MatchRepository matchRepository;
     private final MatchResultRepository matchResultRepository;
     private final MatchService matchService;
+    private final SessionParticipantRegistry registry;
 
     @Transactional
     public SessionResponse createSession(Long hostUserId, CreateRequest request) {
@@ -95,6 +99,14 @@ public class SessionService {
         if (teams.size() < MIN_TEAMS_TO_START) {
             throw KillnagiException.badRequest("최소 " + MIN_TEAMS_TO_START + "팀이 필요합니다.");
         }
+
+        // 대기실 참여자를 SessionUser로 일괄 저장
+        userRepository.findAllById(registry.getParticipantIds(sessionId)).forEach(participant ->
+                sessionUserRepository.save(SessionUser.builder()
+                        .session(session)
+                        .user(participant)
+                        .build()));
+
         session.start();
     }
 

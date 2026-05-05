@@ -2,9 +2,8 @@ package com.killnagi.domain.team.service;
 
 import com.killnagi.common.exception.KillnagiException;
 import com.killnagi.domain.session.entity.Session;
-import com.killnagi.domain.session.entity.SessionUser;
 import com.killnagi.domain.session.repository.SessionRepository;
-import com.killnagi.domain.session.service.SessionUserService;
+import com.killnagi.domain.session.service.SessionParticipantRegistry;
 import com.killnagi.domain.team.dto.response.ConfigureStateMessage;
 import com.killnagi.domain.team.dto.response.ConfigureStateMessage.PlayerInfo;
 import com.killnagi.domain.team.dto.response.ConfigureStateMessage.TeamConfigureInfo;
@@ -32,7 +31,7 @@ public class TeamConfigureService {
     private final TeamRepository teamRepository;
     private final TeamPlayerRepository teamPlayerRepository;
     private final UserRepository userRepository;
-    private final SessionUserService sessionUserService;
+    private final SessionParticipantRegistry registry;
 
     @Transactional
     public void addPlayer(Long sessionId, Long teamId, Long hostUserId, String playerNickname) {
@@ -95,12 +94,8 @@ public class TeamConfigureService {
         Team team = findTeamInSession(teamId, sessionId);
 
         // 대기석에 있는 사용자인지 확인 (Host 본인 배정은 예외)
-        if (!session.isHostedBy(targetUserId)) {
-            boolean isInWaiting = sessionUserService.getActiveUsers(sessionId).stream()
-                    .anyMatch(su -> su.getUserId().equals(targetUserId));
-            if (!isInWaiting) {
-                throw KillnagiException.badRequest("대기석에 있는 사용자만 Leader로 배정할 수 있습니다.");
-            }
+        if (!session.isHostedBy(targetUserId) && !registry.isParticipant(sessionId, targetUserId)) {
+            throw KillnagiException.badRequest("대기석에 있는 사용자만 Leader로 배정할 수 있습니다.");
         }
 
         // 다른 팀에 이미 Leader로 배정된 경우
@@ -114,19 +109,18 @@ public class TeamConfigureService {
     }
 
     public ConfigureStateMessage buildConfigureState(Long sessionId) {
-        List<SessionUser> activeUsers = sessionUserService.getActiveUsers(sessionId);
+        List<User> participants = userRepository.findAllById(registry.getParticipantIds(sessionId));
         List<Team> teams = teamRepository.findBySessionId(sessionId);
 
-        // Leader로 배정된 userId 집합
         List<Long> assignedLeaderIds = teams.stream()
                 .filter(Team::hasLeader)
                 .map(Team::getLeaderUserId)
                 .toList();
 
-        // 대기 중인 사용자 = ACTIVE 중 Leader 아닌 사람 (Host도 대기석에 없으므로 자동 제외)
-        List<WaitingUserInfo> waitingUsers = activeUsers.stream()
-                .filter(su -> !assignedLeaderIds.contains(su.getUserId()))
-                .map(su -> new WaitingUserInfo(su.getUserId(), su.getUserNickname()))
+        // 대기 중인 사용자 = 참여자 중 Leader 아닌 사람
+        List<WaitingUserInfo> waitingUsers = participants.stream()
+                .filter(u -> !assignedLeaderIds.contains(u.getId()))
+                .map(u -> new WaitingUserInfo(u.getId(), u.getNickname()))
                 .toList();
 
         List<TeamConfigureInfo> teamInfos = teams.stream()
