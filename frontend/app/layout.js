@@ -1,5 +1,6 @@
 import './globals.css';
 import Providers from './providers';
+import Navbar from '@/components/layout/Navbar';
 
 export const metadata = {
   title: 'Kill Challenge',
@@ -16,7 +17,10 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body>
-        <Providers>{children}</Providers>
+        <Providers>
+          <Navbar />
+          {children}
+        </Providers>
       </body>
     </html>
   );

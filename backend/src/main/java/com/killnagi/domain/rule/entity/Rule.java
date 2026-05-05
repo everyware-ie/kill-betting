@@ -68,4 +68,11 @@ public class Rule {
         }
         return 0;
     }
+
+    public void updateValue(int newValue) {
+        if (newValue < MIN_VALUE) {
+            throw KillnagiException.badRequest("룰 값은 1 이상이어야 합니다.");
+        }
+        this.value = newValue;
+    }
 }
