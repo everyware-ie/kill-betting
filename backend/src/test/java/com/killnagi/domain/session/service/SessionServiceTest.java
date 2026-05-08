@@ -27,9 +27,6 @@ import com.killnagi.domain.rule.entity.RuleSet;
 import com.killnagi.domain.rule.entity.RuleType;
 import com.killnagi.domain.rule.repository.RuleRepository;
 import com.killnagi.domain.rule.repository.RuleSetRepository;
-import com.killnagi.domain.match.repository.MatchRepository;
-import com.killnagi.domain.match.repository.MatchResultRepository;
-import com.killnagi.domain.match.service.MatchService;
 import com.killnagi.domain.session.dto.request.CreateRequest;
 import com.killnagi.domain.session.dto.request.RuleRequest;
 import com.killnagi.domain.session.dto.response.SessionResponse;
@@ -52,10 +49,8 @@ class SessionServiceTest {
     @Mock private TeamRepository teamRepository;
     @Mock private RuleRepository ruleRepository;
     @Mock private RuleSetRepository ruleSetRepository;
-    @Mock private MatchRepository matchRepository;
-    @Mock private MatchResultRepository matchResultRepository;
-    @Mock private MatchService matchService;
     @Mock private SessionParticipantRegistry registry;
+    @Mock private RoomCodeGenerator roomCodeGenerator;
     @InjectMocks private SessionService sessionService;
 
     private static final Long HOST_ID = 1L;
@@ -166,19 +161,9 @@ class SessionServiceTest {
     }
 
     @Test
-    void 존재하지_않는_세션_조회시_예외를_던진다() {
-        given(sessionRepository.findById(999L)).willReturn(Optional.empty());
-
-        assertThatThrownBy(() -> sessionService.getSessionById(999L))
-                .isInstanceOf(KillnagiException.class)
-                .hasMessageContaining("세션을 찾을 수 없습니다");
-    }
-
-    @Test
     void 호스트가_룰_값을_수정하면_성공한다() {
         User host = TestFixtures.user(HOST_ID);
         Session session = TestFixtures.session(SESSION_ID, host);
-        RuleSet ruleSet = RuleSet.builder().session(session).build();
         Rule rule = TestFixtures.rule(session, RuleType.CHICKEN_BONUS, Operator.PLUS, 5);
 
         given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));

@@ -42,7 +42,6 @@ public class TestFixtures {
     public static Session session(User host) {
         return Session.builder()
                 .name("킬내기 세션")
-                .roomUrl(java.util.UUID.randomUUID().toString())
                 .roomCode(java.util.UUID.randomUUID().toString().substring(0, 6).toUpperCase())
                 .host(host)
                 .targetKills(50)

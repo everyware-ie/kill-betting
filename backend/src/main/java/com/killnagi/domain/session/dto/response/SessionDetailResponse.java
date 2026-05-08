@@ -1,5 +1,6 @@
 package com.killnagi.domain.session.dto.response;
 
+import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.session.entity.Session.SessionStatus;
 
 import java.time.LocalDateTime;
@@ -16,4 +17,19 @@ public record SessionDetailResponse(
         Integer timeLimitMinutes,
         List<RuleResponse> rules,
         LocalDateTime createdAt
-) {}
+) {
+    public static SessionDetailResponse from(Session session, List<RuleResponse> rules) {
+        return new SessionDetailResponse(
+                session.getId(),
+                session.getName(),
+                session.getRoomCode(),
+                session.getStatus(),
+                session.getHost().getId(),
+                session.getHostNickname(),
+                session.getTargetKills(),
+                session.getTimeLimitMinutes(),
+                rules,
+                session.getCreatedAt()
+        );
+    }
+}
