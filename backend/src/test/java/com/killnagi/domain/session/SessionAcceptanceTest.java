@@ -17,7 +17,7 @@ import com.killnagi.support.AcceptanceTestSupport;
 class SessionAcceptanceTest extends AcceptanceTestSupport {
 
     @Test
-    void 호스트가_세션을_생성하면_roomUrl을_발급받는다() {
+    void 호스트가_세션을_생성하면_roomCode를_발급받는다() {
         // Given
         String hostToken = 회원가입하고_토큰을_반환한다("host", "host@test.com");
 
@@ -28,25 +28,25 @@ class SessionAcceptanceTest extends AcceptanceTestSupport {
 
         // Then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        assertThat(parseBody(response).at("/data/roomUrl").asText()).isNotBlank();
+        assertThat(parseBody(response).at("/data/roomCode").asText()).isNotBlank();
         assertThat(parseBody(response).at("/data/status").asText()).isEqualTo("WAITING");
     }
 
     @Test
-    void roomUrl로_세션_정보를_조회할_수_있다() {
+    void roomCode로_세션_정보를_조회할_수_있다() {
         // Given
         String hostToken = 회원가입하고_토큰을_반환한다("host", "host@test.com");
         JsonNode created = parseBody(post("/api/sessions",
                 toJson(Map.of("name", "킬내기 세션", "targetKills", 50, "timeLimitMinutes", 60, "rules", List.of())),
                 hostToken));
-        String roomUrl = created.at("/data/roomUrl").asText();
+        String roomCode = created.at("/data/roomCode").asText();
 
         // When
-        ResponseEntity<String> response = get("/api/sessions/join/" + roomUrl, hostToken);
+        ResponseEntity<String> response = get("/api/sessions/join/" + roomCode, hostToken);
 
         // Then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(parseBody(response).at("/data/name").asText()).isEqualTo("킬내기 세션");
+        assertThat(parseBody(response).at("/data/title").asText()).isEqualTo("킬내기 세션");
     }
 
     @Test
