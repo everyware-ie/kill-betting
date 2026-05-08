@@ -195,6 +195,62 @@ function RuleEditModal({ rule, onSave, onClose }) {
   );
 }
 
+// ── SessionDetailResponse → 프론트 rule 객체 변환 ──
+function mapSessionRule(session) {
+  const findRule = (type) => (session.rules || []).find((r) => r.ruleType === type);
+  const chickenBonus = findRule('CHICKEN_BONUS');
+  const survivalPenalty = findRule('SURVIVAL_PENALTY');
+
+  return {
+    gameMode: '스쿼드',
+    targetKills: session.targetKills ?? 20,
+    noTimeLimit: session.timeLimitMinutes == null,
+    timeLimitMin: session.timeLimitMinutes ?? 60,
+    chickenBonusOn: !!chickenBonus,
+    chickenBonus: chickenBonus?.value ?? 0,
+    survivalPenaltyOn: !!survivalPenalty,
+    survivalPenalty: survivalPenalty?.value ?? 0,
+    headShotBonusOn: false,
+    headShotBonus: 0,
+    assistBonusOn: false,
+    assistBonus: 0,
+    teamKillPenaltyOn: false,
+    teamKillPenalty: 0,
+    deathPenaltyOn: false,
+    deathPenalty: 0,
+  };
+}
+
+// ── ConfigureStateMessage → setup 페이지용 데이터 변환 ──
+function mapConfigTeams(configState) {
+  return (configState.teams || []).map((t) => ({
+    id: t.teamId,
+    name: t.teamName,
+    members: t.leaderUserId
+      ? [{ userId: t.leaderUserId, username: t.leaderNickname, role: 'LEADER' }]
+      : [],
+    players: (t.players || []).map((p) => p.playerNickname),
+  }));
+}
+
+function mapConfigParticipants(configState, hostUserId) {
+  const leaders = (configState.teams || [])
+    .filter((t) => t.leaderUserId)
+    .map((t) => ({
+      userId: t.leaderUserId,
+      username: t.leaderNickname,
+      role: t.leaderUserId === hostUserId ? 'HOST' : 'MEMBER',
+    }));
+
+  const waiting = (configState.waitingUsers || []).map((u) => ({
+    userId: u.userId,
+    username: u.nickname,
+    role: u.userId === hostUserId ? 'HOST' : 'MEMBER',
+  }));
+
+  return [...leaders, ...waiting];
+}
+
 // ════════════════════════════════════════
 //  팀 구성 메인 페이지
 // ════════════════════════════════════════
@@ -213,8 +269,8 @@ export default function SetupPage() {
 
   // 현재 내가 속한 팀
   const myTeam = room?.teams.find((t) => t.members?.some((m) => m.userId === user?.id));
-  // 방장(HOST) userId — 팀 카드에서 방장 배지 표시에 사용
-  const hostUserId = room?.participants?.find((p) => p.role === 'HOST')?.userId;
+  // 방장(HOST) userId
+  const hostUserId = room?.hostUserId;
   // 내가 방장인지 여부
   const isHost = hostUserId === user?.id;
 
@@ -224,10 +280,20 @@ export default function SetupPage() {
   useEffect(() => {
     if (!user) return;
 
-    // 최초 로드
-    RoomAPI.get(roomId).then((res) => {
+    // 세션 기본 정보 로드 → sessionId 획득 후 팀 구성 상태 로드
+    RoomAPI.get(roomId).then(async (res) => {
       if (!res.success) { setError(res.error); setLoading(false); return; }
-      setRoom(res.data);
+
+      const session = res.data;
+      const configRes = await RoomAPI.getParticipants(session.id);
+      const configState = configRes.success ? configRes.data : null;
+
+      setRoom({
+        ...session,
+        rule: mapSessionRule(session),
+        teams: configState ? mapConfigTeams(configState) : [],
+        participants: configState ? mapConfigParticipants(configState, session.hostUserId) : [],
+      });
       setLoading(false);
     });
   }, [roomId, user]);
