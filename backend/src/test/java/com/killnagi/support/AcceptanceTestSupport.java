@@ -5,6 +5,9 @@ import java.util.Map;
 import com.killnagi.common.storage.FileStorageService;
 import com.killnagi.domain.session.repository.SessionUserRepository;
 import com.killnagi.domain.session.service.SessionParticipantRegistry;
+import com.killnagi.domain.team.dto.request.CreateTeamRequest;
+import com.killnagi.domain.team.service.TeamConfigureService;
+import com.killnagi.domain.team.service.TeamService;
 import com.killnagi.infra.ocr.OcrClient;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -38,6 +41,12 @@ public abstract class AcceptanceTestSupport {
 
     @Autowired
     private SessionParticipantRegistry registry;
+
+    @Autowired
+    private TeamService teamService;
+
+    @Autowired
+    private TeamConfigureService teamConfigureService;
 
     @MockBean
     protected OcrClient ocrClient;
@@ -96,18 +105,33 @@ public abstract class AcceptanceTestSupport {
     // ── Team Steps ────────────────────────────────────────────────────────────
 
     protected long 팀을_생성한다(long sessionId, String teamName, String token) {
-        return parseBody(post("/api/sessions/" + sessionId + "/teams",
-                toJson(Map.of("name", teamName)), token)).at("/data/id").asLong();
+        Long userId = 사용자_ID를_조회한다(token);
+        return teamService.createTeam(sessionId, userId, new CreateTeamRequest(teamName)).id();
     }
 
     protected void 플레이어를_추가한다(long sessionId, long teamId, String nickname, String token) {
-        post("/api/sessions/" + sessionId + "/teams/" + teamId + "/players",
-                toJson(Map.of("playerNickname", nickname)), token);
+        Long userId = 사용자_ID를_조회한다(token);
+        teamConfigureService.addPlayer(sessionId, teamId, userId, nickname);
     }
 
-    protected void 리더를_배정한다(long sessionId, long teamId, long userId, String token) {
-        put("/api/sessions/" + sessionId + "/teams/" + teamId + "/leader",
-                toJson(Map.of("userId", userId)), token);
+    protected void 리더를_배정한다(long sessionId, long teamId, long targetUserId, String token) {
+        Long hostUserId = 사용자_ID를_조회한다(token);
+        teamConfigureService.assignLeader(sessionId, teamId, hostUserId, targetUserId);
+    }
+
+    protected void 팀_플레이어_닉네임을_수정한다(long sessionId, long teamId, long playerId, String nickname, String token) {
+        Long userId = 사용자_ID를_조회한다(token);
+        teamConfigureService.updatePlayer(sessionId, teamId, playerId, userId, nickname);
+    }
+
+    protected void 팀_플레이어를_제거한다(long sessionId, long teamId, long playerId, String token) {
+        Long userId = 사용자_ID를_조회한다(token);
+        teamConfigureService.removePlayer(sessionId, teamId, playerId, userId);
+    }
+
+    protected void 리더를_해제한다(long sessionId, long teamId, String token) {
+        Long hostUserId = 사용자_ID를_조회한다(token);
+        teamConfigureService.unassignLeader(sessionId, teamId, hostUserId);
     }
 
     // ── Match Steps ───────────────────────────────────────────────────────────
