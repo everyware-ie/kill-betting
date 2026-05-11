@@ -56,6 +56,15 @@ public class Match {
     @Column(name = "failed_top10_count", nullable = false)
     private long failedTop10Count = 0;
 
+    @Column(name = "match_kill_count", nullable = false)
+    private int matchKillCount = 0;
+
+    @Column(name = "match_bonus_score", nullable = false)
+    private int matchBonusScore = 0;
+
+    @Column(name = "match_penalty_score", nullable = false)
+    private int matchPenaltyScore = 0;
+
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -91,8 +100,8 @@ public class Match {
     }
 
     private void accumulateKills(List<MatchResult> matchResults) {
-        int totalKills = matchResults.stream().mapToInt(MatchResult::getKills).sum();
-        this.team.addKills(totalKills);
+        this.matchKillCount = matchResults.stream().mapToInt(MatchResult::getKills).sum();
+        this.team.addKills(this.matchKillCount);
         matchResults.forEach(matchResult -> matchResult.getTeamPlayer().addKills(matchResult.getKills()));
     }
 
@@ -105,7 +114,15 @@ public class Match {
     }
 
     private void applyRules(List<Rule> rules) {
-        rules.forEach(rule -> this.team.addRuleScore(rule.calculateScore(this.isChicken, this.failedTop10Count)));
+        rules.forEach(rule -> {
+            int score = rule.calculateScore(this.isChicken, this.failedTop10Count);
+            this.team.addRuleScore(score);
+            if (score > 0) {
+                this.matchBonusScore += score;
+            } else if (score < 0) {
+                this.matchPenaltyScore += -score;
+            }
+        });
     }
 
     public void updateScreenshotUrl(String screenshotUrl) {

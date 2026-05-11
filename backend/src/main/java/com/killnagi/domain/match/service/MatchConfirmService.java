@@ -49,28 +49,22 @@ public class MatchConfirmService {
                 request.isChicken(), request.mapName(), request.placement(), request.playTime());
         match.confirm(results, rules, confirmData);
 
-        eventPublisher.publishEvent(buildEvent(match, results, rules));
+        eventPublisher.publishEvent(buildEvent(match, results));
         return new ConfirmResponse(matchId, match.getStatus().name());
     }
 
-    private MatchConfirmedEvent buildEvent(Match match, List<MatchResult> results, List<Rule> rules) {
+    private MatchConfirmedEvent buildEvent(Match match, List<MatchResult> results) {
         return new MatchConfirmedEvent(
                 match.getId(), match.getSession().getId(), match.getMatchNumber(),
                 match.getMapName(), LocalDateTime.now(),
-                buildTeamSnapshot(match, results, rules),
+                buildTeamSnapshot(match),
                 buildMemberSnapshots(results));
     }
 
-    private TeamSnapshot buildTeamSnapshot(Match match, List<MatchResult> results, List<Rule> rules) {
-        int matchKillDelta = results.stream().mapToInt(MatchResult::getKills).sum();
-        List<Integer> ruleScores = rules.stream()
-                .map(r -> r.calculateScore(match.isChicken(), match.getFailedTop10Count()))
-                .toList();
-        int bonusScore = ruleScores.stream().filter(s -> s > 0).mapToInt(Integer::intValue).sum();
-        int penaltyScore = ruleScores.stream().filter(s -> s < 0).mapToInt(s -> -s).sum();
+    private TeamSnapshot buildTeamSnapshot(Match match) {
         return new TeamSnapshot(
-                match.getTeam().getId(), match.getTeam().getName(), matchKillDelta,
-                match.getTeam().getEffectiveKills(), bonusScore, penaltyScore);
+                match.getTeam().getId(), match.getTeam().getName(), match.getMatchKillCount(),
+                match.getTeam().getEffectiveKills(), match.getMatchBonusScore(), match.getMatchPenaltyScore());
     }
 
     private List<MemberSnapshot> buildMemberSnapshots(List<MatchResult> results) {
