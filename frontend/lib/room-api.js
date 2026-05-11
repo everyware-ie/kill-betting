@@ -140,207 +140,16 @@ export const RoomAPI = {
     return apiFetch(`/sessions/join/${roomCode}`);
   },
 
-  /**
-   * 팀 참여 (로그인 유저가 세션에 들어옴)
-   *
-   * [실제 API]
-   *   POST /sessions/:sessionId/join
-   *   Response 200: { ok }
-   *
-   * [동작]
-   *   - 로그인 유저가 세션에 입장
-   */
-  joinTeam: async (roomId, teamId, user) => {
-    if (USE_MOCK) {
-      await delay(200);
-      const room = _runtimeRooms.find((r) => r.id === roomId);
-      if (!room) return err('방을 찾을 수 없습니다');
-
-      // 이동할 팀에 이미 다른 유저가 있으면 불가 (팀당 1명 제한)
-      const targetTeam = room.teams.find((t) => t.id === teamId);
-      const alreadyOccupied = (targetTeam?.members || []).some((m) => m.userId !== user.id);
-      if (alreadyOccupied) return err('이미 다른 팀원이 있는 팀입니다');
-
-      // 기존 팀에서 제거
-      room.teams = room.teams.map((t) => ({
-        ...t,
-        members: (t.members || []).filter((m) => m.userId !== user.id),
-      }));
-
-      // 새 팀에 추가 — 팀당 1명이므로 항상 LEADER
-      room.teams = room.teams.map((t) => {
-        if (t.id !== teamId) return t;
-        return {
-          ...t,
-          members: [{
-            userId:   user.id,
-            username: user.username,
-            role:     'LEADER',
-          }],
-        };
-      });
-
-      return ok({ teams: room.teams });
-    }
-    return apiFetch(`/sessions/${roomId}/join`, { method: 'POST' });
-  },
-
-  /**
-   * 팀 나가기
-   *
-   * [실제 API]
-   *   DELETE /sessions/:sessionId/leave
-   *   Response 200: { ok }
-   *
-   * [동작]
-   *   - 로그인 유저가 세션에서 퇴장
-   */
-  leaveTeam: async (roomId, teamId, userId) => {
-    if (USE_MOCK) {
-      await delay(200);
-      const room = _runtimeRooms.find((r) => r.id === roomId);
-      if (!room) return err('방을 찾을 수 없습니다');
-
-      room.teams = room.teams.map((t) => {
-        if (t.id !== teamId) return t;
-        const remaining = t.members.filter((m) => m.userId !== userId);
-        // LEADER 없으면 첫 번째 MEMBER를 LEADER로 승격
-        const hasLeader = remaining.some((m) => m.role === 'LEADER');
-        if (!hasLeader && remaining.length > 0) {
-          remaining[0] = { ...remaining[0], role: 'LEADER' };
-        }
-        return { ...t, members: remaining };
-      });
-
-      return ok({ teams: room.teams });
-    }
-    return apiFetch(`/sessions/${roomId}/leave`, { method: 'DELETE' });
-  },
-
-  /**
-   * 리더(Leader) 위임
-   *
-   * [실제 API]
-   *   PUT /sessions/:sessionId/teams/:teamId/leader
-   *   Body: { userId: string }
-   *   Response 200: { ok }
-   *
-   * [권한]
-   *   현재 LEADER만 위임 가능
-   */
-  setLeader: async (roomId, teamId, newLeaderUserId) => {
-    if (USE_MOCK) {
-      await delay(200);
-      const room = _runtimeRooms.find((r) => r.id === roomId);
-      if (!room) return err('방을 찾을 수 없습니다');
-
-      room.teams = room.teams.map((t) => {
-        if (t.id !== teamId) return t;
-        return {
-          ...t,
-          members: t.members.map((m) => ({
-            ...m,
-            role: m.userId === newLeaderUserId ? 'LEADER' : 'MEMBER',
-          })),
-        };
-      });
-
-      return ok({ teams: room.teams });
-    }
-    return apiFetch(`/sessions/${roomId}/teams/${teamId}/leader`, {
-      method: 'PUT',
-      body: JSON.stringify({ userId: newLeaderUserId }),
-    });
-  },
-
-  /**
-   * 룰 수정 (팀 구성 화면에서 [룰 수정] 버튼 → 모달 → [저장하기])
-   *
-   * [실제 API]
-   *   PUT /sessions/:sessionId/rule
-   *   Body: { rule: RuleObject }
-   *   Response 200: { rule }
-   *
-   * [NOTE] 백엔드 미구현 상태 - 추후 구현 예정
-   */
-  updateRule: async (roomId, rule) => {
+  // TODO: 백엔드 API 경로 불일치 — 백엔드: PUT /sessions/{id}/rules/{ruleId}, 프론트: 전체 룰 일괄 수정
+  updateRule: async (sessionId, rule) => {
     if (USE_MOCK) {
       await delay(250);
-      const room = _runtimeRooms.find((r) => r.id === roomId);
+      const room = _runtimeRooms.find((r) => r.id === sessionId);
       if (!room) return err('방을 찾을 수 없습니다');
       room.rule = { ...rule };
       return ok({ rule });
     }
-    return apiFetch(`/sessions/${roomId}/rule`, {
-      method: 'PUT',
-      body: JSON.stringify({ rule }),
-    });
-  },
-
-  /**
-   * 팀 구성 업데이트 (닉네임 추가/삭제)
-   *
-   * [실제 API]
-   *   PUT /sessions/:sessionId/teams
-   *   Body: { teams: [{ id, name, players: string[] }] }
-   *         players = 배그 닉네임 문자열 배열
-   *   Response 200: { teams }
-   *
-   * [참고]
-   *   players 는 배그 닉네임 문자열만 저장합니다.
-   *   유저 계정과 연동하지 않습니다.
-   */
-  updateTeams: async (roomId, teams) => {
-    if (USE_MOCK) {
-      await delay(250);
-      const room = _runtimeRooms.find((r) => r.id === roomId);
-      if (!room) return err('방을 찾을 수 없습니다');
-      room.teams = teams;
-      return ok({ teams });
-    }
-    return apiFetch(`/sessions/${roomId}/teams`, {
-      method: 'PUT',
-      body: JSON.stringify({ teams }),
-    });
-  },
-
-  /**
-   * 팀 추가
-   *
-   * [실제 API]
-   *   POST /sessions/:sessionId/teams
-   *   Body: { name: "TEAM-ABC123" }  ← 랜덤 이름
-   *   Response 201: { team }
-   *
-   * [제한] 최대 6팀
-   */
-  addTeam: async (roomId) => {
-    // 랜덤 팀 이름 생성 (예: TEAM-A1B2C3)
-    const generateRandomTeamName = () => {
-      const NAMES = ['ALPHA', 'BRAVO', 'CHARLIE', 'DELTA', 'ECHO', 'FOXTROT', 'GOLF', 'HOTEL', 'INDIA', 'JULIET'];
-      const randomName = NAMES[Math.floor(Math.random() * NAMES.length)];
-      const randomSuffix = Math.random().toString(36).substring(2, 8).toUpperCase();
-      return `${randomName}-${randomSuffix}`;
-    };
-
-    if (USE_MOCK) {
-      await delay(200);
-      const room = _runtimeRooms.find((r) => r.id === roomId);
-      if (!room) return err('방을 찾을 수 없습니다');
-      if (room.teams.length >= 6) return err('최대 6팀까지 가능합니다');
-      const newTeam = {
-        id:      `team-${Date.now()}`,
-        name:    generateRandomTeamName(),
-        players: [],
-        members: [],   // ← 누락 시 joinTeam에서 t.members.filter() 오류 발생
-      };
-      room.teams.push(newTeam);
-      return ok({ teams: room.teams });
-    }
-    return apiFetch(`/sessions/${roomId}/teams`, {
-      method: 'POST',
-      body: JSON.stringify({ name: generateRandomTeamName() }),
-    });
+    return err('백엔드 미구현');
   },
 
   /**
@@ -448,68 +257,48 @@ export const RoomAPI = {
     return res.json().catch(() => ({}));
   },
 
-  /**
-   * 점수 수동 조정 (운영자 전용)
-   *
-   * [실제 API]
-   *   POST /sessions/:sessionId/adjustments
-   *   Body: { teamId, amount, reason }
-   *   Response 200: { adjustments }
-   *
-   * [NOTE] 백엔드 미구현 상태 - 추후 구현 예정
-   */
-  addAdjustment: async (roomId, teamId, amount, reason) => {
+  // TODO: 백엔드 미구현 상태 — 추후 구현 예정
+  addAdjustment: async (sessionId, teamId, amount, reason) => {
     if (USE_MOCK) {
       await delay(200);
-      const room = _runtimeRooms.find((r) => r.id === roomId);
+      const room = _runtimeRooms.find((r) => r.id === sessionId);
       if (!room) return err('방을 찾을 수 없습니다');
       if (!room.adjustments) room.adjustments = [];
       const adj = { id: `adj-${Date.now()}`, teamId, amount, reason, createdAt: new Date().toISOString() };
       room.adjustments.push(adj);
       return ok({ adjustments: room.adjustments });
     }
-    return apiFetch(`/sessions/${roomId}/adjustments`, {
-      method: 'POST',
-      body: JSON.stringify({ teamId, amount, reason }),
-    });
+    return err('백엔드 미구현');
   },
 
-  /**
-   * 킬내기 종료
-   *
-   * [실제 API]
-   *   POST /sessions/:sessionId/end
-   *   Response 200: { ok }
-   *
-   * [NOTE] 백엔드 미구현 상태 - 추후 구현 예정
-   */
-  end: async (roomId) => {
+  // TODO: 백엔드 미구현 상태 — 추후 구현 예정
+  end: async (sessionId) => {
     if (USE_MOCK) {
       await delay(300);
-      const room = _runtimeRooms.find((r) => r.id === roomId);
+      const room = _runtimeRooms.find((r) => r.id === sessionId);
       if (!room) return err('방을 찾을 수 없습니다');
       room.status = 'DONE';
       room.endedAt = new Date().toISOString();
       return ok({ room });
     }
-    return apiFetch(`/sessions/${roomId}/end`, { method: 'POST' });
+    return err('백엔드 미구현');
   },
 
   /**
-   * 방 참여자 목록 조회
+   * 팀 목록 조회
    *
    * [실제 API]
-   *   GET /sessions/:sessionId/participants
-   *   Response 200: { configureState: ConfigureStateMessage }
+   *   GET /sessions/:sessionId/teams
+   *   Response 200: { success, data: TeamResponse[] }
    */
-  getParticipants: async (roomId) => {
+  getTeams: async (sessionId) => {
     if (USE_MOCK) {
       await delay(150);
-      const room = _runtimeRooms.find((r) => r.id === roomId);
+      const room = _runtimeRooms.find((r) => r.id === sessionId);
       if (!room) return err('방을 찾을 수 없습니다');
-      return ok({ participants: room.participants || [] });
+      return ok(room.teams || []);
     }
-    return apiFetch(`/sessions/${roomId}/participants`);
+    return apiFetch(`/sessions/${sessionId}/teams`);
   },
 
   /**
