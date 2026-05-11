@@ -7,10 +7,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import com.killnagi.common.exception.KillnagiException;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.user.entity.User;
 import com.killnagi.support.TestFixtures;
-import org.junit.jupiter.api.DisplayName;
 
 @DisplayName("Team 엔티티 도메인 로직 테스트")
 class TeamTest {
@@ -78,5 +78,39 @@ class TeamTest {
         team.addRuleScore(3);
         team.addRuleScore(-2);
         assertThat(team.getEffectiveKills()).isEqualTo(11);
+    }
+
+    @Test
+    void 초기_팀은_리더가_없다() {
+        assertThat(team.hasLeader()).isFalse();
+        assertThat(team.getLeaderUserId()).isNull();
+        assertThat(team.getLeaderNickname()).isNull();
+    }
+
+    @Test
+    void 리더를_배정하면_hasLeader가_true가_된다() {
+        User leader = TestFixtures.user(10L, "리더", "leader@test.com");
+        team.assignLeader(leader);
+        assertThat(team.hasLeader()).isTrue();
+        assertThat(team.getLeaderUserId()).isEqualTo(10L);
+        assertThat(team.getLeaderNickname()).isEqualTo("리더");
+    }
+
+    @Test
+    void 리더를_해제하면_hasLeader가_false가_된다() {
+        User leader = TestFixtures.user(10L, "리더", "leader@test.com");
+        team.assignLeader(leader);
+        team.unassignLeader();
+        assertThat(team.hasLeader()).isFalse();
+        assertThat(team.getLeaderUserId()).isNull();
+    }
+
+    @Test
+    void 리더를_교체하면_새_리더로_변경된다() {
+        User first = TestFixtures.user(10L, "첫번째", "first@test.com");
+        User second = TestFixtures.user(11L, "두번째", "second@test.com");
+        team.assignLeader(first);
+        team.assignLeader(second);
+        assertThat(team.getLeaderUserId()).isEqualTo(11L);
     }
 }

@@ -56,6 +56,10 @@ public class Team {
         this.leader = leader;
     }
 
+    public void unassignLeader() {
+        this.leader = null;
+    }
+
     public boolean hasLeader() {
         return this.leader != null;
     }

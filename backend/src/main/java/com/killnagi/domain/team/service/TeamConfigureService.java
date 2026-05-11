@@ -108,6 +108,19 @@ public class TeamConfigureService {
         team.assignLeader(leader);
     }
 
+    @Transactional
+    public void unassignLeader(Long sessionId, Long teamId, Long hostUserId) {
+        Session session = findWaitingSession(sessionId);
+        validateHost(session, hostUserId);
+
+        Team team = findTeamInSession(teamId, sessionId);
+
+        if (!team.hasLeader()) {
+            throw KillnagiException.badRequest("배정된 Leader가 없습니다.");
+        }
+        team.unassignLeader();
+    }
+
     public ConfigureStateMessage buildConfigureState(Long sessionId) {
         List<User> participants = userRepository.findAllById(registry.getParticipantIds(sessionId));
         List<Team> teams = teamRepository.findBySessionId(sessionId);

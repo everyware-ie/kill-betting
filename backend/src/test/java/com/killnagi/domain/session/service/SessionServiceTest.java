@@ -18,6 +18,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.killnagi.common.exception.KillnagiException;
+import com.killnagi.domain.match.repository.MatchRepository;
+import com.killnagi.domain.match.repository.MatchResultRepository;
+import com.killnagi.domain.match.service.MatchService;
 import com.killnagi.domain.rule.entity.Operator;
 import com.killnagi.domain.rule.entity.Rule;
 import com.killnagi.domain.rule.entity.RuleSet;
@@ -29,6 +32,7 @@ import com.killnagi.domain.session.dto.request.RuleRequest;
 import com.killnagi.domain.session.dto.response.SessionResponse;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.session.repository.SessionRepository;
+import com.killnagi.domain.session.repository.SessionUserRepository;
 import com.killnagi.domain.team.entity.Team;
 import com.killnagi.domain.team.repository.TeamRepository;
 import com.killnagi.domain.user.entity.User;
@@ -40,10 +44,15 @@ import com.killnagi.support.TestFixtures;
 class SessionServiceTest {
 
     @Mock private SessionRepository sessionRepository;
+    @Mock private SessionUserRepository sessionUserRepository;
     @Mock private UserRepository userRepository;
     @Mock private TeamRepository teamRepository;
     @Mock private RuleRepository ruleRepository;
     @Mock private RuleSetRepository ruleSetRepository;
+    @Mock private MatchRepository matchRepository;
+    @Mock private MatchResultRepository matchResultRepository;
+    @Mock private MatchService matchService;
+    @Mock private SessionParticipantRegistry registry;
     @InjectMocks private SessionService sessionService;
 
     private static final Long HOST_ID = 1L;
