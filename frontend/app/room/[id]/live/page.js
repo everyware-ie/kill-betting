@@ -784,7 +784,8 @@ function AdminModal({ room, onAdjust, onEnd, onRuleUpdate, onClose }) {
 
 export default function LivePage() {
   const router = useRouter();
-  const { id: roomId } = useParams();
+  const { id: roomCode } = useParams();
+  const [sessionId, setSessionId] = useState(null);
   const { user } = useAuth();
 
   const [room,           setRoom]           = useState(null);
@@ -810,15 +811,17 @@ export default function LivePage() {
   // ── 초기 로드 ──
   useEffect(() => {
     if (!user) return;
-    Promise.all([
-      RoomAPI.get(roomId),
-      RoomAPI.getMatches(roomId),
-    ]).then(([roomRes, matchRes]) => {
-      if (roomRes.success)  { setRoom(roomRes.data); setAdjs(roomRes.data.adjustments || []); }
+    RoomAPI.get(roomCode).then(async (roomRes) => {
+      if (!roomRes.success) { setLoading(false); return; }
+      const session = roomRes.data;
+      setSessionId(session.id);
+      setRoom(session);
+      setAdjs(session.adjustments || []);
+      const matchRes = await RoomAPI.getMatches(session.id);
       if (matchRes.success) setMatches(matchRes.data);
       setLoading(false);
     });
-  }, [roomId, user]);
+  }, [roomCode, user]);
 
   // ── 타이머 (1초마다) ──
   useEffect(() => {
@@ -831,17 +834,18 @@ export default function LivePage() {
   // 실패 시 화면 상단에 오류 배너 표시, 복구되면 자동으로 사라짐
   // ※ 추후 WebSocket 전환 시 이 useEffect를 교체하고 setPollError 호출 위치만 바꾸면 됨
   useEffect(() => {
+    if (!sessionId) return;
     const id = setInterval(async () => {
-      const matchRes = await RoomAPI.getMatches(roomId);
+      const matchRes = await RoomAPI.getMatches(sessionId);
       if (matchRes.success) {
-        setMatches(matchRes.matches);
-        setPollError(false);  // 복구되면 배너 제거
+        setMatches(matchRes.data);
+        setPollError(false);
       } else {
-        setPollError(true);   // 실패하면 배너 표시
+        setPollError(true);
       }
     }, 5000);
     return () => clearInterval(id);
-  }, [roomId]);
+  }, [sessionId]);
 
   // ── 결과 입력 모달 열기 ──
   // 이 팀이 지금까지 몇 게임을 끝냈는지 계산해서 모달 타이틀에 표시
@@ -858,7 +862,7 @@ export default function LivePage() {
   // 다른 팀의 진행과 무관하게 즉시 스코어보드에 반영
   // screenshotFile: OCR에 사용한 이미지 파일 (없으면 null)
   const handleSubmitTeamResult = async (results, claimsChicken, screenshotFile) => {
-    const res = await RoomAPI.addTeamMatch(roomId, selectedTeamId, results, claimsChicken);
+    const res = await RoomAPI.addTeamMatch(sessionId, selectedTeamId, results, claimsChicken);
     if (!res.success) { setMatchError(res.error); return; }
 
     let match = res.match;
@@ -866,7 +870,7 @@ export default function LivePage() {
     // 스크린샷이 있으면 업로드 완료까지 모달을 유지 (버튼 로딩 상태 표시됨)
     // 업로드 실패해도 매치 결과 자체는 정상 등록됨
     if (screenshotFile) {
-      const uploadRes = await RoomAPI.uploadMatchScreenshot(roomId, match.id, screenshotFile);
+      const uploadRes = await RoomAPI.uploadMatchScreenshot(sessionId, match.id, screenshotFile);
       if (uploadRes.success) match = { ...match, screenshotUrl: uploadRes.data.screenshotUrl };
     }
 
@@ -880,7 +884,7 @@ export default function LivePage() {
 
   // ── 점수 조정 ──
   const handleAdjust = async (teamId, amount, reason) => {
-    const res = await RoomAPI.addAdjustment(roomId, teamId, amount, reason);
+    const res = await RoomAPI.addAdjustment(sessionId, teamId, amount, reason);
     if (res.success) setAdjs(res.data.adjustments);
   };
 
@@ -888,14 +892,14 @@ export default function LivePage() {
   // 운영자가 진행 중에 목표 킬·보너스·패널티 등을 수정할 수 있음
   // 저장 후 room 상태를 갱신하면 calcTeamScore 등이 즉시 새 룰로 재계산됨
   const handleRuleUpdate = async (newRule) => {
-    const res = await RoomAPI.updateRule(roomId, newRule);
+    const res = await RoomAPI.updateRule(sessionId, newRule);
     if (res.success) setRoom((prev) => ({ ...prev, rule: res.data.rule || newRule }));
   };
 
   // ── 경기 종료 ──
   const handleEnd = async () => {
-    const res = await RoomAPI.end(roomId);
-    if (res.success) router.push(`/room/${roomId}/result`);
+    const res = await RoomAPI.end(sessionId);
+    if (res.success) router.push(`/room/${roomCode}/result`);
   };
 
   if (loading) return (

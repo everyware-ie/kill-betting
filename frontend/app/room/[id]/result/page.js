@@ -101,7 +101,7 @@ function RankBadge({ rank }) {
 
 export default function ResultPage() {
   const router  = useRouter();
-  const { id: roomId } = useParams();
+  const { id: roomCode } = useParams();
   const { user } = useAuth();
 
   const [room,    setRoom]    = useState(null);
@@ -110,17 +110,17 @@ export default function ResultPage() {
   const [error,   setError]   = useState('');
 
   // ── 데이터 로드 ──
-  // TODO: API 연결 필요 — RoomAPI.get()과 RoomAPI.getMatches()가 실제 백엔드를 바라보도록
-  //       lib/api.js 의 USE_MOCK = false 로 변경 후 API_BASE_URL 설정
   useEffect(() => {
     if (!user) return;
-    Promise.all([RoomAPI.get(roomId), RoomAPI.getMatches(roomId)]).then(([roomRes, matchRes]) => {
+    RoomAPI.get(roomCode).then(async (roomRes) => {
       if (!roomRes.success) { setError(roomRes.error); setLoading(false); return; }
-      setRoom(roomRes.data);
+      const session = roomRes.data;
+      setRoom(session);
+      const matchRes = await RoomAPI.getMatches(session.id);
       if (matchRes.success) setMatches(matchRes.data);
       setLoading(false);
     });
-  }, [roomId, user]);
+  }, [roomCode, user]);
 
   // ── 로그인 체크 ──
   useEffect(() => {
