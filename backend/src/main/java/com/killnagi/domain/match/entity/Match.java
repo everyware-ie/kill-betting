@@ -40,6 +40,12 @@ public class Match {
     @Column(name = "map_name", length = 50)
     private String mapName;
 
+    @Column(name = "placement")
+    private Integer placement;
+
+    @Column(name = "play_time", length = 20)
+    private String playTime;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private MatchStatus status = MatchStatus.PENDING;
@@ -53,6 +59,8 @@ public class Match {
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    public record MatchConfirmData(boolean isChicken, String mapName, int placement, String playTime) {}
 
     private static final int MIN_MATCH_NUMBER = 1;
 
@@ -71,13 +79,13 @@ public class Match {
         }
     }
 
-    public void confirm(List<MatchResult> matchResults, List<Rule> rules, boolean isChicken) {
+    public void confirm(List<MatchResult> matchResults, List<Rule> rules, MatchConfirmData data) {
         if (!isConfirmable()) {
             throw KillnagiException.badRequest("이미 확정된 매치는 다시 확정할 수 없습니다.");
         }
 
         accumulateKills(matchResults);
-        computeMatchStats(matchResults, isChicken);
+        computeMatchStats(matchResults, data);
         applyRules(rules);
         this.status = MatchStatus.CONFIRMED;
     }
@@ -88,8 +96,11 @@ public class Match {
         matchResults.forEach(matchResult -> matchResult.getTeamPlayer().addKills(matchResult.getKills()));
     }
 
-    private void computeMatchStats(List<MatchResult> matchResults, boolean isChicken) {
-        this.isChicken = isChicken;
+    private void computeMatchStats(List<MatchResult> matchResults, MatchConfirmData data) {
+        this.isChicken = data.isChicken();
+        this.mapName = data.mapName();
+        this.placement = data.placement();
+        this.playTime = data.playTime();
         this.failedTop10Count = matchResults.stream().filter(r -> !r.isTop10()).count();
     }
 

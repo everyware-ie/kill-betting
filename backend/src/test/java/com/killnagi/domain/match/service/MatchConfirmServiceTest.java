@@ -34,6 +34,7 @@ import com.killnagi.domain.team.repository.TeamPlayerRepository;
 import com.killnagi.domain.team.repository.TeamRepository;
 import com.killnagi.domain.user.entity.User;
 import com.killnagi.support.TestFixtures;
+import org.springframework.context.ApplicationEventPublisher;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("MatchConfirmService 매치 결과 확정 테스트")
@@ -44,6 +45,7 @@ class MatchConfirmServiceTest {
     @Mock private TeamPlayerRepository teamPlayerRepository;
     @Mock private RuleRepository ruleRepository;
     @Mock private TeamRepository teamRepository;
+    @Mock private ApplicationEventPublisher eventPublisher;
     @InjectMocks private MatchConfirmService matchConfirmService;
 
     private static final Long MATCH_ID = 1L;
@@ -192,10 +194,12 @@ class MatchConfirmServiceTest {
     }
 
     private ConfirmRequest confirmRequest(String nickname, int kills, int placement, boolean isTop10) {
-        return new ConfirmRequest(List.of(new PlayerResult(nickname, kills, placement, isTop10)), false);
+        return new ConfirmRequest("에란겔", placement, "25:30",
+                List.of(new PlayerResult(nickname, kills, placement, isTop10)), false);
     }
 
     private ConfirmRequest chickenConfirmRequest(String nickname, int kills) {
-        return new ConfirmRequest(List.of(new PlayerResult(nickname, kills, 1, true)), true);
+        return new ConfirmRequest("에란겔", 1, "25:30",
+                List.of(new PlayerResult(nickname, kills, 1, true)), true);
     }
 }

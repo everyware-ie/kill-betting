@@ -5,18 +5,25 @@ import com.killnagi.domain.match.dto.request.ConfirmRequest;
 import com.killnagi.domain.match.dto.request.ConfirmRequest.PlayerResult;
 import com.killnagi.domain.match.dto.response.ConfirmResponse;
 import com.killnagi.domain.match.entity.Match;
+import com.killnagi.domain.match.entity.Match.MatchConfirmData;
 import com.killnagi.domain.match.entity.MatchResult;
+import com.killnagi.domain.match.event.MatchConfirmedEvent;
+import com.killnagi.domain.match.event.MemberSnapshot;
+import com.killnagi.domain.match.event.TeamSnapshot;
 import com.killnagi.domain.match.repository.MatchRepository;
 import com.killnagi.domain.match.repository.MatchResultRepository;
 import com.killnagi.domain.rule.entity.Rule;
 import com.killnagi.domain.rule.repository.RuleRepository;
+import com.killnagi.domain.team.entity.Team;
 import com.killnagi.domain.team.entity.TeamPlayer;
 import com.killnagi.domain.team.repository.TeamPlayerRepository;
 import com.killnagi.domain.team.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,6 +36,7 @@ public class MatchConfirmService {
     private final TeamPlayerRepository teamPlayerRepository;
     private final RuleRepository ruleRepository;
     private final TeamRepository teamRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public ConfirmResponse confirm(Long matchId, Long requesterId, ConfirmRequest request) {
@@ -38,8 +46,45 @@ public class MatchConfirmService {
         List<MatchResult> results = createAndSaveMatchResults(match, request.playerResults());
 
         List<Rule> rules = ruleRepository.findByRuleSetSessionIdAndEnabled(match.getSession().getId(), true);
-        match.confirm(results, rules, request.isChicken());
+        MatchConfirmData confirmData = new MatchConfirmData(
+                request.isChicken(), request.mapName(), request.placement(), request.playTime());
+        match.confirm(results, rules, confirmData);
+
+        eventPublisher.publishEvent(buildEvent(match, results, rules));
         return new ConfirmResponse(matchId, match.getStatus().name());
+    }
+
+    private MatchConfirmedEvent buildEvent(Match match, List<MatchResult> results, List<Rule> rules) {
+        Team team = match.getTeam();
+        int matchKillDelta = results.stream().mapToInt(MatchResult::getKills).sum();
+        int bonusScore = rules.stream()
+                .mapToInt(r -> r.calculateScore(match.isChicken(), match.getFailedTop10Count()))
+                .filter(s -> s > 0)
+                .sum();
+        int penaltyScore = rules.stream()
+                .mapToInt(r -> r.calculateScore(match.isChicken(), match.getFailedTop10Count()))
+                .filter(s -> s < 0)
+                .map(Math::abs)
+                .sum();
+
+        TeamSnapshot teamSnapshot = new TeamSnapshot(
+                team.getId(), team.getName(), matchKillDelta,
+                team.getEffectiveKills(), bonusScore, penaltyScore);
+
+        List<MemberSnapshot> memberSnapshots = results.stream()
+                .map(r -> new MemberSnapshot(
+                        r.getTeamPlayer().getId(),
+                        r.getTeamPlayer().getPlayerNickname(),
+                        r.getKills(),
+                        r.getTeamPlayer().getBonusKills(),
+                        r.getTeamPlayer().getPenaltyKills(),
+                        r.getKills(),
+                        r.getTeamPlayer().getEffectiveKills()))
+                .toList();
+
+        return new MatchConfirmedEvent(
+                match.getId(), match.getSession().getId(), match.getMatchNumber(),
+                match.getMapName(), LocalDateTime.now(), teamSnapshot, memberSnapshots);
     }
 
     private Match findValidMatch(Long matchId) {
