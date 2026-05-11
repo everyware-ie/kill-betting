@@ -114,6 +114,21 @@ public class Session {
         return this.status == SessionStatus.WAITING;
     }
 
+    public boolean isInProgress() {
+        return this.status == SessionStatus.IN_PROGRESS;
+    }
+
+    public boolean isExpired(LocalDateTime now) {
+        if (timeLimitMinutes == null || startedAt == null) {
+            return false;
+        }
+        return startedAt.plusMinutes(timeLimitMinutes).isBefore(now);
+    }
+
+    public boolean hasKillLimit() {
+        return targetKills != null;
+    }
+
     public boolean isHostedBy(Long userId) {
         return this.host.hasId(userId);
     }

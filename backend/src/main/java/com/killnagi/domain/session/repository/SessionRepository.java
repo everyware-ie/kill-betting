@@ -27,4 +27,6 @@ public interface SessionRepository extends JpaRepository<Session, Long> {
     boolean existsByRoomCode(String roomCode);
 
     List<Session> findByStatus(Session.SessionStatus status);
+
+    List<Session> findByStatusAndTimeLimitMinutesIsNotNull(Session.SessionStatus status);
 }

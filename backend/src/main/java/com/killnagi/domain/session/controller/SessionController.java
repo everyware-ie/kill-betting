@@ -7,6 +7,7 @@ import com.killnagi.domain.session.dto.request.CreateRequest;
 import com.killnagi.domain.session.dto.response.MatchHistoryResponse;
 import com.killnagi.domain.session.dto.response.ScoreboardResponse;
 import com.killnagi.domain.session.dto.response.SessionResponse;
+import com.killnagi.domain.session.service.SessionEndService;
 import com.killnagi.domain.session.service.SessionService;
 import com.killnagi.domain.session.controller.docs.SessionControllerDocs;
 import jakarta.validation.Valid;
@@ -33,6 +34,7 @@ import java.util.List;
 public class SessionController implements SessionControllerDocs {
 
     private final SessionService sessionService;
+    private final SessionEndService sessionEndService;
 
     @PostMapping
     public ResponseEntity<ApiResponse<SessionResponse>> createSession(
