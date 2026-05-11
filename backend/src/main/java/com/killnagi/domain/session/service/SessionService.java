@@ -35,7 +35,7 @@ public class SessionService {
     private final RuleRepository ruleRepository;
     private final RuleSetRepository ruleSetRepository;
     private final SessionParticipantRegistry registry;
-    private final RoomCodeGenerator roomCodeGenerator;
+    private final SessionCodeGenerator sessionCodeGenerator;
 
     @Transactional
     public SessionResponse createSession(Long hostUserId, CreateRequest request) {
@@ -44,7 +44,7 @@ public class SessionService {
 
         Session session = sessionRepository.save(Session.builder()
                 .name(request.name())
-                .roomCode(roomCodeGenerator.generate())
+                .roomCode(sessionCodeGenerator.generate())
                 .host(host)
                 .targetKills(request.targetKills())
                 .timeLimitMinutes(request.timeLimitMinutes())
@@ -109,5 +109,4 @@ public class SessionService {
         return sessionRepository.findById(sessionId)
                 .orElseThrow(() -> KillnagiException.notFound("세션을 찾을 수 없습니다."));
     }
-
 }
