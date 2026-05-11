@@ -1,6 +1,5 @@
 package com.killnagi.domain.match.entity;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -29,40 +28,20 @@ class MatchResultTest {
     }
 
     @Test
-    void 순위가_1이면_치킨이다() {
-        MatchResult result = TestFixtures.matchResult(match, player, 3, 1);
-        assertThat(result.isChicken()).isTrue();
-    }
-
-    @Test
-    void 순위가_2이면_치킨이_아니다() {
-        MatchResult result = TestFixtures.matchResult(match, player, 3, 2);
-        assertThat(result.isChicken()).isFalse();
-    }
-
-    @Test
-    void 순위가_null이면_치킨이_아니다() {
-        MatchResult result = TestFixtures.matchResult(match, player, 3);
-        assertThat(result.isChicken()).isFalse();
-    }
-
-    @Test
     void 킬수가_음수이면_예외가_발생한다() {
-        assertThatThrownBy(() -> TestFixtures.matchResult(match, player, -1, 5))
+        assertThatThrownBy(() -> TestFixtures.matchResult(match, player, -1, 100, 0, false))
                 .isInstanceOf(RuntimeException.class);
     }
 
     @Test
-    void 순위가_0이하이면_예외가_발생한다() {
-        assertThatThrownBy(() -> TestFixtures.matchResult(match, player, 3, 0))
+    void 피해량이_음수이면_예외가_발생한다() {
+        assertThatThrownBy(() -> TestFixtures.matchResult(match, player, 3, -1, 0, false))
                 .isInstanceOf(RuntimeException.class);
     }
 
     @Test
-    void 순위가_10위_초과인데_TOP10이면_예외가_발생한다() {
-        assertThatThrownBy(() -> MatchResult.builder()
-                .match(match).teamPlayer(player).kills(3).placement(15).isTop10(true).build())
+    void 어시스트가_음수이면_예외가_발생한다() {
+        assertThatThrownBy(() -> TestFixtures.matchResult(match, player, 3, 100, -1, false))
                 .isInstanceOf(RuntimeException.class);
     }
-
 }

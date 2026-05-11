@@ -40,6 +40,12 @@ public class Match {
     @Column(name = "map_name", length = 50)
     private String mapName;
 
+    @Column(name = "placement")
+    private Integer placement;
+
+    @Column(name = "play_time", length = 20)
+    private String playTime;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private MatchStatus status = MatchStatus.PENDING;
@@ -50,9 +56,20 @@ public class Match {
     @Column(name = "failed_top10_count", nullable = false)
     private long failedTop10Count = 0;
 
+    @Column(name = "match_kill_count", nullable = false)
+    private int matchKillCount = 0;
+
+    @Column(name = "match_bonus_score", nullable = false)
+    private int matchBonusScore = 0;
+
+    @Column(name = "match_penalty_score", nullable = false)
+    private int matchPenaltyScore = 0;
+
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    public record MatchConfirmData(boolean isChicken, String mapName, int placement, String playTime) {}
 
     private static final int MIN_MATCH_NUMBER = 1;
 
@@ -71,30 +88,41 @@ public class Match {
         }
     }
 
-    public void confirm(List<MatchResult> matchResults, List<Rule> rules, boolean isChicken) {
+    public void confirm(List<MatchResult> matchResults, List<Rule> rules, MatchConfirmData data) {
         if (!isConfirmable()) {
             throw KillnagiException.badRequest("이미 확정된 매치는 다시 확정할 수 없습니다.");
         }
 
         accumulateKills(matchResults);
-        computeMatchStats(matchResults, isChicken);
+        computeMatchStats(matchResults, data);
         applyRules(rules);
         this.status = MatchStatus.CONFIRMED;
     }
 
     private void accumulateKills(List<MatchResult> matchResults) {
-        int totalKills = matchResults.stream().mapToInt(MatchResult::getKills).sum();
-        this.team.addKills(totalKills);
+        this.matchKillCount = matchResults.stream().mapToInt(MatchResult::getKills).sum();
+        this.team.addKills(this.matchKillCount);
         matchResults.forEach(matchResult -> matchResult.getTeamPlayer().addKills(matchResult.getKills()));
     }
 
-    private void computeMatchStats(List<MatchResult> matchResults, boolean isChicken) {
-        this.isChicken = isChicken;
+    private void computeMatchStats(List<MatchResult> matchResults, MatchConfirmData data) {
+        this.isChicken = data.isChicken();
+        this.mapName = data.mapName();
+        this.placement = data.placement();
+        this.playTime = data.playTime();
         this.failedTop10Count = matchResults.stream().filter(r -> !r.isTop10()).count();
     }
 
     private void applyRules(List<Rule> rules) {
-        rules.forEach(rule -> this.team.addRuleScore(rule.calculateScore(this.isChicken, this.failedTop10Count)));
+        rules.forEach(rule -> {
+            int score = rule.calculateScore(this.isChicken, this.failedTop10Count);
+            this.team.addRuleScore(score);
+            if (score > 0) {
+                this.matchBonusScore += score;
+            } else if (score < 0) {
+                this.matchPenaltyScore += -score;
+            }
+        });
     }
 
     public void updateScreenshotUrl(String screenshotUrl) {

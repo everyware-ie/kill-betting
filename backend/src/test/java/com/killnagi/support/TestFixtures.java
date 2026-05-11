@@ -95,22 +95,19 @@ public class TestFixtures {
         return m;
     }
 
-    public static MatchResult matchResult(Match match, TeamPlayer player, int kills, int placement) {
+    public static MatchResult matchResult(Match match, TeamPlayer player, int kills, int damage, int assists, boolean isTop10) {
         return MatchResult.builder()
                 .match(match)
                 .teamPlayer(player)
                 .kills(kills)
-                .placement(placement)
+                .damage(damage)
+                .assists(assists)
+                .isTop10(isTop10)
                 .build();
     }
 
     public static MatchResult matchResult(Match match, TeamPlayer player, int kills) {
-        return MatchResult.builder()
-                .match(match)
-                .teamPlayer(player)
-                .kills(kills)
-                .placement(null)
-                .build();
+        return matchResult(match, player, kills, 0, 0, false);
     }
 
     public static Rule rule(Session session, RuleType type, int value) {
