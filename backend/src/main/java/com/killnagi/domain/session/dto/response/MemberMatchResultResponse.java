@@ -9,6 +9,8 @@ public record MemberMatchResultResponse(
         String teamName,
         String playerNickname,
         int kills,
+        int damage,
+        int assists,
         Integer placement,
         boolean isChicken
 ) {
@@ -16,7 +18,8 @@ public record MemberMatchResultResponse(
         TeamPlayer player = result.getTeamPlayer();
         return new MemberMatchResultResponse(
                 player.getId(), player.getTeamId(), player.getTeam().getName(), player.getPlayerNickname(),
-                result.getKills(), result.getPlacement(), result.isChicken()
+                result.getKills(), result.getDamage(), result.getAssists(),
+                result.getMatch().getPlacement(), result.getMatch().isChicken()
         );
     }
 }

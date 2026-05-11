@@ -13,13 +13,14 @@ public record ConfirmRequest(
         List<PlayerResult> playerResults,
         boolean isChicken
 ) {
-    public record PlayerResult(String nickname, int kills, Integer placement, boolean isTop10) {
+    public record PlayerResult(String nickname, int kills, int damage, int assists, boolean isTop10) {
         public MatchResult toMatchResult(Match match, TeamPlayer teamPlayer) {
             return MatchResult.builder()
                     .match(match)
                     .teamPlayer(teamPlayer)
                     .kills(kills)
-                    .placement(placement)
+                    .damage(damage)
+                    .assists(assists)
                     .isTop10(isTop10)
                     .build();
         }

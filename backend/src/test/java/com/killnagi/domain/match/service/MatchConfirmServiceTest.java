@@ -195,11 +195,11 @@ class MatchConfirmServiceTest {
 
     private ConfirmRequest confirmRequest(String nickname, int kills, int placement, boolean isTop10) {
         return new ConfirmRequest("에란겔", placement, "25:30",
-                List.of(new PlayerResult(nickname, kills, placement, isTop10)), false);
+                List.of(new PlayerResult(nickname, kills, 100, 0, isTop10)), false);
     }
 
     private ConfirmRequest chickenConfirmRequest(String nickname, int kills) {
         return new ConfirmRequest("에란겔", 1, "25:30",
-                List.of(new PlayerResult(nickname, kills, 1, true)), true);
+                List.of(new PlayerResult(nickname, kills, 500, 2, true)), true);
     }
 }

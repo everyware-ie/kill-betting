@@ -26,40 +26,39 @@ public class MatchResult {
     @Column(nullable = false)
     private int kills;
 
-    @Column(name = "placement")
-    private Integer placement;
+    @Column(nullable = false)
+    private int damage;
 
-    @Column(name = "is_chicken", nullable = false)
-    private boolean isChicken = false;
+    @Column(nullable = false)
+    private int assists;
 
     @Column(name = "is_top10", nullable = false)
     private boolean isTop10 = false;
 
     private static final int MIN_KILLS = 0;
-    private static final int MIN_PLACEMENT = 1;
-    private static final int TOP10_MAX_PLACEMENT = 10;
-    private static final int CHICKEN_PLACEMENT = 1;
+    private static final int MIN_DAMAGE = 0;
+    private static final int MIN_ASSISTS = 0;
 
     @Builder
-    public MatchResult(Match match, TeamPlayer teamPlayer, int kills, Integer placement, boolean isTop10) {
-        validate(kills, placement, isTop10);
+    public MatchResult(Match match, TeamPlayer teamPlayer, int kills, int damage, int assists, boolean isTop10) {
+        validate(kills, damage, assists);
         this.match = match;
         this.teamPlayer = teamPlayer;
         this.kills = kills;
-        this.placement = placement;
-        this.isChicken = placement != null && placement == CHICKEN_PLACEMENT;
+        this.damage = damage;
+        this.assists = assists;
         this.isTop10 = isTop10;
     }
 
-    private void validate(int kills, Integer placement, boolean isTop10) {
+    private void validate(int kills, int damage, int assists) {
         if (kills < MIN_KILLS) {
             throw KillnagiException.badRequest("킬 수는 0 이상이어야 합니다.");
         }
-        if (placement != null && placement < MIN_PLACEMENT) {
-            throw KillnagiException.badRequest("순위는 1 이상이어야 합니다.");
+        if (damage < MIN_DAMAGE) {
+            throw KillnagiException.badRequest("피해량은 0 이상이어야 합니다.");
         }
-        if (placement != null && placement > TOP10_MAX_PLACEMENT && isTop10) {
-            throw KillnagiException.badRequest("순위가 10위 초과이면 TOP10일 수 없습니다.");
+        if (assists < MIN_ASSISTS) {
+            throw KillnagiException.badRequest("어시스트는 0 이상이어야 합니다.");
         }
     }
 }
