@@ -6,6 +6,7 @@ import com.killnagi.domain.rule.dto.request.UpdateRuleRequest;
 import com.killnagi.domain.session.dto.request.CreateRequest;
 import com.killnagi.domain.session.dto.response.MatchHistoryResponse;
 import com.killnagi.domain.session.dto.response.ScoreboardResponse;
+import com.killnagi.domain.session.dto.response.SessionDetailResponse;
 import com.killnagi.domain.session.dto.response.SessionResponse;
 import com.killnagi.domain.session.service.SessionService;
 import com.killnagi.domain.session.controller.docs.SessionControllerDocs;
@@ -52,10 +53,10 @@ public class SessionController implements SessionControllerDocs {
         return ResponseEntity.ok(ApiResponse.ok(sessionService.getWaitingSessions()));
     }
 
-    @GetMapping("/join/{roomUrl}")
-    public ResponseEntity<ApiResponse<SessionResponse>> getSessionByRoomUrl(
-            @PathVariable String roomUrl) {
-        return ResponseEntity.ok(ApiResponse.ok(sessionService.getSessionByRoomUrl(roomUrl)));
+    @GetMapping("/join/{roomCode}")
+    public ResponseEntity<ApiResponse<SessionDetailResponse>> getSessionByRoomCode(
+            @PathVariable String roomCode) {
+        return ResponseEntity.ok(ApiResponse.ok(sessionService.getSessionDetailByRoomCode(roomCode)));
     }
 
     @PostMapping("/{sessionId}/start")

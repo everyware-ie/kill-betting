@@ -49,9 +49,17 @@ public class TeamService {
     }
 
     private TeamResponse toResponse(Team team) {
-        List<String> playerNicknames = team.getPlayers().stream()
+        List<String> players = team.getPlayers().stream()
                 .map(TeamPlayer::getPlayerNickname)
                 .toList();
-        return new TeamResponse(team.getId(), team.getName(), team.getEffectiveKills(), playerNicknames);
+
+        List<TeamResponse.MemberResponse> members = team.hasLeader()
+                ? List.of(new TeamResponse.MemberResponse(
+                        team.getLeaderUserId(),
+                        team.getLeaderNickname(),
+                        "LEADER"))
+                : List.of();
+
+        return new TeamResponse(team.getId(), team.getName(), team.getEffectiveKills(), members, players);
     }
 }

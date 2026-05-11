@@ -148,25 +148,26 @@ export default function DashboardPage() {
 
   // ── 방 클릭 시 상태에 따라 다른 페이지로 이동 ──
   const handleRoomClick = (room) => {
-    if (room.status === 'WAITING') router.push(`/room/${room.id}/setup`);
-    else if (room.status === 'LIVE') router.push(`/room/${room.id}/live`);
-    else router.push(`/room/${room.id}/result`);
+    const code = room.code || room.roomCode;
+    if (room.status === 'WAITING') router.push(`/room/${code}/setup`);
+    else if (room.status === 'LIVE') router.push(`/room/${code}/live`);
+    else router.push(`/room/${code}/result`);
   };
 
   // ── 초대 코드 입력 처리 ──
-  // '#' 입력 시 자동 붙여주고, 숫자·대시만 허용 (예: #1234-56 → 최대 8자)
+  // '#' 입력 시 자동 붙여주고, 영문·숫자 허용 (예: #ABC123 → 최대 7자)
   const handleCodeChange = (e) => {
     let val = e.target.value.toUpperCase();
 
     // '#'으로 시작하지 않으면 앞에 붙임
     if (val && !val.startsWith('#')) val = `#${val}`;
 
-    // '#' 이후 숫자와 '-'만 허용
-    const body = val.slice(1).replace(/[^0-9-]/g, '');
+    // '#' 이후 영문·숫자만 허용
+    const body = val.slice(1).replace(/[^A-Z0-9]/g, '');
     val = body ? `#${body}` : '';
 
-    // 최대 8자 (#0000-00)
-    if (val.length > 8) val = val.slice(0, 8);
+    // 최대 7자 (#XXXXXX — roomCode 6자)
+    if (val.length > 7) val = val.slice(0, 7);
 
     setJoinCode(val);
     setJoinError('');
@@ -183,23 +184,16 @@ export default function DashboardPage() {
     setJoinError('');
     const res = await RoomAPI.joinByCode(joinCode, user);
     setJoining(false);
-
-    if (!res.ok) {
-      setJoinError(res.error);
+    if (!res.success) {
+      setJoinError(res.message || '참여에 실패했습니다');
       return;
     }
 
-    // 참여 성공 → 방 목록에 즉시 추가 후 이동
-    const room = res.room;
-    setRooms((prev) => {
-      const exists = prev.some((r) => r.id === room.id);
-      return exists ? prev : [room, ...prev];
-    });
-
-    // 방 상태에 따라 이동
-    if (room.status === 'WAITING') router.push(`/room/${room.id}/setup`);
-    else if (room.status === 'LIVE') router.push(`/room/${room.id}/live`);
-    else router.push(`/room/${room.id}/result`);
+    // 참여 성공 → 방 코드로 setup 페이지 이동
+    const roomCode = res.data?.code || res.data?.roomCode;
+    if (roomCode) {
+      router.push(`/room/${roomCode}/setup`);
+    }
   };
 
   // Enter 키로 참여

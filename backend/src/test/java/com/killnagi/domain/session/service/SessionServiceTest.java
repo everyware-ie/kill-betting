@@ -27,6 +27,9 @@ import com.killnagi.domain.rule.entity.RuleSet;
 import com.killnagi.domain.rule.entity.RuleType;
 import com.killnagi.domain.rule.repository.RuleRepository;
 import com.killnagi.domain.rule.repository.RuleSetRepository;
+import com.killnagi.domain.match.repository.MatchRepository;
+import com.killnagi.domain.match.repository.MatchResultRepository;
+import com.killnagi.domain.match.service.MatchService;
 import com.killnagi.domain.session.dto.request.CreateRequest;
 import com.killnagi.domain.session.dto.request.RuleRequest;
 import com.killnagi.domain.session.dto.response.SessionResponse;
@@ -163,10 +166,10 @@ class SessionServiceTest {
     }
 
     @Test
-    void roomUrl로_세션_조회시_존재하지않으면_예외를_던진다() {
-        given(sessionRepository.findByRoomUrl("invalid-url")).willReturn(Optional.empty());
+    void 존재하지_않는_세션_조회시_예외를_던진다() {
+        given(sessionRepository.findById(999L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> sessionService.getSessionByRoomUrl("invalid-url"))
+        assertThatThrownBy(() -> sessionService.getSessionById(999L))
                 .isInstanceOf(KillnagiException.class)
                 .hasMessageContaining("세션을 찾을 수 없습니다");
     }

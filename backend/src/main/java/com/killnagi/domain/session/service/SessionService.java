@@ -16,6 +16,8 @@ import com.killnagi.domain.session.dto.response.MatchHistoryResponse;
 import com.killnagi.domain.session.dto.response.MatchSummaryResponse;
 import com.killnagi.domain.session.dto.response.MemberMatchResultResponse;
 import com.killnagi.domain.session.dto.response.ScoreboardResponse;
+import com.killnagi.domain.session.dto.response.RuleResponse;
+import com.killnagi.domain.session.dto.response.SessionDetailResponse;
 import com.killnagi.domain.session.dto.response.SessionResponse;
 import com.killnagi.domain.session.dto.response.TeamScoreResponse;
 import com.killnagi.domain.session.entity.Session;
@@ -135,8 +137,8 @@ public class SessionService {
         return new ScoreboardResponse(session.getId(), session.getName(), session.getStatus(), teamScores);
     }
 
-    public SessionResponse getSessionByRoomUrl(String roomUrl) {
-        Session session = sessionRepository.findByRoomUrl(roomUrl)
+    public SessionResponse getSessionById(Long sessionId) {
+        Session session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> KillnagiException.notFound("세션을 찾을 수 없습니다."));
         return toResponse(session);
     }
@@ -151,6 +153,12 @@ public class SessionService {
         Session session = sessionRepository.findByRoomCode(roomCode.toUpperCase())
                 .orElseThrow(() -> KillnagiException.notFound("방 코드에 해당하는 세션을 찾을 수 없습니다."));
         return toResponse(session);
+    }
+
+    public SessionDetailResponse getSessionDetailByRoomCode(String roomCode) {
+        Session session = sessionRepository.findByRoomCode(roomCode.toUpperCase())
+                .orElseThrow(() -> KillnagiException.notFound("방 코드에 해당하는 세션을 찾을 수 없습니다."));
+        return toDetailResponse(session);
     }
 
     public MatchHistoryResponse getMatchHistory(Long sessionId) {
@@ -194,18 +202,43 @@ public class SessionService {
                 .orElseThrow(() -> KillnagiException.notFound("세션을 찾을 수 없습니다."));
     }
 
+    private SessionDetailResponse toDetailResponse(Session session) {
+        List<RuleResponse> rules = findEnabledRules(session);
+
+        return new SessionDetailResponse(
+                session.getId(),
+                session.getName(),
+                session.getRoomCode(),
+                session.getStatus(),
+                session.getHost().getId(),
+                session.getHostNickname(),
+                session.getTargetKills(),
+                session.getTimeLimitMinutes(),
+                rules,
+                session.getCreatedAt()
+        );
+    }
+
     private SessionResponse toResponse(Session session) {
         return new SessionResponse(
                 session.getId(),
                 session.getName(),
                 session.getHostNickname(),
                 session.getStatus(),
-                session.getRoomUrl(),
                 session.getRoomCode(),
                 session.getTargetKills(),
                 session.getTimeLimitMinutes(),
                 session.getCreatedAt()
         );
+    }
+
+    private List<RuleResponse> findEnabledRules(Session session) {
+        if (session.getCurrentRuleSet() == null) {
+            return List.of();
+        }
+        return ruleRepository.findByRuleSetIdAndEnabled(session.getCurrentRuleSet().getId(), true).stream()
+                .map(RuleResponse::from)
+                .toList();
     }
 
     private String generateUniqueRoomUrl() {

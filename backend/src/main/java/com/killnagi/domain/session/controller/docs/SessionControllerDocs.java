@@ -5,6 +5,7 @@ import com.killnagi.domain.match.dto.response.ScreenshotUploadResponse;
 import com.killnagi.domain.session.dto.request.CreateRequest;
 import com.killnagi.domain.session.dto.response.MatchHistoryResponse;
 import com.killnagi.domain.session.dto.response.ScoreboardResponse;
+import com.killnagi.domain.session.dto.response.SessionDetailResponse;
 import com.killnagi.domain.session.dto.response.SessionResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,6 +26,9 @@ public interface SessionControllerDocs {
     ResponseEntity<ApiResponse<SessionResponse>> createSession(
             UserDetails userDetails,
             @Valid CreateRequest request);
+
+    @Operation(summary = "세션 상세 조회", description = "방 코드로 세션 상세 정보를 조회합니다.")
+    ResponseEntity<ApiResponse<SessionDetailResponse>> getSessionByRoomCode(String roomCode);
 
     @Operation(summary = "세션 시작", description = "세션을 시작 상태로 변경합니다. 호스트만 가능합니다.")
     ResponseEntity<ApiResponse<Void>> startSession(UserDetails userDetails, Long sessionId);
