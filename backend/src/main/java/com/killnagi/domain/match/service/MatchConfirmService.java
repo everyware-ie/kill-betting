@@ -14,7 +14,6 @@ import com.killnagi.domain.match.repository.MatchRepository;
 import com.killnagi.domain.match.repository.MatchResultRepository;
 import com.killnagi.domain.rule.entity.Rule;
 import com.killnagi.domain.rule.repository.RuleRepository;
-import com.killnagi.domain.team.entity.Team;
 import com.killnagi.domain.team.entity.TeamPlayer;
 import com.killnagi.domain.team.repository.TeamPlayerRepository;
 import com.killnagi.domain.team.repository.TeamRepository;
@@ -55,36 +54,37 @@ public class MatchConfirmService {
     }
 
     private MatchConfirmedEvent buildEvent(Match match, List<MatchResult> results, List<Rule> rules) {
-        Team team = match.getTeam();
-        int matchKillDelta = results.stream().mapToInt(MatchResult::getKills).sum();
-        int bonusScore = rules.stream()
-                .mapToInt(r -> r.calculateScore(match.isChicken(), match.getFailedTop10Count()))
-                .filter(s -> s > 0)
-                .sum();
-        int penaltyScore = rules.stream()
-                .mapToInt(r -> r.calculateScore(match.isChicken(), match.getFailedTop10Count()))
-                .filter(s -> s < 0)
-                .map(Math::abs)
-                .sum();
-
-        TeamSnapshot teamSnapshot = new TeamSnapshot(
-                team.getId(), team.getName(), matchKillDelta,
-                team.getEffectiveKills(), bonusScore, penaltyScore);
-
-        List<MemberSnapshot> memberSnapshots = results.stream()
-                .map(r -> new MemberSnapshot(
-                        r.getTeamPlayer().getId(),
-                        r.getTeamPlayer().getPlayerNickname(),
-                        r.getKills(),
-                        r.getTeamPlayer().getBonusKills(),
-                        r.getTeamPlayer().getPenaltyKills(),
-                        r.getKills(),
-                        r.getTeamPlayer().getEffectiveKills()))
-                .toList();
-
         return new MatchConfirmedEvent(
                 match.getId(), match.getSession().getId(), match.getMatchNumber(),
-                match.getMapName(), LocalDateTime.now(), teamSnapshot, memberSnapshots);
+                match.getMapName(), LocalDateTime.now(),
+                buildTeamSnapshot(match, results, rules),
+                buildMemberSnapshots(results));
+    }
+
+    private TeamSnapshot buildTeamSnapshot(Match match, List<MatchResult> results, List<Rule> rules) {
+        int matchKillDelta = results.stream().mapToInt(MatchResult::getKills).sum();
+        List<Integer> ruleScores = rules.stream()
+                .map(r -> r.calculateScore(match.isChicken(), match.getFailedTop10Count()))
+                .toList();
+        int bonusScore = ruleScores.stream().filter(s -> s > 0).mapToInt(Integer::intValue).sum();
+        int penaltyScore = ruleScores.stream().filter(s -> s < 0).mapToInt(s -> -s).sum();
+        return new TeamSnapshot(
+                match.getTeam().getId(), match.getTeam().getName(), matchKillDelta,
+                match.getTeam().getEffectiveKills(), bonusScore, penaltyScore);
+    }
+
+    private List<MemberSnapshot> buildMemberSnapshots(List<MatchResult> results) {
+        return results.stream().map(this::toMemberSnapshot).toList();
+    }
+
+    private MemberSnapshot toMemberSnapshot(MatchResult result) {
+        TeamPlayer player = result.getTeamPlayer();
+        return new MemberSnapshot(
+                player.getId(), player.getPlayerNickname(),
+                result.getKills(),
+                player.getBonusKills(), player.getPenaltyKills(),
+                result.getKills(),
+                player.getEffectiveKills());
     }
 
     private Match findValidMatch(Long matchId) {
