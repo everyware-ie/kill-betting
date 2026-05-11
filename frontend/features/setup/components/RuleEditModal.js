@@ -6,11 +6,8 @@ import Toggle from './Toggle';
 import Stepper from './Stepper';
 
 const RULES = [
-  { label: '헤드샷 보너스',  onKey: 'headShotBonusOn',    valKey: 'headShotBonus',   sign: '+', color: '#F5A623' },
-  { label: '어시스트 보너스', onKey: 'assistBonusOn',      valKey: 'assistBonus',     sign: '+', color: '#F5A623' },
   { label: '치킨 보너스',    onKey: 'chickenBonusOn',      valKey: 'chickenBonus',    sign: '+', color: '#F5A623' },
-  { label: '팀킬 패널티',    onKey: 'teamKillPenaltyOn',   valKey: 'teamKillPenalty', sign: '-', color: '#E53935' },
-  { label: '사망 패널티',    onKey: 'deathPenaltyOn',      valKey: 'deathPenalty',    sign: '-', color: '#E53935' },
+  { label: '생존 패널티',    onKey: 'survivalPenaltyOn',   valKey: 'survivalPenalty', sign: '-', color: '#E53935' },
 ];
 
 export default function RuleEditModal({ rule, onSave, onClose }) {
