@@ -110,6 +110,41 @@ public class Session {
         return this.status == SessionStatus.WAITING;
     }
 
+    public boolean isInProgress() {
+        return this.status == SessionStatus.IN_PROGRESS;
+    }
+
+    public boolean isExpired(LocalDateTime now) {
+        if (timeLimitMinutes == null || startedAt == null) {
+            return false;
+        }
+        return startedAt.plusMinutes(timeLimitMinutes).isBefore(now);
+    }
+
+    public boolean hasKillLimit() {
+        return targetKills != null;
+    }
+
+    public boolean hasTimeLimit() {
+        return timeLimitMinutes != null;
+    }
+
+    public boolean isDraw() {
+        return this.status == SessionStatus.ENDED && this.winnerTeam == null;
+    }
+
+    public Long getWinnerTeamId() {
+        return winnerTeam != null ? winnerTeam.getId() : null;
+    }
+
+    public String getWinnerTeamName() {
+        return winnerTeam != null ? winnerTeam.getName() : null;
+    }
+
+    public LocalDateTime getExpiresAt() {
+        return startedAt.plusMinutes(timeLimitMinutes);
+    }
+
     public boolean isHostedBy(Long userId) {
         return this.host.hasId(userId);
     }

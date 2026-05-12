@@ -47,4 +47,7 @@ public interface SessionControllerDocs {
 
     @Operation(summary = "내 세션 목록 조회", description = "로그인한 사용자가 참여한 세션 목록을 조회합니다.")
     ResponseEntity<ApiResponse<List<SessionResponse>>> getMySessions(UserDetails userDetails);
+
+    @Operation(summary = "세션 종료", description = "세션을 강제 종료합니다. 호스트만 가능합니다.")
+    ResponseEntity<ApiResponse<Void>> endSession(UserDetails userDetails, Long sessionId);
 }

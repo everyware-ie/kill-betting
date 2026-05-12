@@ -22,6 +22,10 @@ public class SessionBroadcaster {
         send(sessionId, Type.SCORE_UPDATED, data);
     }
 
+    public void broadcastSessionEnded(Long sessionId, Object data) {
+        send(sessionId, Type.SESSION_ENDED, data);
+    }
+
     private void send(Long sessionId, Type type, Object data) {
         messagingTemplate.convertAndSend(
                 TOPIC_PREFIX + sessionId,

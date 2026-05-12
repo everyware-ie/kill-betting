@@ -15,6 +15,8 @@ import com.killnagi.domain.match.repository.MatchResultRepository;
 import com.killnagi.domain.rule.entity.Rule;
 import com.killnagi.domain.rule.repository.RuleRepository;
 import com.killnagi.domain.team.entity.TeamPlayer;
+import com.killnagi.domain.session.entity.Session;
+import com.killnagi.domain.session.service.SessionEndService;
 import com.killnagi.domain.team.repository.TeamPlayerRepository;
 import com.killnagi.domain.team.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +38,7 @@ public class MatchConfirmService {
     private final RuleRepository ruleRepository;
     private final TeamRepository teamRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final SessionEndService sessionEndService;
 
     @Transactional
     public ConfirmResponse confirm(Long matchId, Long requesterId, ConfirmRequest request) {
@@ -50,6 +53,7 @@ public class MatchConfirmService {
         match.confirm(results, rules, confirmData);
 
         eventPublisher.publishEvent(buildEvent(match, results));
+        checkKillLimit(match);
         return new ConfirmResponse(matchId, match.getStatus().name());
     }
 
@@ -79,6 +83,13 @@ public class MatchConfirmService {
                 player.getBonusKills(), player.getPenaltyKills(),
                 result.getKills(),
                 player.getEffectiveKills());
+    }
+
+    private void checkKillLimit(Match match) {
+        Session session = match.getSession();
+        if (session.hasKillLimit() && match.getTeam().getEffectiveKills() >= session.getTargetKills()) {
+            sessionEndService.endByKillLimit(session, match.getTeam());
+        }
     }
 
     private Match findValidMatch(Long matchId) {

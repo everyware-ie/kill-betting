@@ -8,6 +8,7 @@ import com.killnagi.domain.session.dto.response.MatchHistoryResponse;
 import com.killnagi.domain.session.dto.response.ScoreboardResponse;
 import com.killnagi.domain.session.dto.response.SessionDetailResponse;
 import com.killnagi.domain.session.dto.response.SessionResponse;
+import com.killnagi.domain.session.service.SessionEndService;
 import com.killnagi.domain.session.service.SessionMatchService;
 import com.killnagi.domain.session.service.SessionQueryService;
 import com.killnagi.domain.session.service.SessionService;
@@ -36,6 +37,7 @@ import java.util.List;
 public class SessionController implements SessionControllerDocs {
 
     private final SessionService sessionService;
+    private final SessionEndService sessionEndService;
     private final SessionQueryService sessionQueryService;
     private final SessionMatchService sessionMatchService;
 
@@ -99,6 +101,15 @@ public class SessionController implements SessionControllerDocs {
             @AuthenticationPrincipal UserDetails userDetails) {
         Long userId = Long.parseLong(userDetails.getUsername());
         return ResponseEntity.ok(ApiResponse.ok(sessionQueryService.getMySessions(userId)));
+    }
+
+    @PostMapping("/{sessionId}/end")
+    public ResponseEntity<ApiResponse<Void>> endSession(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long sessionId) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+        sessionEndService.endByHost(sessionId, userId);
+        return ResponseEntity.ok(ApiResponse.ok("세션이 종료되었습니다.", null));
     }
 
     @PutMapping("/{sessionId}/rules/{ruleId}")

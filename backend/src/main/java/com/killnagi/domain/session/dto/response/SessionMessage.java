@@ -6,6 +6,7 @@ public record SessionMessage(Type type, Object data) {
         PARTICIPANT_UPDATED,
         SESSION_STARTED,
         SCORE_UPDATED,
-        MATCH_RESULT
+        MATCH_RESULT,
+        SESSION_ENDED
     }
 }

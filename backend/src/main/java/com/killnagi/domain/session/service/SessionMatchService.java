@@ -41,7 +41,10 @@ public class SessionMatchService {
         List<TeamScoreResponse> teamScores = teamRepository.findBySessionId(sessionId).stream()
                 .map(TeamScoreResponse::from)
                 .toList();
-        return new ScoreboardResponse(session.getId(), session.getName(), session.getStatus(), teamScores);
+        return new ScoreboardResponse(
+                session.getId(), session.getName(), session.getStatus(),
+                session.getWinnerTeamId(), session.getWinnerTeamName(), session.isDraw(),
+                teamScores);
     }
 
     public MatchHistoryResponse getMatchHistory(Long sessionId) {
