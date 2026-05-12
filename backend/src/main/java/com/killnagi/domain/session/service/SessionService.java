@@ -15,7 +15,9 @@ import com.killnagi.domain.team.entity.Team;
 import com.killnagi.domain.team.repository.TeamRepository;
 import com.killnagi.domain.user.entity.User;
 import com.killnagi.domain.user.repository.UserRepository;
+import com.killnagi.domain.session.dto.response.SessionMessage;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +38,7 @@ public class SessionService {
     private final RuleSetRepository ruleSetRepository;
     private final SessionParticipantRegistry registry;
     private final SessionCodeGenerator sessionCodeGenerator;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Transactional
     public SessionResponse createSession(Long hostUserId, CreateRequest request) {
@@ -71,10 +74,12 @@ public class SessionService {
     @Transactional
     public void startSession(Long sessionId, Long userId) {
         Session session = getSessionOrThrow(sessionId);
+        List<Team> teams = teamRepository.findBySessionId(sessionId);
+
         if (!session.isHostedBy(userId)) {
             throw KillnagiException.forbidden("세션 호스트만 시작할 수 있습니다.");
         }
-        List<Team> teams = teamRepository.findBySessionId(sessionId);
+
         if (teams.size() < MIN_TEAMS_TO_START) {
             throw KillnagiException.badRequest("최소 " + MIN_TEAMS_TO_START + "팀이 필요합니다.");
         }
@@ -86,6 +91,11 @@ public class SessionService {
                         .build()));
 
         session.start();
+
+        messagingTemplate.convertAndSend(
+                "/topic/sessions/" + sessionId,
+                new SessionMessage(SessionMessage.Type.SESSION_STARTED, null)
+        );
     }
 
     @Transactional

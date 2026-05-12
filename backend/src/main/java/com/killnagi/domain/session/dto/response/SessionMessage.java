@@ -4,6 +4,7 @@ public record SessionMessage(Type type, Object data) {
 
     public enum Type {
         PARTICIPANT_UPDATED,
+        SESSION_STARTED,
         SCORE_UPDATED,
         MATCH_RESULT
     }
