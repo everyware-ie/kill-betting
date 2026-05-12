@@ -34,6 +34,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useAuth }  from '@/lib/auth-context';
 import { RoomAPI }  from '@/lib/room-api';
 import { OcrAPI }  from '@/lib/ocr-api';
+import { mapSessionRule } from '@/features/setup/helpers/mappers';
 import Button from '@/components/ui/Button';
 import RoleGuideModal from '@/components/ui/RoleGuideModal';
 
@@ -49,19 +50,17 @@ import RoleGuideModal from '@/components/ui/RoleGuideModal';
 function calcTeamScore(teamId, matches, rule, adjustments = []) {
   let kills = 0, bonus = 0, penalty = 0;
 
-  // 이 팀이 제출한 매치만 필터링
-  const teamMatches = matches.filter((m) => m.teamId === teamId);
+  for (const m of matches) {
+    // 이 팀 소속 결과만 필터링
+    const teamResults = (m.memberResults || []).filter((r) => r.teamId === teamId);
+    if (teamResults.length === 0) continue;
 
-  for (const m of teamMatches) {
-    // 치킨 보너스 (자신의 게임에서 치킨을 먹었는지)
-    if (rule.chickenBonusOn && m.chickenTeamId === teamId) bonus += rule.chickenBonus;
+    // 치킨 보너스 (이 매치에서 치킨을 먹었고 이 팀 소속이면)
+    const hasChicken = teamResults.some((r) => r.isChicken);
+    if (rule.chickenBonusOn && hasChicken) bonus += rule.chickenBonus;
 
-    for (const r of m.results) {
+    for (const r of teamResults) {
       kills += r.kills;
-      if (rule.headShotBonusOn  && r.headShot)   bonus   += rule.headShotBonus;
-      if (rule.assistBonusOn    && r.assist)      bonus   += rule.assistBonus;
-      if (rule.teamKillPenaltyOn)                 penalty += (r.teamKills || 0) * rule.teamKillPenalty;
-      if (rule.deathPenaltyOn   && r.earlyDeath)  penalty += rule.deathPenalty;
     }
   }
 
@@ -76,14 +75,10 @@ function calcTeamScore(teamId, matches, rule, adjustments = []) {
 function calcPlayerStats(nick, matches, rule) {
   let kills = 0, bonus = 0, penalty = 0, damage = 0;
   for (const m of matches) {
-    for (const r of m.results) {
-      if (r.nick !== nick) continue;
+    for (const r of (m.memberResults || [])) {
+      if (r.playerNickname !== nick) continue;
       kills  += r.kills;
       damage += r.damage || 0;
-      if (rule.headShotBonusOn  && r.headShot)   bonus   += rule.headShotBonus;
-      if (rule.assistBonusOn    && r.assist)      bonus   += rule.assistBonus;
-      if (rule.teamKillPenaltyOn)                 penalty += (r.teamKills || 0) * rule.teamKillPenalty;
-      if (rule.deathPenaltyOn   && r.earlyDeath)  penalty += rule.deathPenalty;
     }
   }
   return { kills, bonus, penalty, damage, total: kills + bonus - penalty };
@@ -123,8 +118,8 @@ function TeamResultModal({ room, teamId, matchNumber, onSubmit, onClose }) {
 
   // 이 팀 플레이어만 초기화 (다른 팀 플레이어는 표시하지 않음)
   const [results, setResults] = useState(
-    team.players.map((nick) => ({
-      nick, teamId,
+    (team.players || []).map((p) => ({
+      nick: typeof p === 'string' ? p : p.nickname, teamId,
       kills: 0, damage: 0,
       headShot: false, assist: false, teamKills: 0, earlyDeath: false,
     }))
@@ -178,7 +173,7 @@ function TeamResultModal({ room, teamId, matchNumber, onSubmit, onClose }) {
     setOcrError('');
 
     // 이 팀의 닉네임만 힌트로 전달 (팀별 입력이므로)
-    const teamNicks = team.players;
+    const teamNicks = (team.players || []).map((p) => typeof p === 'string' ? p : p.nickname);
     const res = await OcrAPI.parseScreenshot(ocrFile, teamNicks);
 
     setOcrLoading(false);
@@ -245,7 +240,7 @@ function TeamResultModal({ room, teamId, matchNumber, onSubmit, onClose }) {
               {team.name} — {matchNumber}번째 게임 결과 입력
             </div>
             <div style={{ fontSize: 11, color: '#8A8060', marginTop: 2 }}>
-              우리 팀({team.players.length}명) 결과만 입력합니다 · 스크린샷 OCR 또는 직접 입력
+              우리 팀({(team.players || []).length}명) 결과만 입력합니다 · 스크린샷 OCR 또는 직접 입력
             </div>
           </div>
           <button onClick={onClose} style={{ background: '#2a2810', border: '1px solid rgba(200,155,0,0.2)', color: '#E8DFC0', width: 28, height: 28, borderRadius: 4, cursor: 'pointer', fontSize: 13 }}>✕</button>
@@ -803,9 +798,9 @@ export default function LivePage() {
   const [screenshotModal, setScreenshotModal] = useState(null);   // 열린 스크린샷 URL (null이면 닫힘)
 
   // 내 팀 — 로그인 유저가 속한 팀 (있으면 해당 팀 LEADER)
-  const myTeam = room?.teams.find((t) => t.members?.some((m) => m.userId === user?.id));
-  // 방장(HOST) userId 및 여부 — 닉네임 관리·점수조정·경기종료·룰변경 권한
-  const hostUserId = room?.participants?.find((p) => p.role === 'HOST')?.userId;
+  const myTeam = room?.teams?.find((t) => t.leaderUserId === user?.id);
+  // 방장(HOST) userId 및 여부
+  const hostUserId = room?.hostUserId;
   const isHost = hostUserId === user?.id;
 
   // ── 초기 로드 ──
@@ -815,10 +810,23 @@ export default function LivePage() {
       if (!roomRes.success) { setLoading(false); return; }
       const session = roomRes.data;
       setSessionId(session.id);
-      setRoom(session);
-      setAdjs(session.adjustments || []);
+
+      const teamsRes = await RoomAPI.getTeams(session.id);
+      const teams = teamsRes.success ? teamsRes.data.map((t) => ({
+        id: t.id,
+        name: t.name,
+        leaderUserId: t.leaderUserId,
+        players: (t.players || []).map((nick, idx) => ({ id: idx, nickname: nick })),
+      })) : [];
+
+      setRoom({
+        ...session,
+        rule: mapSessionRule(session),
+        teams,
+      });
+      setAdjs([]);
       const matchRes = await RoomAPI.getMatches(session.id);
-      if (matchRes.success) setMatches(matchRes.data);
+      if (matchRes.success) setMatches(matchRes.data?.matches || []);
       setLoading(false);
     });
   }, [roomCode, user]);
@@ -838,7 +846,7 @@ export default function LivePage() {
     const id = setInterval(async () => {
       const matchRes = await RoomAPI.getMatches(sessionId);
       if (matchRes.success) {
-        setMatches(matchRes.data);
+        setMatches(matchRes.data?.matches || []);
         setPollError(false);
       } else {
         setPollError(true);
@@ -850,7 +858,7 @@ export default function LivePage() {
   // ── 결과 입력 모달 열기 ──
   // 이 팀이 지금까지 몇 게임을 끝냈는지 계산해서 모달 타이틀에 표시
   const openTeamModal = useCallback((teamId) => {
-    const teamMatchCount = matches.filter((m) => m.teamId === teamId).length;
+    const teamMatchCount = matches.filter((m) => (m.memberResults || []).some((r) => r.teamId === teamId)).length;
     setSelectedTeamId(teamId);
     setModalMatchNum(teamMatchCount + 1);   // 다음 제출 순번
     setShowTeamModal(true);
@@ -1087,7 +1095,7 @@ export default function LivePage() {
                   <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid rgba(200,155,0,0.1)' }}>
                     {/* 이 팀이 지금까지 제출한 게임 수 */}
                     {(() => {
-                      const teamMatchCount = matches.filter((m) => m.teamId === t.id).length;
+                      const teamMatchCount = matches.filter((m) => (m.memberResults || []).some((r) => r.teamId === t.id)).length;
                       return (
                         <div style={{ fontSize: 10, color: '#8A8060', textAlign: 'center', marginBottom: myTeam?.id === t.id ? 6 : 0 }}>
                           {teamMatchCount > 0 ? `${teamMatchCount}게임 완료` : '아직 결과 없음'}
@@ -1117,7 +1125,7 @@ export default function LivePage() {
             <div style={{ fontSize: 11, color: '#8A8060', letterSpacing: 2, marginBottom: 10 }}>개인 통계</div>
             <div style={{ background: '#1C1A0C', border: '1px solid rgba(200,155,0,0.15)', borderRadius: 8, overflow: 'hidden' }}>
               {teams.map((team, tIdx) => {
-                const stats = team.players.map((nick) => ({ nick, ...calcPlayerStats(nick, matches, rule) }))
+                const stats = (team.players || []).map((p) => { const nick = typeof p === 'string' ? p : p.nickname; return { nick, ...calcPlayerStats(nick, matches, rule) }; })
                   .sort((a, b) => b.kills - a.kills);
                 return (
                   <div key={team.id}>
@@ -1167,14 +1175,14 @@ export default function LivePage() {
                 <div style={{ color: '#555', fontSize: 12, textAlign: 'center', padding: '20px 0' }}>아직 결과 없음</div>
               ) : (
                 [...matches].reverse().slice(0, 30).map((m) => {
-                  const team       = teams.find((t) => t.id === m.teamId);
-                  const totalKills = (m.results || []).reduce((s, r) => s + r.kills, 0);
-                  const hasChicken = m.chickenTeamId === m.teamId;
+                  const results = m.memberResults || [];
+                  const totalKills = results.reduce((s, r) => s + r.kills, 0);
+                  const hasChicken = results.some((r) => r.isChicken);
                   const hasShot    = !!m.screenshotUrl;
                   return (
                     <div
-                      key={m.id}
-                      onClick={() => hasShot && setScreenshotModal({ url: m.screenshotUrl, match: m, team })}
+                      key={m.matchId}
+                      onClick={() => hasShot && setScreenshotModal({ url: m.screenshotUrl, match: m })}
                       style={{
                         padding: '9px 0', borderBottom: '1px solid rgba(200,155,0,0.07)',
                         cursor: hasShot ? 'pointer' : 'default',
@@ -1186,20 +1194,19 @@ export default function LivePage() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           <span style={{ fontSize: 11, fontWeight: 700, color: '#F5A623' }}>
-                            {team?.name ?? '?'} #{m.teamMatchNumber}
+                            매치 #{m.matchNumber}
                           </span>
                           {hasChicken && <span style={{ fontSize: 10 }}>🍗</span>}
-                          {/* 스크린샷 있을 때 카메라 아이콘 표시 */}
                           {hasShot && (
                             <span style={{ fontSize: 10, color: '#8A8060' }} title="스크린샷 보기">📷</span>
                           )}
                         </div>
-                        <span style={{ fontSize: 10, color: '#555' }}>{new Date(m.createdAt).toLocaleTimeString('ko')}</span>
+                        <span style={{ fontSize: 10, color: '#555' }}>{m.playedAt ? new Date(m.playedAt).toLocaleTimeString('ko') : ''}</span>
                       </div>
                       <div style={{ fontSize: 11, color: '#8A8060' }}>
                         킬: <b style={{ color: '#E8DFC0' }}>{totalKills}</b>
-                        {m.results.map((r) => (
-                          <span key={r.nick} style={{ marginLeft: 6 }}>{r.nick} {r.kills}킬</span>
+                        {results.map((r) => (
+                          <span key={r.playerId} style={{ marginLeft: 6 }}>{r.playerNickname} {r.kills}킬</span>
                         ))}
                       </div>
                     </div>
