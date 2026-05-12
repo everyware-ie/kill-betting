@@ -3,6 +3,7 @@
 
 # Environment secrets (EC2 배포용)
 .env
+*.pem
 
 # IDE
 .idea/
