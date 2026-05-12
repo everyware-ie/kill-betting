@@ -1,23 +1,12 @@
 package com.killnagi.domain.session.service;
 
 import com.killnagi.common.exception.KillnagiException;
-import com.killnagi.domain.match.dto.response.ScreenshotUploadResponse;
-import com.killnagi.domain.match.entity.Match;
-import com.killnagi.domain.match.entity.MatchStatus;
-import com.killnagi.domain.match.repository.MatchRepository;
-import com.killnagi.domain.match.repository.MatchResultRepository;
-import com.killnagi.domain.match.service.MatchService;
 import com.killnagi.domain.rule.entity.Rule;
 import com.killnagi.domain.rule.entity.RuleSet;
 import com.killnagi.domain.rule.repository.RuleRepository;
 import com.killnagi.domain.rule.repository.RuleSetRepository;
 import com.killnagi.domain.session.dto.request.CreateRequest;
-import com.killnagi.domain.session.dto.response.MatchHistoryResponse;
-import com.killnagi.domain.session.dto.response.MatchSummaryResponse;
-import com.killnagi.domain.session.dto.response.MemberMatchResultResponse;
-import com.killnagi.domain.session.dto.response.ScoreboardResponse;
 import com.killnagi.domain.session.dto.response.SessionResponse;
-import com.killnagi.domain.session.dto.response.TeamScoreResponse;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.session.entity.SessionUser;
 import com.killnagi.domain.session.repository.SessionRepository;
@@ -29,13 +18,8 @@ import com.killnagi.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -43,8 +27,6 @@ import java.util.stream.Collectors;
 public class SessionService {
 
     private static final int MIN_TEAMS_TO_START = 2;
-    private static final String ROOM_CODE_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    private static final int ROOM_CODE_LENGTH = 6;
 
     private final SessionRepository sessionRepository;
     private final SessionUserRepository sessionUserRepository;
@@ -52,11 +34,9 @@ public class SessionService {
     private final TeamRepository teamRepository;
     private final RuleRepository ruleRepository;
     private final RuleSetRepository ruleSetRepository;
-    private final MatchRepository matchRepository;
-    private final MatchResultRepository matchResultRepository;
-    private final MatchService matchService;
     private final SessionParticipantRegistry registry;
     private final SessionTimerService sessionTimerService;
+    private final RoomCodeGenerator roomCodeGenerator;
 
     @Transactional
     public SessionResponse createSession(Long hostUserId, CreateRequest request) {
@@ -65,8 +45,7 @@ public class SessionService {
 
         Session session = sessionRepository.save(Session.builder()
                 .name(request.name())
-                .roomUrl(generateUniqueRoomUrl())
-                .roomCode(generateUniqueRoomCode())
+                .roomCode(roomCodeGenerator.generate())
                 .host(host)
                 .targetKills(request.targetKills())
                 .timeLimitMinutes(request.timeLimitMinutes())
@@ -87,7 +66,7 @@ public class SessionService {
         }
 
         session.assignCurrentRuleSet(ruleSet);
-        return toResponse(session);
+        return SessionResponse.from(session);
     }
 
     @Transactional
@@ -101,7 +80,6 @@ public class SessionService {
             throw KillnagiException.badRequest("최소 " + MIN_TEAMS_TO_START + "팀이 필요합니다.");
         }
 
-        // 대기실 참여자를 SessionUser로 일괄 저장
         userRepository.findAllById(registry.getParticipantIds(sessionId)).forEach(participant ->
                 sessionUserRepository.save(SessionUser.builder()
                         .session(session)
@@ -202,37 +180,4 @@ public class SessionService {
                 .orElseThrow(() -> KillnagiException.notFound("세션을 찾을 수 없습니다."));
     }
 
-    private SessionResponse toResponse(Session session) {
-        return new SessionResponse(
-                session.getId(),
-                session.getName(),
-                session.getHostNickname(),
-                session.getStatus(),
-                session.getRoomUrl(),
-                session.getRoomCode(),
-                session.getTargetKills(),
-                session.getTimeLimitMinutes(),
-                session.getCreatedAt()
-        );
-    }
-
-    private String generateUniqueRoomUrl() {
-        String roomUrl;
-        do {
-            roomUrl = UUID.randomUUID().toString();
-        } while (sessionRepository.existsByRoomUrl(roomUrl));
-        return roomUrl;
-    }
-
-    private String generateUniqueRoomCode() {
-        String code;
-        do {
-            StringBuilder sb = new StringBuilder(ROOM_CODE_LENGTH);
-            for (int i = 0; i < ROOM_CODE_LENGTH; i++) {
-                sb.append(ROOM_CODE_CHARS.charAt(ThreadLocalRandom.current().nextInt(ROOM_CODE_CHARS.length())));
-            }
-            code = sb.toString();
-        } while (sessionRepository.existsByRoomCode(code));
-        return code;
-    }
 }

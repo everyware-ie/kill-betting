@@ -130,14 +130,14 @@ export const RoomAPI = {
    *   Response 200: { session }
    *   Response 404: { error: '방을 찾을 수 없습니다' }
    */
-  get: async (roomUrl) => {
+  get: async (roomCode) => {
     if (USE_MOCK) {
       await delay(200);
-      const room = _runtimeRooms.find((r) => r.id === roomUrl);
+      const room = _runtimeRooms.find((r) => r.id === roomCode || r.code === roomCode);
       if (!room) return err('방을 찾을 수 없습니다');
       return ok({ room });
     }
-    return apiFetch(`/sessions/join/${roomUrl}`);
+    return apiFetch(`/sessions/join/${roomCode}`);
   },
 
   /**
@@ -579,9 +579,8 @@ export const RoomAPI = {
       }
       return ok({ room });
     }
-    return apiFetch(`/sessions/join/${code}`, {
-      method: 'GET',
-    });
+    const cleaned = code.replace(/^#/, '').trim().toUpperCase();
+    return apiFetch(`/sessions/join/${cleaned}`);
   },
 
   /**

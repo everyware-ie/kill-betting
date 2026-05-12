@@ -26,9 +26,6 @@ public class Session {
     @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(name = "room_url", nullable = false, unique = true, length = 36)
-    private String roomUrl;
-
     @Column(name = "room_code", nullable = false, unique = true, length = 6)
     private String roomCode;
 
@@ -73,10 +70,9 @@ public class Session {
     private static final int MIN_TIME_LIMIT_MINUTES = 1;
 
     @Builder
-    public Session(String name, String roomUrl, String roomCode, User host, Integer targetKills, Integer timeLimitMinutes) {
+    public Session(String name, String roomCode, User host, Integer targetKills, Integer timeLimitMinutes) {
         validate(name, targetKills, timeLimitMinutes);
         this.name = name;
-        this.roomUrl = roomUrl;
         this.roomCode = roomCode;
         this.host = host;
         this.targetKills = targetKills;

@@ -49,11 +49,9 @@ class SessionServiceTest {
     @Mock private TeamRepository teamRepository;
     @Mock private RuleRepository ruleRepository;
     @Mock private RuleSetRepository ruleSetRepository;
-    @Mock private MatchRepository matchRepository;
-    @Mock private MatchResultRepository matchResultRepository;
-    @Mock private MatchService matchService;
     @Mock private SessionParticipantRegistry registry;
     @Mock private SessionTimerService sessionTimerService;
+    @Mock private RoomCodeGenerator roomCodeGenerator;
     @InjectMocks private SessionService sessionService;
 
     private static final Long HOST_ID = 1L;
@@ -164,19 +162,9 @@ class SessionServiceTest {
     }
 
     @Test
-    void roomUrl로_세션_조회시_존재하지않으면_예외를_던진다() {
-        given(sessionRepository.findByRoomUrl("invalid-url")).willReturn(Optional.empty());
-
-        assertThatThrownBy(() -> sessionService.getSessionByRoomUrl("invalid-url"))
-                .isInstanceOf(KillnagiException.class)
-                .hasMessageContaining("세션을 찾을 수 없습니다");
-    }
-
-    @Test
     void 호스트가_룰_값을_수정하면_성공한다() {
         User host = TestFixtures.user(HOST_ID);
         Session session = TestFixtures.session(SESSION_ID, host);
-        RuleSet ruleSet = RuleSet.builder().session(session).build();
         Rule rule = TestFixtures.rule(session, RuleType.CHICKEN_BONUS, Operator.PLUS, 5);
 
         given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));

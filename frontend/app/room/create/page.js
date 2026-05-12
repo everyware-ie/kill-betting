@@ -179,8 +179,8 @@ export default function CreateRoomPage() {
       return;
     }
 
-    // 성공 → 팀 구성 페이지로 이동
-    router.push(`/room/${res.data.id}/setup`);
+    // 성공 → 팀 구성 페이지로 이동 (roomCode 기반)
+    router.push(`/room/${res.data.roomCode}/setup`);
   };
 
   // ─────────────────────────────────────────

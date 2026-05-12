@@ -375,9 +375,10 @@ export default function MyPage() {
 
   // ── 방 클릭 → 상태에 따라 이동 ──
   const handleRoomClick = (room) => {
-    if (room.status === 'WAITING') router.push(`/room/${room.id}/setup`);
-    else if (room.status === 'LIVE') router.push(`/room/${room.id}/live`);
-    else router.push(`/room/${room.id}/result`);
+    const code = room.code || room.roomCode;
+    if (room.status === 'WAITING') router.push(`/room/${code}/setup`);
+    else if (room.status === 'LIVE') router.push(`/room/${code}/live`);
+    else router.push(`/room/${code}/result`);
   };
 
   if (authLoading || !user) return null;
