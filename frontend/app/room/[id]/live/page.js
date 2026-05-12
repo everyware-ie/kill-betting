@@ -33,7 +33,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth }  from '@/lib/auth-context';
 import { RoomAPI }  from '@/lib/room-api';
-import { OcrAPI }  from '@/lib/ocr-api';
+import { useWebSocket } from '@/lib/useWebSocket';
+import { mapSessionRule } from '@/features/setup/helpers/mappers';
 import Button from '@/components/ui/Button';
 import RoleGuideModal from '@/components/ui/RoleGuideModal';
 
@@ -49,19 +50,17 @@ import RoleGuideModal from '@/components/ui/RoleGuideModal';
 function calcTeamScore(teamId, matches, rule, adjustments = []) {
   let kills = 0, bonus = 0, penalty = 0;
 
-  // 이 팀이 제출한 매치만 필터링
-  const teamMatches = matches.filter((m) => m.teamId === teamId);
+  for (const m of matches) {
+    // 이 팀 소속 결과만 필터링
+    const teamResults = (m.memberResults || []).filter((r) => r.teamId === teamId);
+    if (teamResults.length === 0) continue;
 
-  for (const m of teamMatches) {
-    // 치킨 보너스 (자신의 게임에서 치킨을 먹었는지)
-    if (rule.chickenBonusOn && m.chickenTeamId === teamId) bonus += rule.chickenBonus;
+    // 치킨 보너스 (이 매치에서 치킨을 먹었고 이 팀 소속이면)
+    const hasChicken = teamResults.some((r) => r.isChicken);
+    if (rule.chickenBonusOn && hasChicken) bonus += rule.chickenBonus;
 
-    for (const r of m.results) {
+    for (const r of teamResults) {
       kills += r.kills;
-      if (rule.headShotBonusOn  && r.headShot)   bonus   += rule.headShotBonus;
-      if (rule.assistBonusOn    && r.assist)      bonus   += rule.assistBonus;
-      if (rule.teamKillPenaltyOn)                 penalty += (r.teamKills || 0) * rule.teamKillPenalty;
-      if (rule.deathPenaltyOn   && r.earlyDeath)  penalty += rule.deathPenalty;
     }
   }
 
@@ -76,14 +75,10 @@ function calcTeamScore(teamId, matches, rule, adjustments = []) {
 function calcPlayerStats(nick, matches, rule) {
   let kills = 0, bonus = 0, penalty = 0, damage = 0;
   for (const m of matches) {
-    for (const r of m.results) {
-      if (r.nick !== nick) continue;
+    for (const r of (m.memberResults || [])) {
+      if (r.playerNickname !== nick) continue;
       kills  += r.kills;
       damage += r.damage || 0;
-      if (rule.headShotBonusOn  && r.headShot)   bonus   += rule.headShotBonus;
-      if (rule.assistBonusOn    && r.assist)      bonus   += rule.assistBonus;
-      if (rule.teamKillPenaltyOn)                 penalty += (r.teamKills || 0) * rule.teamKillPenalty;
-      if (rule.deathPenaltyOn   && r.earlyDeath)  penalty += rule.deathPenalty;
     }
   }
   return { kills, bonus, penalty, damage, total: kills + bonus - penalty };
@@ -114,7 +109,7 @@ const fmtMMSS = (s) => {
  * - teamId: 입력할 팀 ID
  * - onSubmit(results, claimsChicken): 제출 콜백
  */
-function TeamResultModal({ room, teamId, matchNumber, onSubmit, onClose }) {
+function TeamResultModal({ room, teamId, matchNumber, sessionId, onConfirmed, onClose }) {
   const { teams, rule } = room;
 
   // 이 모달에서 입력할 팀 정보
@@ -123,8 +118,8 @@ function TeamResultModal({ room, teamId, matchNumber, onSubmit, onClose }) {
 
   // 이 팀 플레이어만 초기화 (다른 팀 플레이어는 표시하지 않음)
   const [results, setResults] = useState(
-    team.players.map((nick) => ({
-      nick, teamId,
+    (team.players || []).map((p) => ({
+      nick: typeof p === 'string' ? p : p.nickname, teamId,
       kills: 0, damage: 0,
       headShot: false, assist: false, teamKills: 0, earlyDeath: false,
     }))
@@ -133,16 +128,20 @@ function TeamResultModal({ room, teamId, matchNumber, onSubmit, onClose }) {
   const [claimsChicken, setClaimsChicken] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // ── OCR 관련 상태 ──
+  // ── OCR / 매치 관련 상태 ──
   const [ocrFile,      setOcrFile]      = useState(null);       // 선택된 이미지 파일
   const [ocrPreview,   setOcrPreview]   = useState(null);       // 이미지 미리보기 URL
   const [ocrLoading,   setOcrLoading]   = useState(false);      // OCR 처리 중 여부
+  const [ocrProgress,  setOcrProgress]  = useState(0);          // 로딩 프로그레스 (0~100)
   const [ocrError,     setOcrError]     = useState('');         // OCR 오류 메시지
   const [ocrDone,      setOcrDone]      = useState(false);      // OCR 완료 여부
-  const [ocrIsMock,    setOcrIsMock]    = useState(false);      // Mock 결과 여부
   const [ocrUnmatched, setOcrUnmatched] = useState([]);         // 매칭 안 된 닉네임
-  // OCR로 채워진 필드를 하이라이트하기 위한 닉네임 세트
   const [ocrFilledNicks, setOcrFilledNicks] = useState(new Set());
+  // 매치 생성 후 받은 데이터 (confirm 시 사용)
+  const [matchId,      setMatchId]      = useState(null);
+  const [ocrMapName,   setOcrMapName]   = useState('');
+  const [ocrPlacement, setOcrPlacement] = useState(0);
+  const [ocrPlayTime,  setOcrPlayTime]  = useState('');
 
   const setR = (nick, key, val) =>
     setResults((prev) => prev.map((r) => r.nick === nick ? { ...r, [key]: val } : r));
@@ -159,6 +158,10 @@ function TeamResultModal({ room, teamId, matchNumber, onSubmit, onClose }) {
     setOcrError('');
     setOcrDone(false);
     setOcrFilledNicks(new Set());
+    setMatchId(null);
+    setOcrMapName('');
+    setOcrPlacement(0);
+    setOcrPlayTime('');
     // 미리보기 URL 생성
     const url = URL.createObjectURL(file);
     setOcrPreview(url);
@@ -171,47 +174,70 @@ function TeamResultModal({ room, teamId, matchNumber, onSubmit, onClose }) {
     if (file) handleFileChange(file);
   };
 
-  // ── OCR 분석 실행 ──
+  // ── OCR 분석 실행 (이미지 업로드 → 매치 생성 + OCR) ──
   const handleOcr = async () => {
     if (!ocrFile) return;
     setOcrLoading(true);
     setOcrError('');
+    setOcrProgress(0);
 
-    // 이 팀의 닉네임만 힌트로 전달 (팀별 입력이므로)
-    const teamNicks = team.players;
-    const res = await OcrAPI.parseScreenshot(ocrFile, teamNicks);
+    // 로딩 프로그레스 시뮬레이션 (업로드+OCR은 단일 요청이므로 가짜 진행률)
+    const progressTimer = setInterval(() => {
+      setOcrProgress((prev) => (prev < 90 ? prev + Math.random() * 15 : prev));
+    }, 400);
 
+    const res = await RoomAPI.uploadMatchImage(sessionId, ocrFile);
+
+    clearInterval(progressTimer);
+    setOcrProgress(100);
+
+    // 짧은 딜레이 후 로딩 해제 (100% 표시를 잠깐 보여주기 위해)
+    await new Promise((r) => setTimeout(r, 300));
     setOcrLoading(false);
 
     if (!res.success) {
-      setOcrError(res.error || 'OCR 처리에 실패했습니다');
+      setOcrError(res.error || '이미지 업로드/OCR 처리에 실패했습니다');
       return;
     }
 
-    // OCR 결과를 results 테이블에 자동으로 채우기
-    // res.players 배열의 nick 으로 매칭하여 해당 행만 업데이트
-    const filled = new Set();
-    setResults((prev) => prev.map((row) => {
-      const matched = res.data.players.find(
-        // 대소문자 무시하고 닉네임 매칭
-        (p) => p.nick.toLowerCase() === row.nick.toLowerCase()
-      );
-      if (!matched) return row; // 매칭 안 되면 기존 값 유지
-      filled.add(row.nick);
-      return {
-        ...row,
-        kills:      matched.kills      ?? row.kills,
-        damage:     matched.damage     ?? row.damage,
-        headShot:   matched.headShot   ?? row.headShot,
-        assist:     matched.assist     ?? row.assist,
-        teamKills:  matched.teamKills  ?? row.teamKills,
-        earlyDeath: matched.earlyDeath ?? row.earlyDeath,
-      };
-    }));
+    // 매치 ID 저장 (confirm 시 사용)
+    const data = res.data || res;
+    setMatchId(data.matchId);
 
-    setOcrFilledNicks(filled);
-    setOcrUnmatched(res.unmatched || []);
-    setOcrIsMock(res.isMock || false);
+    // OCR 메타 정보 저장
+    const ocr = data.ocrResult;
+    if (ocr) {
+      setOcrMapName(ocr.mapName || '');
+      setOcrPlacement(ocr.placement || 0);
+      setOcrPlayTime(ocr.playTime || '');
+
+      // OCR playerStats를 results 테이블에 자동 채우기
+      const stats = ocr.playerStats || [];
+      const filled = new Set();
+      setResults((prev) => prev.map((row) => {
+        const matched = stats.find(
+          (p) => p.nickname?.toLowerCase() === row.nick.toLowerCase()
+        );
+        if (!matched) return row;
+        filled.add(row.nick);
+        return {
+          ...row,
+          kills:  matched.kills  ?? row.kills,
+          damage: matched.damage ?? row.damage,
+        };
+      }));
+      setOcrFilledNicks(filled);
+
+      // 매칭 안 된 OCR 닉네임 목록
+      const teamNicks = new Set((team.players || []).map((p) =>
+        (typeof p === 'string' ? p : p.nickname).toLowerCase()
+      ));
+      const unmatched = stats
+        .filter((p) => !teamNicks.has(p.nickname?.toLowerCase()))
+        .map((p) => p.nickname);
+      setOcrUnmatched(unmatched);
+    }
+
     setOcrDone(true);
   };
 
@@ -227,11 +253,36 @@ function TeamResultModal({ room, teamId, matchNumber, onSubmit, onClose }) {
   const previewTotal   = previewKills + previewBonus - previewPenalty;
 
   const handleSubmit = async () => {
+    if (!matchId) {
+      setOcrError('먼저 스크린샷을 업로드하고 분석을 완료해주세요');
+      return;
+    }
     setSubmitting(true);
-    // onSubmit(results 배열, 치킨 여부, 스크린샷 파일) — 팀 ID는 부모에서 이미 알고 있음
-    // ocrFile이 있으면 제출 후 S3에 업로드됨
-    await onSubmit(results, claimsChicken, ocrFile || null);
+
+    const playerResults = results.map((r) => ({
+      nickname: r.nick,
+      kills: r.kills,
+      damage: r.damage || 0,
+      assists: r.assist ? 1 : 0,
+      isTop10: false,
+    }));
+
+    const confirmRes = await RoomAPI.confirmMatch(matchId, {
+      playerResults,
+      isChicken: claimsChicken,
+      mapName: ocrMapName,
+      placement: ocrPlacement,
+      playTime: ocrPlayTime,
+    });
+
     setSubmitting(false);
+
+    if (!confirmRes.success) {
+      setOcrError(confirmRes.error || '매치 확정에 실패했습니다');
+      return;
+    }
+
+    onConfirmed?.();
   };
 
   return (
@@ -245,7 +296,7 @@ function TeamResultModal({ room, teamId, matchNumber, onSubmit, onClose }) {
               {team.name} — {matchNumber}번째 게임 결과 입력
             </div>
             <div style={{ fontSize: 11, color: '#8A8060', marginTop: 2 }}>
-              우리 팀({team.players.length}명) 결과만 입력합니다 · 스크린샷 OCR 또는 직접 입력
+              우리 팀({(team.players || []).length}명) 결과만 입력합니다 · 스크린샷 OCR 또는 직접 입력
             </div>
           </div>
           <button onClick={onClose} style={{ background: '#2a2810', border: '1px solid rgba(200,155,0,0.2)', color: '#E8DFC0', width: 28, height: 28, borderRadius: 4, cursor: 'pointer', fontSize: 13 }}>✕</button>
@@ -324,11 +375,15 @@ function TeamResultModal({ room, teamId, matchNumber, onSubmit, onClose }) {
                 </button>
               )}
 
-              {/* OCR 로딩 중 */}
+              {/* OCR 로딩 중 — 프로그레스바 */}
               {ocrLoading && (
-                <div style={{ fontSize: 12, color: '#F5A623', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <div style={{ width: 14, height: 14, border: '2px solid rgba(245,166,35,0.3)', borderTopColor: '#F5A623', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                  분석 중...
+                <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 80 }}>
+                  <div style={{ fontSize: 11, color: '#F5A623', fontWeight: 600 }}>
+                    분석 중 {Math.round(ocrProgress)}%
+                  </div>
+                  <div style={{ width: 80, height: 6, background: 'rgba(245,166,35,0.15)', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{ width: `${ocrProgress}%`, height: '100%', background: '#F5A623', borderRadius: 3, transition: 'width 0.3s ease' }} />
+                  </div>
                 </div>
               )}
             </div>
@@ -337,7 +392,8 @@ function TeamResultModal({ room, teamId, matchNumber, onSubmit, onClose }) {
             {ocrDone && !ocrError && (
               <div style={{ marginTop: 8, padding: '8px 12px', background: 'rgba(76,175,80,0.1)', border: '1px solid rgba(76,175,80,0.3)', borderRadius: 4, fontSize: 11, color: '#4CAF50', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <span>✓ OCR 완료 — {ocrFilledNicks.size}명 자동 입력됨</span>
-                {ocrIsMock && <span style={{ color: '#8A8060' }}>[MOCK 데이터]</span>}
+                {ocrMapName && <span style={{ color: '#8A8060' }}>맵: {ocrMapName}</span>}
+                {ocrPlacement > 0 && <span style={{ color: '#8A8060' }}>순위: #{ocrPlacement}</span>}
                 {ocrUnmatched.length > 0 && (
                   <span style={{ color: '#F5A623' }}>미매칭: {ocrUnmatched.join(', ')}</span>
                 )}
@@ -784,7 +840,8 @@ function AdminModal({ room, onAdjust, onEnd, onRuleUpdate, onClose }) {
 
 export default function LivePage() {
   const router = useRouter();
-  const { id: roomId } = useParams();
+  const { id: roomCode } = useParams();
+  const [sessionId, setSessionId] = useState(null);
   const { user } = useAuth();
 
   const [room,           setRoom]           = useState(null);
@@ -792,7 +849,6 @@ export default function LivePage() {
   const [adjs,           setAdjs]           = useState([]);
   const [elapsed,        setElapsed]        = useState(0);
   const [loading,        setLoading]        = useState(true);
-  const [pollError,      setPollError]      = useState(false);  // 폴링 실패 여부 (연결 오류 배너용)
   const [showTeamModal,   setShowTeamModal]   = useState(false);  // 팀 결과 입력 모달
   const [selectedTeamId,  setSelectedTeamId]  = useState(null);  // 모달에서 입력할 팀 ID
   const [modalMatchNum,   setModalMatchNum]   = useState(1);      // 모달 타이틀용 팀 매치 순번
@@ -802,23 +858,38 @@ export default function LivePage() {
   const [screenshotModal, setScreenshotModal] = useState(null);   // 열린 스크린샷 URL (null이면 닫힘)
 
   // 내 팀 — 로그인 유저가 속한 팀 (있으면 해당 팀 LEADER)
-  const myTeam = room?.teams.find((t) => t.members?.some((m) => m.userId === user?.id));
-  // 방장(HOST) userId 및 여부 — 닉네임 관리·점수조정·경기종료·룰변경 권한
-  const hostUserId = room?.participants?.find((p) => p.role === 'HOST')?.userId;
+  const myTeam = room?.teams?.find((t) => t.leaderUserId === user?.id);
+  // 방장(HOST) userId 및 여부
+  const hostUserId = room?.hostUserId;
   const isHost = hostUserId === user?.id;
 
   // ── 초기 로드 ──
   useEffect(() => {
     if (!user) return;
-    Promise.all([
-      RoomAPI.get(roomId),
-      RoomAPI.getMatches(roomId),
-    ]).then(([roomRes, matchRes]) => {
-      if (roomRes.success)  { setRoom(roomRes.data); setAdjs(roomRes.data.adjustments || []); }
-      if (matchRes.success) setMatches(matchRes.data);
+    RoomAPI.get(roomCode).then(async (roomRes) => {
+      if (!roomRes.success) { setLoading(false); return; }
+      const session = roomRes.data;
+      setSessionId(session.id);
+
+      const teamsRes = await RoomAPI.getTeams(session.id);
+      const teams = teamsRes.success ? teamsRes.data.map((t) => ({
+        id: t.id,
+        name: t.name,
+        leaderUserId: t.leaderUserId,
+        players: (t.players || []).map((nick, idx) => ({ id: idx, nickname: nick })),
+      })) : [];
+
+      setRoom({
+        ...session,
+        rule: mapSessionRule(session),
+        teams,
+      });
+      setAdjs([]);
+      const matchRes = await RoomAPI.getMatches(session.id);
+      if (matchRes.success) setMatches(matchRes.data?.matches || []);
       setLoading(false);
     });
-  }, [roomId, user]);
+  }, [roomCode, user]);
 
   // ── 타이머 (1초마다) ──
   useEffect(() => {
@@ -826,61 +897,37 @@ export default function LivePage() {
     return () => clearInterval(id);
   }, []);
 
-  // ── 폴링 (5초마다 매치 목록 갱신) ──
-  // 다른 팀이 결과를 제출하면 폴링을 통해 내 화면에도 반영됨
-  // 실패 시 화면 상단에 오류 배너 표시, 복구되면 자동으로 사라짐
-  // ※ 추후 WebSocket 전환 시 이 useEffect를 교체하고 setPollError 호출 위치만 바꾸면 됨
-  useEffect(() => {
-    const id = setInterval(async () => {
-      const matchRes = await RoomAPI.getMatches(roomId);
-      if (matchRes.success) {
-        setMatches(matchRes.matches);
-        setPollError(false);  // 복구되면 배너 제거
-      } else {
-        setPollError(true);   // 실패하면 배너 표시
-      }
-    }, 5000);
-    return () => clearInterval(id);
-  }, [roomId]);
+  // ── WebSocket (매치 결과 실시간 수신) ──
+  // 다른 팀이 결과를 제출하면 SCORE_UPDATED 메시지를 받아 매치 목록 갱신
+  const { connected } = useWebSocket(sessionId, (envelope) => {
+    if (!envelope) return;
+    if (envelope.type === 'SCORE_UPDATED' && sessionId) {
+      RoomAPI.getMatches(sessionId).then((matchRes) => {
+        if (matchRes.success) setMatches(matchRes.data?.matches || []);
+      });
+    }
+  }, !!user && !!sessionId);
 
   // ── 결과 입력 모달 열기 ──
   // 이 팀이 지금까지 몇 게임을 끝냈는지 계산해서 모달 타이틀에 표시
   const openTeamModal = useCallback((teamId) => {
-    const teamMatchCount = matches.filter((m) => m.teamId === teamId).length;
+    const teamMatchCount = matches.filter((m) => (m.memberResults || []).some((r) => r.teamId === teamId)).length;
     setSelectedTeamId(teamId);
     setModalMatchNum(teamMatchCount + 1);   // 다음 제출 순번
     setShowTeamModal(true);
     setMatchError('');
   }, [matches]);
 
-  // ── 팀 매치 결과 제출 ──
-  // 각 팀이 자신의 게임이 끝날 때마다 독립적으로 호출
-  // 다른 팀의 진행과 무관하게 즉시 스코어보드에 반영
-  // screenshotFile: OCR에 사용한 이미지 파일 (없으면 null)
-  const handleSubmitTeamResult = async (results, claimsChicken, screenshotFile) => {
-    const res = await RoomAPI.addTeamMatch(roomId, selectedTeamId, results, claimsChicken);
-    if (!res.success) { setMatchError(res.error); return; }
-
-    let match = res.match;
-
-    // 스크린샷이 있으면 업로드 완료까지 모달을 유지 (버튼 로딩 상태 표시됨)
-    // 업로드 실패해도 매치 결과 자체는 정상 등록됨
-    if (screenshotFile) {
-      const uploadRes = await RoomAPI.uploadMatchScreenshot(roomId, match.id, screenshotFile);
-      if (uploadRes.success) match = { ...match, screenshotUrl: uploadRes.data.screenshotUrl };
-    }
-
-    // 업로드까지 완료된 후 모달 닫기
+  // ── 팀 매치 결과 확정 완료 콜백 ──
+  // 모달 내부에서 업로드 + OCR + confirm을 직접 처리하고, 완료 시 이 콜백 호출
+  const handleMatchConfirmed = () => {
     setShowTeamModal(false);
     setMatchError('');
-
-    // 제출 즉시 로컬 상태에 반영 (폴링 전에 바로 화면에 보임)
-    setMatches((prev) => [...prev, match]);
   };
 
   // ── 점수 조정 ──
   const handleAdjust = async (teamId, amount, reason) => {
-    const res = await RoomAPI.addAdjustment(roomId, teamId, amount, reason);
+    const res = await RoomAPI.addAdjustment(sessionId, teamId, amount, reason);
     if (res.success) setAdjs(res.data.adjustments);
   };
 
@@ -888,14 +935,14 @@ export default function LivePage() {
   // 운영자가 진행 중에 목표 킬·보너스·패널티 등을 수정할 수 있음
   // 저장 후 room 상태를 갱신하면 calcTeamScore 등이 즉시 새 룰로 재계산됨
   const handleRuleUpdate = async (newRule) => {
-    const res = await RoomAPI.updateRule(roomId, newRule);
+    const res = await RoomAPI.updateRule(sessionId, newRule);
     if (res.success) setRoom((prev) => ({ ...prev, rule: res.data.rule || newRule }));
   };
 
   // ── 경기 종료 ──
   const handleEnd = async () => {
-    const res = await RoomAPI.end(roomId);
-    if (res.success) router.push(`/room/${roomId}/result`);
+    const res = await RoomAPI.end(sessionId);
+    if (res.success) router.push(`/room/${roomCode}/result`);
   };
 
   if (loading) return (
@@ -933,8 +980,7 @@ export default function LivePage() {
     <div style={{ minHeight: '100vh', background: '#12100A', display: 'flex', flexDirection: 'column' }}>
 
       {/* ── 연결 오류 배너 ── */}
-      {/* 폴링 실패 시 표시. WebSocket 전환 후에는 ws.onerror / ws.onclose 에서 setPollError(true) 호출로 교체 */}
-      {pollError && (
+      {!connected && sessionId && (
         <div style={{
           background: '#3B1111', borderBottom: '1px solid rgba(229,57,53,0.4)',
           padding: '8px 22px', display: 'flex', alignItems: 'center', gap: 8,
@@ -1083,7 +1129,7 @@ export default function LivePage() {
                   <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid rgba(200,155,0,0.1)' }}>
                     {/* 이 팀이 지금까지 제출한 게임 수 */}
                     {(() => {
-                      const teamMatchCount = matches.filter((m) => m.teamId === t.id).length;
+                      const teamMatchCount = matches.filter((m) => (m.memberResults || []).some((r) => r.teamId === t.id)).length;
                       return (
                         <div style={{ fontSize: 10, color: '#8A8060', textAlign: 'center', marginBottom: myTeam?.id === t.id ? 6 : 0 }}>
                           {teamMatchCount > 0 ? `${teamMatchCount}게임 완료` : '아직 결과 없음'}
@@ -1113,7 +1159,7 @@ export default function LivePage() {
             <div style={{ fontSize: 11, color: '#8A8060', letterSpacing: 2, marginBottom: 10 }}>개인 통계</div>
             <div style={{ background: '#1C1A0C', border: '1px solid rgba(200,155,0,0.15)', borderRadius: 8, overflow: 'hidden' }}>
               {teams.map((team, tIdx) => {
-                const stats = team.players.map((nick) => ({ nick, ...calcPlayerStats(nick, matches, rule) }))
+                const stats = (team.players || []).map((p) => { const nick = typeof p === 'string' ? p : p.nickname; return { nick, ...calcPlayerStats(nick, matches, rule) }; })
                   .sort((a, b) => b.kills - a.kills);
                 return (
                   <div key={team.id}>
@@ -1163,14 +1209,14 @@ export default function LivePage() {
                 <div style={{ color: '#555', fontSize: 12, textAlign: 'center', padding: '20px 0' }}>아직 결과 없음</div>
               ) : (
                 [...matches].reverse().slice(0, 30).map((m) => {
-                  const team       = teams.find((t) => t.id === m.teamId);
-                  const totalKills = (m.results || []).reduce((s, r) => s + r.kills, 0);
-                  const hasChicken = m.chickenTeamId === m.teamId;
+                  const results = m.memberResults || [];
+                  const totalKills = results.reduce((s, r) => s + r.kills, 0);
+                  const hasChicken = results.some((r) => r.isChicken);
                   const hasShot    = !!m.screenshotUrl;
                   return (
                     <div
-                      key={m.id}
-                      onClick={() => hasShot && setScreenshotModal({ url: m.screenshotUrl, match: m, team })}
+                      key={m.matchId}
+                      onClick={() => hasShot && setScreenshotModal({ url: m.screenshotUrl, match: m })}
                       style={{
                         padding: '9px 0', borderBottom: '1px solid rgba(200,155,0,0.07)',
                         cursor: hasShot ? 'pointer' : 'default',
@@ -1182,20 +1228,19 @@ export default function LivePage() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           <span style={{ fontSize: 11, fontWeight: 700, color: '#F5A623' }}>
-                            {team?.name ?? '?'} #{m.teamMatchNumber}
+                            매치 #{m.matchNumber}
                           </span>
                           {hasChicken && <span style={{ fontSize: 10 }}>🍗</span>}
-                          {/* 스크린샷 있을 때 카메라 아이콘 표시 */}
                           {hasShot && (
                             <span style={{ fontSize: 10, color: '#8A8060' }} title="스크린샷 보기">📷</span>
                           )}
                         </div>
-                        <span style={{ fontSize: 10, color: '#555' }}>{new Date(m.createdAt).toLocaleTimeString('ko')}</span>
+                        <span style={{ fontSize: 10, color: '#555' }}>{m.playedAt ? new Date(m.playedAt).toLocaleTimeString('ko') : ''}</span>
                       </div>
                       <div style={{ fontSize: 11, color: '#8A8060' }}>
                         킬: <b style={{ color: '#E8DFC0' }}>{totalKills}</b>
-                        {m.results.map((r) => (
-                          <span key={r.nick} style={{ marginLeft: 6 }}>{r.nick} {r.kills}킬</span>
+                        {results.map((r) => (
+                          <span key={r.playerId} style={{ marginLeft: 6 }}>{r.playerNickname} {r.kills}킬</span>
                         ))}
                       </div>
                     </div>
@@ -1267,7 +1312,8 @@ export default function LivePage() {
           room={room}
           teamId={selectedTeamId}
           matchNumber={modalMatchNum}
-          onSubmit={handleSubmitTeamResult}
+          sessionId={sessionId}
+          onConfirmed={handleMatchConfirmed}
           onClose={() => setShowTeamModal(false)}
         />
       )}

@@ -22,11 +22,6 @@ public class SessionQueryService {
     private final SessionRepository sessionRepository;
     private final RuleRepository ruleRepository;
 
-    public SessionResponse getSessionById(Long sessionId) {
-        Session session = getSessionOrThrow(sessionId);
-        return SessionResponse.from(session);
-    }
-
     public List<SessionResponse> getWaitingSessions() {
         return sessionRepository.findByStatus(SessionStatus.WAITING).stream()
                 .map(SessionResponse::from)
@@ -48,11 +43,6 @@ public class SessionQueryService {
         return sessionRepository.findSessionsByUserId(userId).stream()
                 .map(SessionResponse::from)
                 .toList();
-    }
-
-    private Session getSessionOrThrow(Long sessionId) {
-        return sessionRepository.findById(sessionId)
-                .orElseThrow(() -> KillnagiException.notFound("세션을 찾을 수 없습니다."));
     }
 
     private Session findByRoomCodeOrThrow(String roomCode) {

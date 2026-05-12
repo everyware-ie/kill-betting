@@ -6,13 +6,7 @@
  *  [개념 정리]
  *
  *  session (방)
- *    - 방 참여자(participants): 로그인 유저, 방 운영 담당
  *    - 팀(teams): 배그 닉네임 문자열만 존재, 계정 연동 없음
- *
- *  participant (방 참여자)
- *    - 로그인한 유저
- *    - 스크린샷 업로드 / 결과 입력 담당
- *    - 킬내기 참가자와 별개 개념
  *
  *  team player (킬내기 참가자)
  *    - 배그 인게임 닉네임만 존재
@@ -59,7 +53,7 @@ export const MOCK_SESSIONS = [
   {
     id: 'session-001',
     title: '금요일 스쿼드 킬내기',
-    code: '#1234-56',
+    code: '#123456',
     status: 'DONE',      // 'WAITING' | 'LIVE' | 'DONE'
     hostId: 'user-001',
     rule: { ...DEFAULT_RULE },

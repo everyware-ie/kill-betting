@@ -42,10 +42,11 @@ export default function SetupPage() {
 
   const {
     room, loading, error, starting, inputs, setInputs,
-    user, myTeam, hostUserId, isHost,
-    totalPlayers, canStart, maxPerTeam,
-    handleMoveTeam, handleLeaveTeam,
-    addPlayer, removePlayer, handleAddTeam,
+    user, hostUserId, isHost,
+    totalPlayers, canStart,
+    handleAddTeam, handleMoveToTeam,
+    addPlayer, removePlayer,
+    handleSetLeader, handleUnassignLeader,
     handleSaveRule, handleStart,
   } = useSetupRoom();
 
@@ -66,15 +67,14 @@ export default function SetupPage() {
       {/* ── 룰 요약 배너 ── */}
       <RuleBanner rule={room?.rule} onEdit={() => setShowRuleModal(true)} />
 
-      {/* ── 내 현재 위치 안내 ── */}
-      <MyPositionBanner myTeam={myTeam} isHost={isHost} />
-
       {/* ── 대기석 유저 목록 ── */}
       <WaitingUserList
-        participants={room?.participants}
+        waitingUsers={room?.waitingUsers}
         teams={room?.teams}
         userId={user?.id}
         hostUserId={hostUserId}
+        isHost={isHost}
+        onMoveToTeam={handleMoveToTeam}
       />
 
       {/* ── 안내 ── */}
@@ -95,17 +95,14 @@ export default function SetupPage() {
             <TeamCard
               key={team.id}
               team={team}
-              isMyTeam={team.id === myTeam?.id}
               isHost={isHost}
               userId={user?.id}
               hostUserId={hostUserId}
-              maxPerTeam={maxPerTeam}
               inputs={inputs}
               setInputs={setInputs}
-              onMoveTeam={handleMoveTeam}
-              onLeaveTeam={myTeam ? handleLeaveTeam : null}
               onAddPlayer={addPlayer}
               onRemovePlayer={removePlayer}
+              onUnassignLeader={handleUnassignLeader}
             />
           ))}
 
@@ -167,11 +164,8 @@ function RuleBanner({ rule, onEdit }) {
     { label: rule?.gameMode },
     { label: `목표 ${rule?.targetKills}킬` },
     { label: rule?.noTimeLimit ? '시간제한 없음' : `${rule?.timeLimitMin}분` },
-    ...(rule?.headShotBonusOn   ? [{ label: `헤드샷 +${rule.headShotBonus}`,   color: '#F5A623' }] : []),
-    ...(rule?.assistBonusOn     ? [{ label: `어시스트 +${rule.assistBonus}`,   color: '#F5A623' }] : []),
-    ...(rule?.chickenBonusOn    ? [{ label: `치킨 +${rule.chickenBonus}`,      color: '#F5A623' }] : []),
-    ...(rule?.teamKillPenaltyOn ? [{ label: `팀킬 -${rule.teamKillPenalty}`,   color: '#E53935' }] : []),
-    ...(rule?.deathPenaltyOn    ? [{ label: `사망 -${rule.deathPenalty}`,      color: '#E53935' }] : []),
+    ...(rule?.chickenBonusOn    ? [{ label: `치킨 +${rule.chickenBonus}`,        color: '#F5A623' }] : []),
+    ...(rule?.survivalPenaltyOn ? [{ label: `생존 -${rule.survivalPenalty}`,     color: '#E53935' }] : []),
   ];
 
   return (
@@ -181,41 +175,6 @@ function RuleBanner({ rule, onEdit }) {
         <span key={i} style={{ padding: '2px 8px', borderRadius: 3, fontSize: 11, fontWeight: 600, background: 'rgba(200,155,0,0.08)', border: '1px solid rgba(200,155,0,0.2)', color: tag.color || '#E8DFC0' }}>{tag.label}</span>
       ))}
       <span style={{ marginLeft: 'auto', fontSize: 11, color: '#8A8060', cursor: 'pointer', textDecoration: 'underline' }} onClick={onEdit}>수정하기</span>
-    </div>
-  );
-}
-
-function MyPositionBanner({ myTeam, isHost }) {
-  if (myTeam) {
-    return (
-      <div style={{ background: 'rgba(245,166,35,0.06)', borderBottom: '1px solid rgba(200,155,0,0.1)', padding: '8px 24px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
-        <span style={{ color: '#8A8060' }}>나의 위치:</span>
-        <span style={{ color: '#F5A623', fontWeight: 700 }}>{myTeam.name}</span>
-        {isHost ? (
-          <span style={{ padding: '1px 8px', borderRadius: 3, fontSize: 10, fontWeight: 700, background: '#FFD700', color: '#1a1500' }}>
-            👑 방장
-          </span>
-        ) : (
-          <span style={{ padding: '1px 7px', borderRadius: 3, fontSize: 10, fontWeight: 700, background: '#F5A623', color: '#1a1500' }}>
-            ★ LEADER
-          </span>
-        )}
-        <span style={{ fontSize: 11, color: '#8A8060' }}>
-          {isHost ? '— 닉네임 관리 · 게임 시작 · OCR 업로드 권한 있음' : '— 내 팀 OCR 업로드 및 결과 입력 권한 있음'}
-        </span>
-        <span style={{ marginLeft: 'auto', fontSize: 11, color: '#8A8060' }}>
-          💡 배그 닉네임은 아래에서 별도 입력 필요
-        </span>
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ background: 'rgba(100,100,100,0.08)', borderBottom: '1px solid rgba(200,155,0,0.1)', padding: '10px 24px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10, fontSize: 12 }}>
-      <span style={{ padding: '2px 10px', borderRadius: 3, fontSize: 11, fontWeight: 700, background: 'rgba(200,155,0,0.12)', color: '#8A8060', border: '1px solid rgba(200,155,0,0.2)' }}>
-        ⏳ 대기석
-      </span>
-      <span style={{ color: '#8A8060' }}>아직 팀에 참여하지 않았습니다. 아래에서 참여할 팀을 선택하세요.</span>
     </div>
   );
 }
