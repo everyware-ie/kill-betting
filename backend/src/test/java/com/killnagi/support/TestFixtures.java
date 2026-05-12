@@ -62,6 +62,13 @@ public class TestFixtures {
                 .build();
     }
 
+    public static Team readyTeam(Session session, User leader) {
+        Team team = team(session);
+        team.assignLeader(leader);
+        team.getPlayers().add(player(team));
+        return team;
+    }
+
     public static TeamPlayer player(Team team, String playerNickname) {
         return TeamPlayer.builder()
                 .team(team)

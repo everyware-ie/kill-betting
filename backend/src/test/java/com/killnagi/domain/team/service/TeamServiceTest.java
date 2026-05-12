@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 
 import java.util.Optional;
 
@@ -73,5 +74,46 @@ class TeamServiceTest {
         assertThatThrownBy(() -> teamService.createTeam(SESSION_ID, HOST_ID, new CreateTeamRequest("팀A")))
                 .isInstanceOf(KillnagiException.class)
                 .hasMessage("대기 중인 세션에서만 팀을 생성할 수 있습니다.");
+    }
+
+    @Test
+    void 호스트가_팀을_삭제하면_성공한다() {
+        User host = TestFixtures.user(HOST_ID);
+        Session session = TestFixtures.session(SESSION_ID, host);
+        Team team = TestFixtures.team(session);
+        Long teamId = 1L;
+
+        given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
+        given(teamRepository.findByIdAndSessionId(teamId, SESSION_ID)).willReturn(Optional.of(team));
+
+        teamService.deleteTeam(SESSION_ID, teamId, HOST_ID);
+
+        then(teamRepository).should().delete(team);
+    }
+
+    @Test
+    void 호스트가_아니면_팀_삭제시_예외가_발생한다() {
+        Long otherUserId = 99L;
+        User host = TestFixtures.user(HOST_ID);
+        Session session = TestFixtures.session(SESSION_ID, host);
+
+        given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
+
+        assertThatThrownBy(() -> teamService.deleteTeam(SESSION_ID, 1L, otherUserId))
+                .isInstanceOf(KillnagiException.class)
+                .hasMessage("세션 호스트만 팀을 삭제할 수 있습니다.");
+    }
+
+    @Test
+    void 대기_상태가_아닌_세션에서_팀_삭제시_예외가_발생한다() {
+        User host = TestFixtures.user(HOST_ID);
+        Session session = TestFixtures.session(SESSION_ID, host);
+        session.start();
+
+        given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
+
+        assertThatThrownBy(() -> teamService.deleteTeam(SESSION_ID, 1L, HOST_ID))
+                .isInstanceOf(KillnagiException.class)
+                .hasMessage("대기 중인 세션에서만 팀을 삭제할 수 있습니다.");
     }
 }
