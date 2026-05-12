@@ -133,6 +133,18 @@ public class Session {
         return timeLimitMinutes != null;
     }
 
+    public boolean isDraw() {
+        return this.status == SessionStatus.ENDED && this.winnerTeam == null;
+    }
+
+    public Long getWinnerTeamId() {
+        return winnerTeam != null ? winnerTeam.getId() : null;
+    }
+
+    public String getWinnerTeamName() {
+        return winnerTeam != null ? winnerTeam.getName() : null;
+    }
+
     public LocalDateTime getExpiresAt() {
         return startedAt.plusMinutes(timeLimitMinutes);
     }
