@@ -864,7 +864,8 @@ export default function LivePage() {
   // 확정 후 WebSocket SCORE_UPDATED로 자동 갱신됨
   const handleSubmitTeamResult = async (results, claimsChicken, screenshotFile) => {
     // 1단계: 이미지 업로드 → 매치 생성
-    const uploadRes = await RoomAPI.addTeamMatch(sessionId, selectedTeamId, results, claimsChicken);
+    if (!screenshotFile) { setMatchError('스크린샷 이미지를 첨부해주세요'); return; }
+    const uploadRes = await RoomAPI.uploadMatchImage(sessionId, screenshotFile);
     if (!uploadRes.success) { setMatchError(uploadRes.error || '이미지 업로드에 실패했습니다'); return; }
 
     const matchId = uploadRes.data?.matchId;

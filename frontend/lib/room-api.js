@@ -151,44 +151,22 @@ export const RoomAPI = {
   },
 
   /**
-   * 매치 이미지 업로드 (이미지 기반 매치 결과 전송)
+   * 매치 이미지 업로드 → 매치 생성 (PENDING) + OCR 결과 반환
    *
    * [실제 API]
    *   POST /sessions/:sessionId/matches
    *   Body: FormData { image: File }
-   *   Response 201: { screenshotUrl: string, matchResult: MatchResult }
-   *
-   * [동작]
-   *   - 게임 결과 스크린샷을 이미지 파일로 업로드
-   *   - 백엔드에서 OCR로 파싱해 매치 결과 반환
-   *   - 반환된 결과를 사용자에게 보여주고 확정 버튼 클릭 시 POST /matches/{matchId}/confirm
+   *   Response 201: { matchId, screenshotUrl, ocrResult }
    */
-  addTeamMatch: async (roomId, teamId, results, claimsChicken) => {
+  uploadMatchImage: async (sessionId, imageFile) => {
     if (USE_MOCK) {
       await delay(250);
-      const room = _runtimeRooms.find((r) => r.id === roomId);
-      if (!room) return err('방을 찾을 수 없습니다');
-      if (!room.matches) room.matches = [];
-
-      // 이 팀의 이전 제출 수 → 팀별 순번 계산
-      const teamMatchNumber = room.matches.filter((m) => m.teamId === teamId).length + 1;
-
-      const match = {
-        id:              `match-${Date.now()}`,
-        teamId,                                    // 제출한 팀 ID
-        teamMatchNumber,                           // 팀별 매치 순번 (A팀 3번째 게임 등)
-        results:         [...results],             // 이 팀 플레이어들의 결과
-        chickenTeamId:   claimsChicken ? teamId : null,
-        createdAt:       new Date().toISOString(),
-      };
-      room.matches.push(match);
-      return ok({ match });
+      return ok({ matchId: `match-${Date.now()}`, screenshotUrl: '', ocrResult: null });
     }
-    // FormData 기반 이미지 업로드
     const formData = new FormData();
-    formData.append('image', results); // results가 File 객체
+    formData.append('image', imageFile);
     const token = getStoredToken();
-    const res = await fetch(`${API_BASE_URL}/sessions/${roomId}/matches`, {
+    const res = await fetch(`${API_BASE_URL}/sessions/${sessionId}/matches`, {
       method: 'POST',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       credentials: 'include',
