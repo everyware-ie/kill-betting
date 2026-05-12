@@ -38,9 +38,17 @@ jwt:
   secret: ${JWT_SECRET}
   expiration: 86400000  # 24시간 (ms)
 
+storage:
+  type: ${STORAGE_TYPE:local}
+
 file:
   upload-dir: ${FILE_UPLOAD_DIR:uploads}
   base-url: ${FILE_BASE_URL:http://localhost:8080/files}
+
+aws:
+  s3:
+    bucket-name: ${AWS_S3_BUCKET_NAME:}
+    region: ${AWS_S3_REGION:}
 
 naver:
   ocr:

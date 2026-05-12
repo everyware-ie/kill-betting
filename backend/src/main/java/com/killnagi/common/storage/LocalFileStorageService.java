@@ -2,6 +2,7 @@ package com.killnagi.common.storage;
 
 import com.killnagi.common.exception.KillnagiException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -10,16 +11,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Set;
 import java.util.UUID;
 
 @Service
+@ConditionalOnProperty(name = "storage.type", havingValue = "local", matchIfMissing = true)
 public class LocalFileStorageService implements FileStorageService {
-
-    private static final long MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-    private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
-            "image/jpeg", "image/png", "image/jpg"
-    );
 
     @Value("${file.upload-dir:uploads}")
     private String uploadDir;
@@ -42,24 +38,5 @@ public class LocalFileStorageService implements FileStorageService {
         }
 
         return baseUrl + "/" + directory + "/" + filename;
-    }
-
-    private void validate(MultipartFile file) {
-        if (file.isEmpty()) {
-            throw KillnagiException.badRequest("파일이 비어있습니다.");
-        }
-        if (file.getSize() > MAX_FILE_SIZE) {
-            throw KillnagiException.badRequest("파일 크기는 10MB를 초과할 수 없습니다.");
-        }
-        if (!ALLOWED_CONTENT_TYPES.contains(file.getContentType())) {
-            throw KillnagiException.badRequest("JPEG, JPG, PNG 형식의 이미지만 업로드 가능합니다.");
-        }
-    }
-
-    private String getExtension(String filename) {
-        if (filename == null || !filename.contains(".")) {
-            return "";
-        }
-        return filename.substring(filename.lastIndexOf("."));
     }
 }

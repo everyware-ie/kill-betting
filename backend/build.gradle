@@ -39,6 +39,10 @@ dependencies {
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.5'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.5'
 
+    // AWS S3
+    implementation platform('software.amazon.awssdk:bom:2.25.0')
+    implementation 'software.amazon.awssdk:s3'
+
     // Swagger
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'
 
@@ -55,4 +59,8 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+    environment "AWS_ACCESS_KEY_ID", System.getenv("AWS_ACCESS_KEY_ID") ?: ""
+    environment "AWS_SECRET_ACCESS_KEY", System.getenv("AWS_SECRET_ACCESS_KEY") ?: ""
+    environment "AWS_S3_BUCKET_NAME", System.getenv("AWS_S3_BUCKET_NAME") ?: ""
+    environment "AWS_S3_REGION", System.getenv("AWS_S3_REGION") ?: ""
 }
