@@ -33,7 +33,6 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth }  from '@/lib/auth-context';
 import { RoomAPI }  from '@/lib/room-api';
-import { OcrAPI }  from '@/lib/ocr-api';
 import { useWebSocket } from '@/lib/useWebSocket';
 import { mapSessionRule } from '@/features/setup/helpers/mappers';
 import Button from '@/components/ui/Button';
@@ -110,7 +109,7 @@ const fmtMMSS = (s) => {
  * - teamId: 입력할 팀 ID
  * - onSubmit(results, claimsChicken): 제출 콜백
  */
-function TeamResultModal({ room, teamId, matchNumber, onSubmit, onClose }) {
+function TeamResultModal({ room, teamId, matchNumber, sessionId, onConfirmed, onClose }) {
   const { teams, rule } = room;
 
   // 이 모달에서 입력할 팀 정보
@@ -129,16 +128,20 @@ function TeamResultModal({ room, teamId, matchNumber, onSubmit, onClose }) {
   const [claimsChicken, setClaimsChicken] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // ── OCR 관련 상태 ──
+  // ── OCR / 매치 관련 상태 ──
   const [ocrFile,      setOcrFile]      = useState(null);       // 선택된 이미지 파일
   const [ocrPreview,   setOcrPreview]   = useState(null);       // 이미지 미리보기 URL
   const [ocrLoading,   setOcrLoading]   = useState(false);      // OCR 처리 중 여부
+  const [ocrProgress,  setOcrProgress]  = useState(0);          // 로딩 프로그레스 (0~100)
   const [ocrError,     setOcrError]     = useState('');         // OCR 오류 메시지
   const [ocrDone,      setOcrDone]      = useState(false);      // OCR 완료 여부
-  const [ocrIsMock,    setOcrIsMock]    = useState(false);      // Mock 결과 여부
   const [ocrUnmatched, setOcrUnmatched] = useState([]);         // 매칭 안 된 닉네임
-  // OCR로 채워진 필드를 하이라이트하기 위한 닉네임 세트
   const [ocrFilledNicks, setOcrFilledNicks] = useState(new Set());
+  // 매치 생성 후 받은 데이터 (confirm 시 사용)
+  const [matchId,      setMatchId]      = useState(null);
+  const [ocrMapName,   setOcrMapName]   = useState('');
+  const [ocrPlacement, setOcrPlacement] = useState(0);
+  const [ocrPlayTime,  setOcrPlayTime]  = useState('');
 
   const setR = (nick, key, val) =>
     setResults((prev) => prev.map((r) => r.nick === nick ? { ...r, [key]: val } : r));
@@ -155,6 +158,10 @@ function TeamResultModal({ room, teamId, matchNumber, onSubmit, onClose }) {
     setOcrError('');
     setOcrDone(false);
     setOcrFilledNicks(new Set());
+    setMatchId(null);
+    setOcrMapName('');
+    setOcrPlacement(0);
+    setOcrPlayTime('');
     // 미리보기 URL 생성
     const url = URL.createObjectURL(file);
     setOcrPreview(url);
@@ -167,47 +174,70 @@ function TeamResultModal({ room, teamId, matchNumber, onSubmit, onClose }) {
     if (file) handleFileChange(file);
   };
 
-  // ── OCR 분석 실행 ──
+  // ── OCR 분석 실행 (이미지 업로드 → 매치 생성 + OCR) ──
   const handleOcr = async () => {
     if (!ocrFile) return;
     setOcrLoading(true);
     setOcrError('');
+    setOcrProgress(0);
 
-    // 이 팀의 닉네임만 힌트로 전달 (팀별 입력이므로)
-    const teamNicks = (team.players || []).map((p) => typeof p === 'string' ? p : p.nickname);
-    const res = await OcrAPI.parseScreenshot(ocrFile, teamNicks);
+    // 로딩 프로그레스 시뮬레이션 (업로드+OCR은 단일 요청이므로 가짜 진행률)
+    const progressTimer = setInterval(() => {
+      setOcrProgress((prev) => (prev < 90 ? prev + Math.random() * 15 : prev));
+    }, 400);
 
+    const res = await RoomAPI.uploadMatchImage(sessionId, ocrFile);
+
+    clearInterval(progressTimer);
+    setOcrProgress(100);
+
+    // 짧은 딜레이 후 로딩 해제 (100% 표시를 잠깐 보여주기 위해)
+    await new Promise((r) => setTimeout(r, 300));
     setOcrLoading(false);
 
     if (!res.success) {
-      setOcrError(res.error || 'OCR 처리에 실패했습니다');
+      setOcrError(res.error || '이미지 업로드/OCR 처리에 실패했습니다');
       return;
     }
 
-    // OCR 결과를 results 테이블에 자동으로 채우기
-    // res.players 배열의 nick 으로 매칭하여 해당 행만 업데이트
-    const filled = new Set();
-    setResults((prev) => prev.map((row) => {
-      const matched = res.data.players.find(
-        // 대소문자 무시하고 닉네임 매칭
-        (p) => p.nick.toLowerCase() === row.nick.toLowerCase()
-      );
-      if (!matched) return row; // 매칭 안 되면 기존 값 유지
-      filled.add(row.nick);
-      return {
-        ...row,
-        kills:      matched.kills      ?? row.kills,
-        damage:     matched.damage     ?? row.damage,
-        headShot:   matched.headShot   ?? row.headShot,
-        assist:     matched.assist     ?? row.assist,
-        teamKills:  matched.teamKills  ?? row.teamKills,
-        earlyDeath: matched.earlyDeath ?? row.earlyDeath,
-      };
-    }));
+    // 매치 ID 저장 (confirm 시 사용)
+    const data = res.data || res;
+    setMatchId(data.matchId);
 
-    setOcrFilledNicks(filled);
-    setOcrUnmatched(res.unmatched || []);
-    setOcrIsMock(res.isMock || false);
+    // OCR 메타 정보 저장
+    const ocr = data.ocrResult;
+    if (ocr) {
+      setOcrMapName(ocr.mapName || '');
+      setOcrPlacement(ocr.placement || 0);
+      setOcrPlayTime(ocr.playTime || '');
+
+      // OCR playerStats를 results 테이블에 자동 채우기
+      const stats = ocr.playerStats || [];
+      const filled = new Set();
+      setResults((prev) => prev.map((row) => {
+        const matched = stats.find(
+          (p) => p.nickname?.toLowerCase() === row.nick.toLowerCase()
+        );
+        if (!matched) return row;
+        filled.add(row.nick);
+        return {
+          ...row,
+          kills:  matched.kills  ?? row.kills,
+          damage: matched.damage ?? row.damage,
+        };
+      }));
+      setOcrFilledNicks(filled);
+
+      // 매칭 안 된 OCR 닉네임 목록
+      const teamNicks = new Set((team.players || []).map((p) =>
+        (typeof p === 'string' ? p : p.nickname).toLowerCase()
+      ));
+      const unmatched = stats
+        .filter((p) => !teamNicks.has(p.nickname?.toLowerCase()))
+        .map((p) => p.nickname);
+      setOcrUnmatched(unmatched);
+    }
+
     setOcrDone(true);
   };
 
@@ -223,11 +253,36 @@ function TeamResultModal({ room, teamId, matchNumber, onSubmit, onClose }) {
   const previewTotal   = previewKills + previewBonus - previewPenalty;
 
   const handleSubmit = async () => {
+    if (!matchId) {
+      setOcrError('먼저 스크린샷을 업로드하고 분석을 완료해주세요');
+      return;
+    }
     setSubmitting(true);
-    // onSubmit(results 배열, 치킨 여부, 스크린샷 파일) — 팀 ID는 부모에서 이미 알고 있음
-    // ocrFile이 있으면 제출 후 S3에 업로드됨
-    await onSubmit(results, claimsChicken, ocrFile || null);
+
+    const playerResults = results.map((r) => ({
+      nickname: r.nick,
+      kills: r.kills,
+      damage: r.damage || 0,
+      assists: r.assist ? 1 : 0,
+      isTop10: false,
+    }));
+
+    const confirmRes = await RoomAPI.confirmMatch(matchId, {
+      playerResults,
+      isChicken: claimsChicken,
+      mapName: ocrMapName,
+      placement: ocrPlacement,
+      playTime: ocrPlayTime,
+    });
+
     setSubmitting(false);
+
+    if (!confirmRes.success) {
+      setOcrError(confirmRes.error || '매치 확정에 실패했습니다');
+      return;
+    }
+
+    onConfirmed?.();
   };
 
   return (
@@ -320,11 +375,15 @@ function TeamResultModal({ room, teamId, matchNumber, onSubmit, onClose }) {
                 </button>
               )}
 
-              {/* OCR 로딩 중 */}
+              {/* OCR 로딩 중 — 프로그레스바 */}
               {ocrLoading && (
-                <div style={{ fontSize: 12, color: '#F5A623', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <div style={{ width: 14, height: 14, border: '2px solid rgba(245,166,35,0.3)', borderTopColor: '#F5A623', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                  분석 중...
+                <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 80 }}>
+                  <div style={{ fontSize: 11, color: '#F5A623', fontWeight: 600 }}>
+                    분석 중 {Math.round(ocrProgress)}%
+                  </div>
+                  <div style={{ width: 80, height: 6, background: 'rgba(245,166,35,0.15)', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{ width: `${ocrProgress}%`, height: '100%', background: '#F5A623', borderRadius: 3, transition: 'width 0.3s ease' }} />
+                  </div>
                 </div>
               )}
             </div>
@@ -333,7 +392,8 @@ function TeamResultModal({ room, teamId, matchNumber, onSubmit, onClose }) {
             {ocrDone && !ocrError && (
               <div style={{ marginTop: 8, padding: '8px 12px', background: 'rgba(76,175,80,0.1)', border: '1px solid rgba(76,175,80,0.3)', borderRadius: 4, fontSize: 11, color: '#4CAF50', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <span>✓ OCR 완료 — {ocrFilledNicks.size}명 자동 입력됨</span>
-                {ocrIsMock && <span style={{ color: '#8A8060' }}>[MOCK 데이터]</span>}
+                {ocrMapName && <span style={{ color: '#8A8060' }}>맵: {ocrMapName}</span>}
+                {ocrPlacement > 0 && <span style={{ color: '#8A8060' }}>순위: #{ocrPlacement}</span>}
                 {ocrUnmatched.length > 0 && (
                   <span style={{ color: '#F5A623' }}>미매칭: {ocrUnmatched.join(', ')}</span>
                 )}
@@ -858,35 +918,9 @@ export default function LivePage() {
     setMatchError('');
   }, [matches]);
 
-  // ── 팀 매치 결과 제출 ──
-  // 1. 스크린샷 이미지 업로드 → 매치 생성 (PENDING) + OCR 결과
-  // 2. 사용자가 확인/수정한 결과로 confirm → 매치 확정 (CONFIRMED)
-  // 확정 후 WebSocket SCORE_UPDATED로 자동 갱신됨
-  const handleSubmitTeamResult = async (results, claimsChicken, screenshotFile) => {
-    // 1단계: 이미지 업로드 → 매치 생성
-    if (!screenshotFile) { setMatchError('스크린샷 이미지를 첨부해주세요'); return; }
-    const uploadRes = await RoomAPI.uploadMatchImage(sessionId, screenshotFile);
-    if (!uploadRes.success) { setMatchError(uploadRes.error || '이미지 업로드에 실패했습니다'); return; }
-
-    const matchId = uploadRes.data?.matchId;
-    if (!matchId) { setMatchError('매치 생성 응답에서 matchId를 받지 못했습니다'); return; }
-
-    // 2단계: 결과 확정
-    const playerResults = results.map((r) => ({
-      nickname: r.nick,
-      kills: r.kills,
-      damage: r.damage || 0,
-      assists: r.assist ? 1 : 0,
-      isTop10: false,
-    }));
-
-    const confirmRes = await RoomAPI.confirmMatch(matchId, {
-      playerResults,
-      isChicken: claimsChicken,
-    });
-
-    if (!confirmRes.success) { setMatchError(confirmRes.error || '매치 확정에 실패했습니다'); return; }
-
+  // ── 팀 매치 결과 확정 완료 콜백 ──
+  // 모달 내부에서 업로드 + OCR + confirm을 직접 처리하고, 완료 시 이 콜백 호출
+  const handleMatchConfirmed = () => {
     setShowTeamModal(false);
     setMatchError('');
   };
@@ -1278,7 +1312,8 @@ export default function LivePage() {
           room={room}
           teamId={selectedTeamId}
           matchNumber={modalMatchNum}
-          onSubmit={handleSubmitTeamResult}
+          sessionId={sessionId}
+          onConfirmed={handleMatchConfirmed}
           onClose={() => setShowTeamModal(false)}
         />
       )}
