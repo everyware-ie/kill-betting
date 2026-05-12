@@ -12,32 +12,32 @@ class SessionTest {
 
     @Test
     void 세션_이름이_빈_문자열이면_예외가_발생한다() {
-        assertThatThrownBy(() -> Session.builder().name("").roomUrl("url").host(hostUser()).build())
+        assertThatThrownBy(() -> Session.builder().name("").host(hostUser()).build())
                 .isInstanceOf(RuntimeException.class);
     }
 
     @Test
     void 목표_킬_수가_0이하이면_예외가_발생한다() {
-        assertThatThrownBy(() -> Session.builder().name("세션").roomUrl("url").host(hostUser()).targetKills(0).build())
+        assertThatThrownBy(() -> Session.builder().name("세션").host(hostUser()).targetKills(0).build())
                 .isInstanceOf(RuntimeException.class);
     }
 
     @Test
     void 제한_시간이_0이하이면_예외가_발생한다() {
-        assertThatThrownBy(() -> Session.builder().name("세션").roomUrl("url").host(hostUser()).timeLimitMinutes(0).build())
+        assertThatThrownBy(() -> Session.builder().name("세션").host(hostUser()).timeLimitMinutes(0).build())
                 .isInstanceOf(RuntimeException.class);
     }
 
     @Test
     void 세션_생성시_상태는_WAITING이다() {
-        Session session = sessionWithRoomUrl("abc-123");
+        Session session = createSession();
 
         assertThat(session.getStatus()).isEqualTo(Session.SessionStatus.WAITING);
     }
 
     @Test
     void 세션_시작시_상태가_IN_PROGRESS로_변경된다() {
-        Session session = sessionWithRoomUrl("abc-123");
+        Session session = createSession();
 
         session.start();
 
@@ -47,7 +47,7 @@ class SessionTest {
 
     @Test
     void 세션_종료시_상태가_ENDED로_변경된다() {
-        Session session = sessionWithRoomUrl("abc-123");
+        Session session = createSession();
 
         session.end(null);
 
@@ -57,7 +57,7 @@ class SessionTest {
 
     @Test
     void 현재_룰셋_설정시_currentRuleSet이_적용된다() {
-        Session session = sessionWithRoomUrl("abc-123");
+        Session session = createSession();
         RuleSet ruleSet = RuleSet.builder().session(session).build();
 
         session.assignCurrentRuleSet(ruleSet);
@@ -74,7 +74,6 @@ class SessionTest {
                 .build();
         Session session = Session.builder()
                 .name("테스트 세션")
-                .roomUrl("abc-123")
                 .host(host)
                 .build();
 
@@ -86,10 +85,9 @@ class SessionTest {
         return User.builder().nickname("host").email("host@test.com").password("pw").build();
     }
 
-    private Session sessionWithRoomUrl(String roomUrl) {
+    private Session createSession() {
         return Session.builder()
                 .name("테스트 세션")
-                .roomUrl(roomUrl)
                 .host(User.builder()
                         .nickname("host")
                         .email("host@test.com")

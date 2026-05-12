@@ -30,4 +30,8 @@ public class KillnagiException extends RuntimeException {
     public static KillnagiException forbidden(String message) {
         return new KillnagiException(message, HttpStatus.FORBIDDEN);
     }
+
+    public static KillnagiException serverError(String message) {
+        return new KillnagiException(message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
 }

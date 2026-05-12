@@ -8,6 +8,8 @@ import com.killnagi.domain.session.dto.response.MatchHistoryResponse;
 import com.killnagi.domain.session.dto.response.ScoreboardResponse;
 import com.killnagi.domain.session.dto.response.SessionDetailResponse;
 import com.killnagi.domain.session.dto.response.SessionResponse;
+import com.killnagi.domain.session.service.SessionMatchService;
+import com.killnagi.domain.session.service.SessionQueryService;
 import com.killnagi.domain.session.service.SessionService;
 import com.killnagi.domain.session.controller.docs.SessionControllerDocs;
 import jakarta.validation.Valid;
@@ -34,6 +36,8 @@ import java.util.List;
 public class SessionController implements SessionControllerDocs {
 
     private final SessionService sessionService;
+    private final SessionQueryService sessionQueryService;
+    private final SessionMatchService sessionMatchService;
 
     @PostMapping
     public ResponseEntity<ApiResponse<SessionResponse>> createSession(
@@ -48,15 +52,15 @@ public class SessionController implements SessionControllerDocs {
     public ResponseEntity<ApiResponse<List<SessionResponse>>> getSessions(
             @RequestParam(required = false) String code) {
         if (code != null && !code.isBlank()) {
-            return ResponseEntity.ok(ApiResponse.ok(List.of(sessionService.getSessionByRoomCode(code))));
+            return ResponseEntity.ok(ApiResponse.ok(List.of(sessionQueryService.getSessionByRoomCode(code))));
         }
-        return ResponseEntity.ok(ApiResponse.ok(sessionService.getWaitingSessions()));
+        return ResponseEntity.ok(ApiResponse.ok(sessionQueryService.getWaitingSessions()));
     }
 
     @GetMapping("/join/{roomCode}")
     public ResponseEntity<ApiResponse<SessionDetailResponse>> getSessionByRoomCode(
             @PathVariable String roomCode) {
-        return ResponseEntity.ok(ApiResponse.ok(sessionService.getSessionDetailByRoomCode(roomCode)));
+        return ResponseEntity.ok(ApiResponse.ok(sessionQueryService.getSessionDetailByRoomCode(roomCode)));
     }
 
     @PostMapping("/{sessionId}/start")
@@ -71,7 +75,7 @@ public class SessionController implements SessionControllerDocs {
     @GetMapping("/{sessionId}/scoreboard")
     public ResponseEntity<ApiResponse<ScoreboardResponse>> getScoreboard(
             @PathVariable Long sessionId) {
-        return ResponseEntity.ok(ApiResponse.ok(sessionService.getScoreboard(sessionId)));
+        return ResponseEntity.ok(ApiResponse.ok(sessionMatchService.getScoreboard(sessionId)));
     }
 
     @PostMapping("/{sessionId}/matches")
@@ -81,20 +85,20 @@ public class SessionController implements SessionControllerDocs {
             @RequestParam("image") MultipartFile file) {
         Long uploaderId = Long.parseLong(userDetails.getUsername());
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok("이미지가 업로드되었습니다.", sessionService.uploadMatchImage(sessionId, uploaderId, file)));
+                .body(ApiResponse.ok("이미지가 업로드되었습니다.", sessionMatchService.uploadMatchImage(sessionId, uploaderId, file)));
     }
 
     @GetMapping("/{sessionId}/match-history")
     public ResponseEntity<ApiResponse<MatchHistoryResponse>> getMatchHistory(
             @PathVariable Long sessionId) {
-        return ResponseEntity.ok(ApiResponse.ok(sessionService.getMatchHistory(sessionId)));
+        return ResponseEntity.ok(ApiResponse.ok(sessionMatchService.getMatchHistory(sessionId)));
     }
 
     @GetMapping("/my")
     public ResponseEntity<ApiResponse<List<SessionResponse>>> getMySessions(
             @AuthenticationPrincipal UserDetails userDetails) {
         Long userId = Long.parseLong(userDetails.getUsername());
-        return ResponseEntity.ok(ApiResponse.ok(sessionService.getMySessions(userId)));
+        return ResponseEntity.ok(ApiResponse.ok(sessionQueryService.getMySessions(userId)));
     }
 
     @PutMapping("/{sessionId}/rules/{ruleId}")
