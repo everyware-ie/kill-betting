@@ -40,9 +40,7 @@ export function useWebSocket(sessionId, onMessage, enabled = true) {
         (message) => {
           try {
             const envelope = JSON.parse(message.body);
-            if (envelope.type === 'PARTICIPANT_UPDATED' && envelope.data) {
-              onMessage?.(envelope.data);
-            }
+            onMessage?.(envelope);
           } catch (e) {
             console.error('WebSocket 메시지 파싱 실패:', e);
           }

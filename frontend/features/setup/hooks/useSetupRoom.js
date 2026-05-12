@@ -57,24 +57,32 @@ export default function useSetupRoom() {
   }, [roomCode, user]);
 
   // ── WebSocket 실시간 동기화 ──
-  const { publish } = useWebSocket(sessionId, (state) => {
-    if (!state) return;
+  const { publish } = useWebSocket(sessionId, (envelope) => {
+    if (!envelope) return;
 
-    setRoom((prev) => ({
-      ...prev,
-      waitingUsers: state.waitingUsers || [],
-      teams: state.teams
-        ? state.teams.map((t) => ({
-            id: t.teamId,
-            name: t.teamName,
-            status: t.status,
-            leaderUserId: t.leaderUserId,
-            leaderNickname: t.leaderNickname,
-            players: (t.players || []).map((p) => ({ id: p.playerId, nickname: p.playerNickname })),
-            members: t.members || [],
-          }))
-        : prev.teams,
-    }));
+    if (envelope.type === 'SESSION_STARTED') {
+      router.push(`/room/${roomCode}/live`);
+      return;
+    }
+
+    if (envelope.type === 'PARTICIPANT_UPDATED' && envelope.data) {
+      const state = envelope.data;
+      setRoom((prev) => ({
+        ...prev,
+        waitingUsers: state.waitingUsers || [],
+        teams: state.teams
+          ? state.teams.map((t) => ({
+              id: t.teamId,
+              name: t.teamName,
+              status: t.status,
+              leaderUserId: t.leaderUserId,
+              leaderNickname: t.leaderNickname,
+              players: (t.players || []).map((p) => ({ id: p.playerId, nickname: p.playerNickname })),
+              members: t.members || [],
+            }))
+          : prev.teams,
+      }));
+    }
   }, !!user && !!room);
 
   // ── 팀 생성 ──
