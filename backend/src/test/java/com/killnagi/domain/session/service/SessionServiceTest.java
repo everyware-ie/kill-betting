@@ -48,6 +48,7 @@ class SessionServiceTest {
     @Mock private RuleSetRepository ruleSetRepository;
     @Mock private SessionParticipantRegistry registry;
     @Mock private SessionCodeGenerator sessionCodeGenerator;
+    @Mock private SessionBroadcaster sessionBroadcaster;
     @InjectMocks private SessionService sessionService;
 
     private static final Long HOST_ID = 1L;
@@ -138,6 +139,7 @@ class SessionServiceTest {
         Session session = TestFixtures.session(SESSION_ID, host);
 
         given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
+        given(teamRepository.findBySessionId(SESSION_ID)).willReturn(List.of());
 
         assertThatThrownBy(() -> sessionService.startSession(SESSION_ID, otherUserId))
                 .isInstanceOf(KillnagiException.class)

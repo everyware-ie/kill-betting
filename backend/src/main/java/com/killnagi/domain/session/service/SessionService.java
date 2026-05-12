@@ -15,9 +15,7 @@ import com.killnagi.domain.team.entity.Team;
 import com.killnagi.domain.team.repository.TeamRepository;
 import com.killnagi.domain.user.entity.User;
 import com.killnagi.domain.user.repository.UserRepository;
-import com.killnagi.domain.session.dto.response.SessionMessage;
 import lombok.RequiredArgsConstructor;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,7 +36,7 @@ public class SessionService {
     private final RuleSetRepository ruleSetRepository;
     private final SessionParticipantRegistry registry;
     private final SessionCodeGenerator sessionCodeGenerator;
-    private final SimpMessagingTemplate messagingTemplate;
+    private final SessionBroadcaster sessionBroadcaster;
 
     @Transactional
     public SessionResponse createSession(Long hostUserId, CreateRequest request) {
@@ -91,11 +89,7 @@ public class SessionService {
                         .build()));
 
         session.start();
-
-        messagingTemplate.convertAndSend(
-                "/topic/sessions/" + sessionId,
-                new SessionMessage(SessionMessage.Type.SESSION_STARTED, null)
-        );
+        sessionBroadcaster.broadcastSessionStarted(sessionId);
     }
 
     @Transactional
