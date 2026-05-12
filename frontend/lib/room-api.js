@@ -187,8 +187,10 @@ export const RoomAPI = {
     // FormData 기반 이미지 업로드
     const formData = new FormData();
     formData.append('image', results); // results가 File 객체
+    const token = getStoredToken();
     const res = await fetch(`${API_BASE_URL}/sessions/${roomId}/matches`, {
       method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
       credentials: 'include',
       body: formData,
     });
@@ -217,42 +219,22 @@ export const RoomAPI = {
   },
 
   /**
-   * 매치 결과 스크린샷 업로드
+   * 매치 결과 확정
    *
    * [실제 API]
-   *   POST /rooms/:id/matches/:matchId/screenshot
-   *   Body: FormData { screenshot: File }
-   *   Response 200: { screenshotUrl: string }  ← S3 퍼블릭 URL
-   *
-   * [주의]
-   *   - 이 API는 JSON이 아닌 multipart/form-data 로 전송합니다.
-   *   - Content-Type 헤더를 직접 지정하지 말고 브라우저가 자동 설정하도록 두세요.
-   *
-   * [Mock 동작]
-   *   - URL.createObjectURL() 로 로컬 임시 URL 생성 (브라우저 메모리에만 존재)
-   *   - 실제 S3 업로드는 일어나지 않음
+   *   POST /matches/:matchId/confirm
+   *   Body: { mapName, placement, playTime, playerResults[], isChicken }
+   *   Response 200: { matchId, status }
    */
-  uploadMatchScreenshot: async (roomId, matchId, file) => {
+  confirmMatch: async (matchId, { playerResults, isChicken, mapName, placement, playTime }) => {
     if (USE_MOCK) {
-      await delay(300);
-      const room = _runtimeRooms.find((r) => r.id === roomId);
-      if (!room) return err('방을 찾을 수 없습니다');
-      const match = room.matches?.find((m) => m.id === matchId);
-      if (!match) return err('매치를 찾을 수 없습니다');
-      // Mock: 브라우저 메모리 임시 URL (S3 URL 역할)
-      const screenshotUrl = URL.createObjectURL(file);
-      match.screenshotUrl = screenshotUrl;
-      return ok({ screenshotUrl });
+      await delay(200);
+      return ok({ matchId, status: 'CONFIRMED' });
     }
-    // 실제 API: FormData 사용 (Content-Type 헤더 자동 설정)
-    const formData = new FormData();
-    formData.append('screenshot', file);
-    const res = await fetch(`${API_BASE_URL}/sessions/${roomId}/matches/${matchId}/screenshot`, {
+    return apiFetch(`/matches/${matchId}/confirm`, {
       method: 'POST',
-      credentials: 'include',
-      body: formData,
+      body: JSON.stringify({ mapName: mapName || '', placement: placement || 0, playTime: playTime || '', playerResults, isChicken }),
     });
-    return res.json().catch(() => ({}));
   },
 
   // TODO: 백엔드 미구현 상태 — 추후 구현 예정

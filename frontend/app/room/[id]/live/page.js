@@ -859,28 +859,35 @@ export default function LivePage() {
   }, [matches]);
 
   // ── 팀 매치 결과 제출 ──
-  // 각 팀이 자신의 게임이 끝날 때마다 독립적으로 호출
-  // 다른 팀의 진행과 무관하게 즉시 스코어보드에 반영
-  // screenshotFile: OCR에 사용한 이미지 파일 (없으면 null)
+  // 1. 스크린샷 이미지 업로드 → 매치 생성 (PENDING) + OCR 결과
+  // 2. 사용자가 확인/수정한 결과로 confirm → 매치 확정 (CONFIRMED)
+  // 확정 후 WebSocket SCORE_UPDATED로 자동 갱신됨
   const handleSubmitTeamResult = async (results, claimsChicken, screenshotFile) => {
-    const res = await RoomAPI.addTeamMatch(sessionId, selectedTeamId, results, claimsChicken);
-    if (!res.success) { setMatchError(res.error); return; }
+    // 1단계: 이미지 업로드 → 매치 생성
+    const uploadRes = await RoomAPI.addTeamMatch(sessionId, selectedTeamId, results, claimsChicken);
+    if (!uploadRes.success) { setMatchError(uploadRes.error || '이미지 업로드에 실패했습니다'); return; }
 
-    let match = res.match;
+    const matchId = uploadRes.data?.matchId;
+    if (!matchId) { setMatchError('매치 생성 응답에서 matchId를 받지 못했습니다'); return; }
 
-    // 스크린샷이 있으면 업로드 완료까지 모달을 유지 (버튼 로딩 상태 표시됨)
-    // 업로드 실패해도 매치 결과 자체는 정상 등록됨
-    if (screenshotFile) {
-      const uploadRes = await RoomAPI.uploadMatchScreenshot(sessionId, match.id, screenshotFile);
-      if (uploadRes.success) match = { ...match, screenshotUrl: uploadRes.data.screenshotUrl };
-    }
+    // 2단계: 결과 확정
+    const playerResults = results.map((r) => ({
+      nickname: r.nick,
+      kills: r.kills,
+      damage: r.damage || 0,
+      assists: r.assist ? 1 : 0,
+      isTop10: false,
+    }));
 
-    // 업로드까지 완료된 후 모달 닫기
+    const confirmRes = await RoomAPI.confirmMatch(matchId, {
+      playerResults,
+      isChicken: claimsChicken,
+    });
+
+    if (!confirmRes.success) { setMatchError(confirmRes.error || '매치 확정에 실패했습니다'); return; }
+
     setShowTeamModal(false);
     setMatchError('');
-
-    // 제출 즉시 로컬 상태에 반영 (폴링 전에 바로 화면에 보임)
-    setMatches((prev) => [...prev, match]);
   };
 
   // ── 점수 조정 ──
