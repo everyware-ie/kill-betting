@@ -35,7 +35,8 @@ public class SessionService {
     private final RuleRepository ruleRepository;
     private final RuleSetRepository ruleSetRepository;
     private final SessionParticipantRegistry registry;
-    private final RoomCodeGenerator roomCodeGenerator;
+    private final SessionCodeGenerator sessionCodeGenerator;
+    private final SessionBroadcaster sessionBroadcaster;
 
     @Transactional
     public SessionResponse createSession(Long hostUserId, CreateRequest request) {
@@ -44,7 +45,7 @@ public class SessionService {
 
         Session session = sessionRepository.save(Session.builder()
                 .name(request.name())
-                .roomCode(roomCodeGenerator.generate())
+                .roomCode(sessionCodeGenerator.generate())
                 .host(host)
                 .targetKills(request.targetKills())
                 .timeLimitMinutes(request.timeLimitMinutes())
@@ -71,10 +72,12 @@ public class SessionService {
     @Transactional
     public void startSession(Long sessionId, Long userId) {
         Session session = getSessionOrThrow(sessionId);
+        List<Team> teams = teamRepository.findBySessionId(sessionId);
+
         if (!session.isHostedBy(userId)) {
             throw KillnagiException.forbidden("세션 호스트만 시작할 수 있습니다.");
         }
-        List<Team> teams = teamRepository.findBySessionId(sessionId);
+
         if (teams.size() < MIN_TEAMS_TO_START) {
             throw KillnagiException.badRequest("최소 " + MIN_TEAMS_TO_START + "팀이 필요합니다.");
         }
@@ -86,6 +89,7 @@ public class SessionService {
                         .build()));
 
         session.start();
+        sessionBroadcaster.broadcastSessionStarted(sessionId);
     }
 
     @Transactional
@@ -109,5 +113,4 @@ public class SessionService {
         return sessionRepository.findById(sessionId)
                 .orElseThrow(() -> KillnagiException.notFound("세션을 찾을 수 없습니다."));
     }
-
 }

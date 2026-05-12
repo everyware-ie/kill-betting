@@ -24,6 +24,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth }  from '@/lib/auth-context';
 import { RoomAPI }  from '@/lib/room-api';
+import { mapSessionRule } from '@/features/setup/helpers/mappers';
 import Button       from '@/components/ui/Button';
 
 // ─────────────────────────────────────────
@@ -34,14 +35,14 @@ import Button       from '@/components/ui/Button';
 function calcTeamScore(teamId, matches, rule, adjustments = []) {
   let kills = 0, bonus = 0, penalty = 0;
   for (const m of matches) {
-    if (rule.chickenBonusOn && m.chickenTeamId === teamId) bonus += rule.chickenBonus;
-    for (const r of m.results) {
-      if (r.teamId !== teamId) continue;
+    const teamResults = (m.memberResults || []).filter((r) => r.teamId === teamId);
+    if (teamResults.length === 0) continue;
+
+    const hasChicken = teamResults.some((r) => r.isChicken);
+    if (rule.chickenBonusOn && hasChicken) bonus += rule.chickenBonus;
+
+    for (const r of teamResults) {
       kills += r.kills;
-      if (rule.headShotBonusOn  && r.headShot)   bonus   += rule.headShotBonus;
-      if (rule.assistBonusOn    && r.assist)      bonus   += rule.assistBonus;
-      if (rule.teamKillPenaltyOn)                 penalty += (r.teamKills || 0) * rule.teamKillPenalty;
-      if (rule.deathPenaltyOn   && r.earlyDeath)  penalty += rule.deathPenalty;
     }
   }
   const adj = adjustments
@@ -54,17 +55,13 @@ function calcTeamScore(teamId, matches, rule, adjustments = []) {
 function calcPlayerStats(nick, matches, rule) {
   let kills = 0, bonus = 0, penalty = 0, damage = 0, chickens = 0;
   for (const m of matches) {
-    for (const r of m.results) {
-      if (r.nick !== nick) continue;
+    for (const r of (m.memberResults || [])) {
+      if (r.playerNickname !== nick) continue;
       kills  += r.kills;
       damage += r.damage || 0;
-      if (rule.headShotBonusOn  && r.headShot)   bonus   += rule.headShotBonus;
-      if (rule.assistBonusOn    && r.assist)      bonus   += rule.assistBonus;
-      if (rule.teamKillPenaltyOn)                 penalty += (r.teamKills || 0) * rule.teamKillPenalty;
-      if (rule.deathPenaltyOn   && r.earlyDeath)  penalty += rule.deathPenalty;
     }
-    // 이 플레이어가 속한 팀이 치킨을 먹었는지 확인
-    if (m.chickenTeamId) chickens++;
+    const myResult = (m.memberResults || []).find((r) => r.playerNickname === nick);
+    if (myResult?.isChicken) chickens++;
   }
   return { kills, bonus, penalty, damage, chickens, total: kills + bonus - penalty };
 }
@@ -101,7 +98,7 @@ function RankBadge({ rank }) {
 
 export default function ResultPage() {
   const router  = useRouter();
-  const { id: roomId } = useParams();
+  const { id: roomCode } = useParams();
   const { user } = useAuth();
 
   const [room,    setRoom]    = useState(null);
@@ -110,17 +107,29 @@ export default function ResultPage() {
   const [error,   setError]   = useState('');
 
   // ── 데이터 로드 ──
-  // TODO: API 연결 필요 — RoomAPI.get()과 RoomAPI.getMatches()가 실제 백엔드를 바라보도록
-  //       lib/api.js 의 USE_MOCK = false 로 변경 후 API_BASE_URL 설정
   useEffect(() => {
     if (!user) return;
-    Promise.all([RoomAPI.get(roomId), RoomAPI.getMatches(roomId)]).then(([roomRes, matchRes]) => {
+    RoomAPI.get(roomCode).then(async (roomRes) => {
       if (!roomRes.success) { setError(roomRes.error); setLoading(false); return; }
-      setRoom(roomRes.data);
-      if (matchRes.success) setMatches(matchRes.data);
+      const session = roomRes.data;
+
+      const teamsRes = await RoomAPI.getTeams(session.id);
+      const teams = teamsRes.success ? teamsRes.data.map((t) => ({
+        id: t.id,
+        name: t.name,
+        players: (t.players || []).map((nick, idx) => ({ id: idx, nickname: nick })),
+      })) : [];
+
+      setRoom({
+        ...session,
+        rule: mapSessionRule(session),
+        teams,
+      });
+      const matchRes = await RoomAPI.getMatches(session.id);
+      if (matchRes.success) setMatches(matchRes.data?.matches || []);
       setLoading(false);
     });
-  }, [roomId, user]);
+  }, [roomCode, user]);
 
   // ── 로그인 체크 ──
   useEffect(() => {
@@ -152,11 +161,10 @@ export default function ResultPage() {
 
   // ── 전체 플레이어 통계 (킬 수 기준 MVP 선정) ──
   const allPlayerStats = teams.flatMap((t) =>
-    t.players.map((nick) => ({
-      nick,
-      teamName: t.name,
-      ...calcPlayerStats(nick, matches, rule),
-    }))
+    (t.players || []).map((p) => {
+      const nick = typeof p === 'string' ? p : p.nickname;
+      return { nick, teamName: t.name, ...calcPlayerStats(nick, matches, rule) };
+    })
   ).sort((a, b) => b.kills - a.kills);
 
   const mvp = allPlayerStats[0]; // 킬 수 1위 플레이어
@@ -289,8 +297,8 @@ export default function ResultPage() {
               <div style={{ fontSize: 11, color: '#8A8060', letterSpacing: 2, marginBottom: 10 }}>개인 최종 통계</div>
               <div style={{ background: '#1C1A0C', border: '1px solid rgba(200,155,0,0.15)', borderRadius: 8, overflow: 'hidden' }}>
                 {teams.map((team, tIdx) => {
-                  const stats = team.players
-                    .map((nick) => ({ nick, ...calcPlayerStats(nick, matches, rule) }))
+                  const stats = (team.players || [])
+                    .map((p) => { const nick = typeof p === 'string' ? p : p.nickname; return { nick, ...calcPlayerStats(nick, matches, rule) }; })
                     .sort((a, b) => b.kills - a.kills);
                   return (
                     <div key={team.id}>
@@ -302,7 +310,7 @@ export default function ResultPage() {
                         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                       }}>
                         <span>{team.name}</span>
-                        <span style={{ fontSize: 11, color: '#8A8060', fontWeight: 400 }}>{team.players.length}명</span>
+                        <span style={{ fontSize: 11, color: '#8A8060', fontWeight: 400 }}>{(team.players || []).length}명</span>
                       </div>
                       {stats.length === 0 ? (
                         <div style={{ padding: '12px 14px', fontSize: 12, color: '#555' }}>플레이어 없음</div>
@@ -350,17 +358,19 @@ export default function ResultPage() {
                   <div style={{ color: '#555', fontSize: 12, textAlign: 'center', padding: '20px 0' }}>매치 기록 없음</div>
                 ) : (
                   [...matches].reverse().map((m) => {
-                    const chickenTeam = teams.find((t) => t.id === m.chickenTeamId);
+                    const results = m.memberResults || [];
+                    const hasChicken = results.some((r) => r.isChicken);
+                    const chickenTeam = hasChicken ? teams.find((t) => results.find((r) => r.isChicken && r.teamId === t.id)) : null;
                     // 팀별 킬 합산
                     const teamKills = teams.map((t) => ({
                       name: t.name,
-                      kills: m.results.filter((r) => r.teamId === t.id).reduce((s, r) => s + r.kills, 0),
+                      kills: results.filter((r) => r.teamId === t.id).reduce((s, r) => s + r.kills, 0),
                     }));
                     return (
-                      <div key={m.id} style={{ padding: '10px 0', borderBottom: '1px solid rgba(200,155,0,0.07)' }}>
+                      <div key={m.matchId} style={{ padding: '10px 0', borderBottom: '1px solid rgba(200,155,0,0.07)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: '#F5A623' }}>매치 #{m.number}</span>
-                          <span style={{ fontSize: 10, color: '#555' }}>{new Date(m.createdAt).toLocaleTimeString('ko')}</span>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: '#F5A623' }}>매치 #{m.matchNumber}</span>
+                          <span style={{ fontSize: 10, color: '#555' }}>{m.playedAt ? new Date(m.playedAt).toLocaleTimeString('ko') : ''}</span>
                         </div>
                         {/* 팀별 이번 매치 킬 */}
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>

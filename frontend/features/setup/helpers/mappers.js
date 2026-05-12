@@ -26,37 +26,3 @@ export function mapSessionRule(session) {
   };
 }
 
-/**
- * ConfigureStateMessage → setup 페이지용 팀 데이터 변환
- */
-export function mapConfigTeams(configState) {
-  return (configState.teams || []).map((t) => ({
-    id: t.teamId,
-    name: t.teamName,
-    members: t.leaderUserId
-      ? [{ userId: t.leaderUserId, username: t.leaderNickname, role: 'LEADER' }]
-      : [],
-    players: (t.players || []).map((p) => p.playerNickname),
-  }));
-}
-
-/**
- * ConfigureStateMessage → 참가자 목록 변환
- */
-export function mapConfigParticipants(configState, hostUserId) {
-  const leaders = (configState.teams || [])
-    .filter((t) => t.leaderUserId)
-    .map((t) => ({
-      userId: t.leaderUserId,
-      username: t.leaderNickname,
-      role: t.leaderUserId === hostUserId ? 'HOST' : 'MEMBER',
-    }));
-
-  const waiting = (configState.waitingUsers || []).map((u) => ({
-    userId: u.userId,
-    username: u.nickname,
-    role: u.userId === hostUserId ? 'HOST' : 'MEMBER',
-  }));
-
-  return [...leaders, ...waiting];
-}

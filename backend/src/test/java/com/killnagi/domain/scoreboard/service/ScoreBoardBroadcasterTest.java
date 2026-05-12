@@ -1,7 +1,6 @@
 package com.killnagi.domain.scoreboard.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.times;
@@ -15,7 +14,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import com.killnagi.domain.match.event.MatchConfirmedEvent;
 import com.killnagi.domain.match.event.MemberSnapshot;
@@ -23,24 +21,27 @@ import com.killnagi.domain.match.event.TeamSnapshot;
 import com.killnagi.domain.scoreboard.dto.MemberResult;
 import com.killnagi.domain.scoreboard.dto.ScoreBoardUpdateMessage;
 import com.killnagi.domain.scoreboard.dto.TeamUpdate;
+import com.killnagi.domain.session.service.SessionBroadcaster;
 
 @ExtendWith(MockitoExtension.class)
 class ScoreBoardBroadcasterTest {
 
     @Mock
-    private SimpMessagingTemplate messagingTemplate;
+    private SessionBroadcaster sessionBroadcaster;
 
     @InjectMocks
     private ScoreBoardBroadcaster scoreBoardBroadcaster;
 
     @Test
-    void 매치확정_이벤트_수신시_올바른_세션_토픽으로_메시지를_전송한다() {
+    void 매치확정_이벤트_수신시_올바른_세션으로_브로드캐스트한다() {
         MatchConfirmedEvent event = matchConfirmedEventFixture(1L, 5L);
 
         scoreBoardBroadcaster.handleMatchConfirmed(event);
 
-        then(messagingTemplate).should(times(1))
-                .convertAndSend(eq("/topic/sessions/5/scoreboard"), any(ScoreBoardUpdateMessage.class));
+        ArgumentCaptor<ScoreBoardUpdateMessage> captor = ArgumentCaptor.forClass(ScoreBoardUpdateMessage.class);
+        then(sessionBroadcaster).should(times(1))
+                .broadcastScoreUpdated(eq(5L), captor.capture());
+        assertThat(captor.getValue().sessionId()).isEqualTo(5L);
     }
 
     @Test
@@ -50,7 +51,7 @@ class ScoreBoardBroadcasterTest {
 
         scoreBoardBroadcaster.handleMatchConfirmed(event);
 
-        then(messagingTemplate).should().convertAndSend(any(String.class), captor.capture());
+        then(sessionBroadcaster).should().broadcastScoreUpdated(eq(3L), captor.capture());
         ScoreBoardUpdateMessage message = captor.getValue();
         assertThat(message.matchId()).isEqualTo(10L);
         assertThat(message.sessionId()).isEqualTo(3L);
@@ -63,7 +64,7 @@ class ScoreBoardBroadcasterTest {
 
         scoreBoardBroadcaster.handleMatchConfirmed(event);
 
-        then(messagingTemplate).should().convertAndSend(any(String.class), captor.capture());
+        then(sessionBroadcaster).should().broadcastScoreUpdated(eq(1L), captor.capture());
         TeamUpdate teamUpdate = captor.getValue().teamUpdate();
         assertThat(teamUpdate.teamId()).isEqualTo(7L);
         assertThat(teamUpdate.teamName()).isEqualTo("팀A");
@@ -80,7 +81,7 @@ class ScoreBoardBroadcasterTest {
 
         scoreBoardBroadcaster.handleMatchConfirmed(event);
 
-        then(messagingTemplate).should().convertAndSend(any(String.class), captor.capture());
+        then(sessionBroadcaster).should().broadcastScoreUpdated(eq(1L), captor.capture());
         List<MemberResult> memberResults = captor.getValue().memberResults();
         assertThat(memberResults).hasSize(2);
 
@@ -101,7 +102,7 @@ class ScoreBoardBroadcasterTest {
 
         scoreBoardBroadcaster.handleMatchConfirmed(event);
 
-        then(messagingTemplate).should().convertAndSend(any(String.class), captor.capture());
+        then(sessionBroadcaster).should().broadcastScoreUpdated(eq(1L), captor.capture());
         assertThat(captor.getValue().mapName()).isEqualTo("에란겔");
         assertThat(captor.getValue().matchNumber()).isEqualTo(3);
     }

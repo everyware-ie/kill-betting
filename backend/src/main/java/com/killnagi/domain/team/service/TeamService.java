@@ -60,6 +60,6 @@ public class TeamService {
                         "LEADER"))
                 : List.of();
 
-        return new TeamResponse(team.getId(), team.getName(), team.getEffectiveKills(), members, players);
+        return new TeamResponse(team.getId(), team.getName(), team.getLeaderUserId(), team.getEffectiveKills(), members, players);
     }
 }

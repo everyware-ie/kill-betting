@@ -1,16 +1,23 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { RoomAPI } from '@/lib/room-api';
 import { useWebSocket } from '@/lib/useWebSocket';
-import { MAX_PLAYERS_PER_TEAM } from '@/mock/rooms';
-import { mapSessionRule, mapConfigTeams, mapConfigParticipants } from '../helpers/mappers';
+import { mapSessionRule } from '../helpers/mappers';
+
+const TEAM_NAMES = ['ALPHA', 'BRAVO', 'CHARLIE', 'DELTA', 'ECHO', 'FOXTROT', 'GOLF', 'HOTEL', 'INDIA', 'JULIET'];
+
+const generateRandomTeamName = () => {
+  const name = TEAM_NAMES[Math.floor(Math.random() * TEAM_NAMES.length)];
+  const suffix = Math.random().toString(36).substring(2, 8).toUpperCase();
+  return `${name}-${suffix}`;
+};
 
 export default function useSetupRoom() {
   const router = useRouter();
-  const { id: roomId } = useParams();
+  const { id: roomCode } = useParams();
   const { user } = useAuth();
 
   const [room, setRoom] = useState(null);
@@ -19,147 +26,128 @@ export default function useSetupRoom() {
   const [starting, setStarting] = useState(false);
   const [inputs, setInputs] = useState({});
 
-  const myTeam = room?.teams.find((t) => t.members?.some((m) => m.userId === user?.id));
+  const sessionId = room?.id;
   const hostUserId = room?.hostUserId;
   const isHost = hostUserId === user?.id;
-  const isActionInProgress = useRef(false);
 
   // ── 방 정보 초기 로드 ──
   useEffect(() => {
     if (!user) return;
 
-    RoomAPI.get(roomId).then(async (res) => {
+    RoomAPI.get(roomCode).then(async (res) => {
       if (!res.success) { setError(res.error); setLoading(false); return; }
 
       const session = res.data;
-      const configRes = await RoomAPI.getParticipants(session.id);
-      const configState = configRes.success ? configRes.data : null;
+      const teamsRes = await RoomAPI.getTeams(session.id);
+      const teams = teamsRes.success ? teamsRes.data : [];
 
       setRoom({
         ...session,
         rule: mapSessionRule(session),
-        teams: configState ? mapConfigTeams(configState) : [],
-        participants: configState ? mapConfigParticipants(configState, session.hostUserId) : [],
+        teams: teams.map((t) => ({
+          id: t.id,
+          name: t.name,
+          players: (t.players || []).map((nick, idx) => ({ id: idx, nickname: nick })),
+          members: t.members || [],
+        })),
+        waitingUsers: [],
       });
       setLoading(false);
     });
-  }, [roomId, user]);
+  }, [roomCode, user]);
 
   // ── WebSocket 실시간 동기화 ──
-  useWebSocket(roomId, (configureState) => {
-    if (!configureState || isActionInProgress.current) return;
+  const { publish } = useWebSocket(sessionId, (envelope) => {
+    if (!envelope) return;
 
-    setRoom((prev) => ({
-      ...prev,
-      teams: prev.teams.map((team) => {
-        const newTeamState = configureState.teams.find((t) => t.teamId === team.id);
-        if (!newTeamState) return team;
-        return {
-          ...team,
-          name: newTeamState.teamName,
-          leaderUserId: newTeamState.leaderUserId,
-          leaderNickname: newTeamState.leaderNickname,
-        };
-      }),
-    }));
+    if (envelope.type === 'SESSION_STARTED') {
+      router.push(`/room/${roomCode}/live`);
+      return;
+    }
+
+    if (envelope.type === 'PARTICIPANT_UPDATED' && envelope.data) {
+      const state = envelope.data;
+      setRoom((prev) => ({
+        ...prev,
+        waitingUsers: state.waitingUsers || [],
+        teams: state.teams
+          ? state.teams.map((t) => ({
+              id: t.teamId,
+              name: t.teamName,
+              status: t.status,
+              leaderUserId: t.leaderUserId,
+              leaderNickname: t.leaderNickname,
+              players: (t.players || []).map((p) => ({ id: p.playerId, nickname: p.playerNickname })),
+              members: t.members || [],
+            }))
+          : prev.teams,
+      }));
+    }
   }, !!user && !!room);
 
-  // ── 팀 참여 / 이동 ──
-  const handleMoveTeam = async (newTeamId) => {
-    if (myTeam?.id === newTeamId) return;
-    isActionInProgress.current = true;
-    const res = await RoomAPI.joinTeam(roomId, newTeamId, user);
-    if (res.success) setRoom((r) => ({ ...r, teams: res.data.teams }));
-    else setError(res.error);
-    isActionInProgress.current = false;
+  // ── 팀 생성 ──
+  const handleAddTeam = () => {
+    publish(`/sessions/${sessionId}/teams/create`, { name: generateRandomTeamName() });
   };
 
-  // ── 대기석으로 이동 ──
-  const handleLeaveTeam = async () => {
-    if (!myTeam) return;
-    isActionInProgress.current = true;
-    const res = await RoomAPI.leaveTeam(roomId, myTeam.id, user.id);
-    if (res.success) setRoom((r) => ({ ...r, teams: res.data.teams }));
-    else setError(res.error);
-    isActionInProgress.current = false;
+  // ── 대기석 유저를 팀 리더로 배정 (호스트) ──
+  const handleMoveToTeam = (teamId, targetUserId) => {
+    publish(`/sessions/${sessionId}/teams/${teamId}/leader`, { userId: targetUserId });
   };
 
-  // ── 운영자 위임 ──
-  const handleSetLeader = async (teamId, targetUserId) => {
-    const res = await RoomAPI.setLeader(roomId, teamId, targetUserId);
-    if (res.success) setRoom((r) => ({ ...r, teams: res.data.teams }));
-    else setError(res.error);
-  };
-
-  // ── 닉네임 추가 ──
-  const addPlayer = async (teamId) => {
+  // ── 닉네임 추가 (직접 입력) ──
+  const addPlayer = (teamId) => {
     const nick = (inputs[teamId] || '').trim();
     if (!nick) return;
     if (/\s/.test(nick)) { setError('배그 닉네임에는 공백을 사용할 수 없습니다'); return; }
-    const maxPerTeam = MAX_PLAYERS_PER_TEAM[room.rule.gameMode] || 4;
-    const team = room.teams.find((t) => t.id === teamId);
-    const allNicks = room.teams.flatMap((t) => t.players);
-    if (allNicks.includes(nick)) { setError(`'${nick}'은 이미 다른 팀에 등록되어 있습니다`); return; }
-    if (team.players.length >= maxPerTeam) { setError(`${team.name}은 최대 ${maxPerTeam}명까지 가능합니다`); return; }
     setError('');
-    isActionInProgress.current = true;
-    const updatedTeams = room.teams.map((t) =>
-      t.id === teamId ? { ...t, players: [...t.players, nick] } : t
-    );
-    const res = await RoomAPI.updateTeams(roomId, updatedTeams);
-    if (res.success) setRoom((r) => ({ ...r, teams: updatedTeams }));
+    publish(`/sessions/${sessionId}/teams/${teamId}/players/add`, { playerNickname: nick });
     setInputs((p) => ({ ...p, [teamId]: '' }));
-    isActionInProgress.current = false;
   };
 
   // ── 닉네임 삭제 ──
-  const removePlayer = async (teamId, nick) => {
-    isActionInProgress.current = true;
-    const updatedTeams = room.teams.map((t) =>
-      t.id === teamId ? { ...t, players: t.players.filter((p) => p !== nick) } : t
-    );
-    const res = await RoomAPI.updateTeams(roomId, updatedTeams);
-    if (res.success) setRoom((r) => ({ ...r, teams: updatedTeams }));
-    isActionInProgress.current = false;
+  const removePlayer = (teamId, playerId) => {
+    publish(`/sessions/${sessionId}/teams/${teamId}/players/${playerId}/remove`);
   };
 
-  // ── 팀 추가 ──
-  const handleAddTeam = async () => {
-    isActionInProgress.current = true;
-    const res = await RoomAPI.addTeam(roomId);
-    if (res.success) setRoom((r) => ({ ...r, teams: res.data.teams }));
-    else setError(res.error);
-    isActionInProgress.current = false;
+  // ── 리더 위임 ──
+  const handleSetLeader = (teamId, targetUserId) => {
+    publish(`/sessions/${sessionId}/teams/${teamId}/leader`, { userId: targetUserId });
   };
 
-  // ── 룰 저장 ──
+  // ── 리더 해제 ──
+  const handleUnassignLeader = (teamId) => {
+    publish(`/sessions/${sessionId}/teams/${teamId}/leader/remove`);
+  };
+
+  // ── 룰 저장 (REST 유지) ──
   const handleSaveRule = async (newRule) => {
-    const res = await RoomAPI.updateRule(roomId, newRule);
+    const res = await RoomAPI.updateRule(sessionId, newRule);
     if (res.success) setRoom((r) => ({ ...r, rule: newRule }));
     else setError(res.error);
     return res.success;
   };
 
-  // ── 킬내기 시작 ──
+  // ── 킬내기 시작 (REST 유지) ──
   const handleStart = async () => {
     setError('');
     setStarting(true);
-    const res = await RoomAPI.start(roomId);
+    const res = await RoomAPI.start(sessionId);
     setStarting(false);
-    if (!res.ok) { setError(res.error); return; }
-    router.push(`/room/${roomId}/live`);
+    if (!res.success) { setError(res.message || '시작에 실패했습니다'); return; }
+    router.push(`/room/${roomCode}/live`);
   };
 
-  const totalPlayers = room?.teams.reduce((s, t) => s + t.players.length, 0) ?? 0;
+  const totalPlayers = room?.teams.reduce((s, t) => s + (t.players || []).length, 0) ?? 0;
   const canStart = (room?.teams.length ?? 0) >= 2 && totalPlayers >= 2;
-  const maxPerTeam = MAX_PLAYERS_PER_TEAM[room?.rule?.gameMode] || 4;
 
   return {
     room, loading, error, starting, inputs, setInputs,
-    user, myTeam, hostUserId, isHost,
-    totalPlayers, canStart, maxPerTeam,
-    handleMoveTeam, handleLeaveTeam, handleSetLeader,
-    addPlayer, removePlayer, handleAddTeam,
+    user, hostUserId, isHost,
+    totalPlayers, canStart,
+    handleAddTeam, handleMoveToTeam,
+    addPlayer, removePlayer,
+    handleSetLeader, handleUnassignLeader,
     handleSaveRule, handleStart,
   };
 }

@@ -295,7 +295,7 @@ export default function DashboardPage() {
                   value={joinCode}
                   onChange={handleCodeChange}
                   onKeyDown={handleKeyDown}
-                  placeholder="#1234-56"
+                  placeholder="#123456"
                   maxLength={8}
                   style={{
                     flex: 1,
@@ -333,7 +333,7 @@ export default function DashboardPage() {
               {/* 코드 형식 안내 */}
               {!joinError && (
                 <div style={{ marginTop: 8, fontSize: 11, color: '#555' }}>
-                  형식: #0000-00 · 팀 구성 화면에서 코드를 확인하세요
+                  형식: #000000 · 팀 구성 화면에서 코드를 확인하세요
                 </div>
               )}
             </div>

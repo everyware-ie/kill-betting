@@ -18,9 +18,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.killnagi.common.exception.KillnagiException;
-import com.killnagi.domain.match.repository.MatchRepository;
-import com.killnagi.domain.match.repository.MatchResultRepository;
-import com.killnagi.domain.match.service.MatchService;
 import com.killnagi.domain.rule.entity.Operator;
 import com.killnagi.domain.rule.entity.Rule;
 import com.killnagi.domain.rule.entity.RuleSet;
@@ -50,7 +47,8 @@ class SessionServiceTest {
     @Mock private RuleRepository ruleRepository;
     @Mock private RuleSetRepository ruleSetRepository;
     @Mock private SessionParticipantRegistry registry;
-    @Mock private RoomCodeGenerator roomCodeGenerator;
+    @Mock private SessionCodeGenerator sessionCodeGenerator;
+    @Mock private SessionBroadcaster sessionBroadcaster;
     @InjectMocks private SessionService sessionService;
 
     private static final Long HOST_ID = 1L;
@@ -141,6 +139,7 @@ class SessionServiceTest {
         Session session = TestFixtures.session(SESSION_ID, host);
 
         given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
+        given(teamRepository.findBySessionId(SESSION_ID)).willReturn(List.of());
 
         assertThatThrownBy(() -> sessionService.startSession(SESSION_ID, otherUserId))
                 .isInstanceOf(KillnagiException.class)
