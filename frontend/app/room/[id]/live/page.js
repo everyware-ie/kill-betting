@@ -34,6 +34,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useAuth }  from '@/lib/auth-context';
 import { RoomAPI }  from '@/lib/room-api';
 import { OcrAPI }  from '@/lib/ocr-api';
+import { useWebSocket } from '@/lib/useWebSocket';
 import { mapSessionRule } from '@/features/setup/helpers/mappers';
 import Button from '@/components/ui/Button';
 import RoleGuideModal from '@/components/ui/RoleGuideModal';
@@ -788,7 +789,6 @@ export default function LivePage() {
   const [adjs,           setAdjs]           = useState([]);
   const [elapsed,        setElapsed]        = useState(0);
   const [loading,        setLoading]        = useState(true);
-  const [pollError,      setPollError]      = useState(false);  // 폴링 실패 여부 (연결 오류 배너용)
   const [showTeamModal,   setShowTeamModal]   = useState(false);  // 팀 결과 입력 모달
   const [selectedTeamId,  setSelectedTeamId]  = useState(null);  // 모달에서 입력할 팀 ID
   const [modalMatchNum,   setModalMatchNum]   = useState(1);      // 모달 타이틀용 팀 매치 순번
@@ -837,23 +837,16 @@ export default function LivePage() {
     return () => clearInterval(id);
   }, []);
 
-  // ── 폴링 (5초마다 매치 목록 갱신) ──
-  // 다른 팀이 결과를 제출하면 폴링을 통해 내 화면에도 반영됨
-  // 실패 시 화면 상단에 오류 배너 표시, 복구되면 자동으로 사라짐
-  // ※ 추후 WebSocket 전환 시 이 useEffect를 교체하고 setPollError 호출 위치만 바꾸면 됨
-  useEffect(() => {
-    if (!sessionId) return;
-    const id = setInterval(async () => {
-      const matchRes = await RoomAPI.getMatches(sessionId);
-      if (matchRes.success) {
-        setMatches(matchRes.data?.matches || []);
-        setPollError(false);
-      } else {
-        setPollError(true);
-      }
-    }, 5000);
-    return () => clearInterval(id);
-  }, [sessionId]);
+  // ── WebSocket (매치 결과 실시간 수신) ──
+  // 다른 팀이 결과를 제출하면 SCORE_UPDATED 메시지를 받아 매치 목록 갱신
+  const { connected } = useWebSocket(sessionId, (envelope) => {
+    if (!envelope) return;
+    if (envelope.type === 'SCORE_UPDATED' && sessionId) {
+      RoomAPI.getMatches(sessionId).then((matchRes) => {
+        if (matchRes.success) setMatches(matchRes.data?.matches || []);
+      });
+    }
+  }, !!user && !!sessionId);
 
   // ── 결과 입력 모달 열기 ──
   // 이 팀이 지금까지 몇 게임을 끝냈는지 계산해서 모달 타이틀에 표시
@@ -945,8 +938,7 @@ export default function LivePage() {
     <div style={{ minHeight: '100vh', background: '#12100A', display: 'flex', flexDirection: 'column' }}>
 
       {/* ── 연결 오류 배너 ── */}
-      {/* 폴링 실패 시 표시. WebSocket 전환 후에는 ws.onerror / ws.onclose 에서 setPollError(true) 호출로 교체 */}
-      {pollError && (
+      {!connected && sessionId && (
         <div style={{
           background: '#3B1111', borderBottom: '1px solid rgba(229,57,53,0.4)',
           padding: '8px 22px', display: 'flex', alignItems: 'center', gap: 8,
