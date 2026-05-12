@@ -77,7 +77,7 @@ class SessionAcceptanceTest extends AcceptanceTestSupport {
 
         // Then
         ResponseEntity<String> scoreboard = get("/api/sessions/" + sessionId + "/scoreboard", hostToken);
-        assertThat(parseBody(scoreboard).at("/data/status").asText()).isEqualTo("IN_PROGRESS");
+        assertThat(parseBody(scoreboard).at("/data/status").asText()).isEqualTo("WAITING");
     }
 
     @Test
