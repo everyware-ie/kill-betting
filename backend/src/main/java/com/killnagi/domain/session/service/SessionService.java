@@ -35,13 +35,9 @@ public class SessionService {
     private final RuleRepository ruleRepository;
     private final RuleSetRepository ruleSetRepository;
     private final SessionParticipantRegistry registry;
-<<<<<<< JiEung2/feature/session-end
     private final SessionTimerService sessionTimerService;
-    private final RoomCodeGenerator roomCodeGenerator;
-=======
     private final SessionCodeGenerator sessionCodeGenerator;
     private final SessionBroadcaster sessionBroadcaster;
->>>>>>> main
 
     @Transactional
     public SessionResponse createSession(Long hostUserId, CreateRequest request) {
@@ -94,14 +90,11 @@ public class SessionService {
                         .build()));
 
         session.start();
-<<<<<<< JiEung2/feature/session-end
+        sessionBroadcaster.broadcastSessionStarted(sessionId);
 
         if (session.hasTimeLimit()) {
             sessionTimerService.scheduleExpiry(session.getId(), session.getExpiresAt());
         }
-=======
-        sessionBroadcaster.broadcastSessionStarted(sessionId);
->>>>>>> main
     }
 
     @Transactional
@@ -119,71 +112,6 @@ public class SessionService {
         }
 
         rule.updateValue(newValue);
-    }
-
-    public ScoreboardResponse getScoreboard(Long sessionId) {
-        Session session = getSessionOrThrow(sessionId);
-        List<TeamScoreResponse> teamScores = teamRepository.findBySessionId(sessionId).stream()
-                .map(TeamScoreResponse::from)
-                .toList();
-        return new ScoreboardResponse(
-                session.getId(), session.getName(), session.getStatus(),
-                session.getWinnerTeamId(), session.getWinnerTeamName(), session.isDraw(),
-                teamScores);
-    }
-
-    public SessionResponse getSessionByRoomUrl(String roomUrl) {
-        Session session = sessionRepository.findByRoomUrl(roomUrl)
-                .orElseThrow(() -> KillnagiException.notFound("세션을 찾을 수 없습니다."));
-        return toResponse(session);
-    }
-
-    public List<SessionResponse> getWaitingSessions() {
-        return sessionRepository.findByStatus(Session.SessionStatus.WAITING).stream()
-                .map(this::toResponse)
-                .toList();
-    }
-
-    public SessionResponse getSessionByRoomCode(String roomCode) {
-        Session session = sessionRepository.findByRoomCode(roomCode.toUpperCase())
-                .orElseThrow(() -> KillnagiException.notFound("방 코드에 해당하는 세션을 찾을 수 없습니다."));
-        return toResponse(session);
-    }
-
-    public MatchHistoryResponse getMatchHistory(Long sessionId) {
-        Session session = getSessionOrThrow(sessionId);
-        List<Match> matches = matchRepository.findBySessionIdAndStatusOrderByMatchNumberAsc(sessionId, MatchStatus.CONFIRMED);
-        Map<Long, List<MemberMatchResultResponse>> resultsByMatchId = groupResultsByMatchId(matches);
-        List<MatchSummaryResponse> summaries = toMatchSummaries(matches, resultsByMatchId);
-        return new MatchHistoryResponse(session.getId(), session.getName(), matches.size(), summaries);
-    }
-
-    private Map<Long, List<MemberMatchResultResponse>> groupResultsByMatchId(List<Match> matches) {
-        return matchResultRepository.findByMatchIn(matches).stream()
-                .collect(Collectors.groupingBy(
-                        result -> result.getMatch().getId(),
-                        Collectors.mapping(MemberMatchResultResponse::from, Collectors.toList())
-                ));
-    }
-
-    private List<MatchSummaryResponse> toMatchSummaries(List<Match> matches, Map<Long, List<MemberMatchResultResponse>> resultsByMatchId) {
-        return matches.stream()
-                .map(match -> MatchSummaryResponse.from(match, resultsByMatchId.getOrDefault(match.getId(), List.of())))
-                .toList();
-    }
-
-    public List<SessionResponse> getMySessions(Long userId) {
-        return sessionRepository.findSessionsByUserId(userId).stream()
-                .map(this::toResponse)
-                .toList();
-    }
-
-    @Transactional
-    public ScreenshotUploadResponse uploadMatchImage(Long sessionId, Long uploaderId, MultipartFile file) {
-        Session session = getSessionOrThrow(sessionId);
-        Team team = teamRepository.findBySessionIdAndLeader_Id(sessionId, uploaderId)
-                .orElseThrow(() -> KillnagiException.notFound("해당 세션에서 Leader로 배정된 팀을 찾을 수 없습니다."));
-        return matchService.uploadScreenshot(session, team, file);
     }
 
     private Session getSessionOrThrow(Long sessionId) {
