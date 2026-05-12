@@ -65,6 +65,15 @@ public class TeamMessageController {
         broadcastConfigureState(sessionId);
     }
 
+    @MessageMapping("/sessions/{sessionId}/teams/{teamId}/delete")
+    public void deleteTeam(@DestinationVariable Long sessionId,
+                           @DestinationVariable Long teamId,
+                           Principal principal) {
+        Long userId = parseUserId(principal);
+        teamService.deleteTeam(sessionId, teamId, userId);
+        broadcastConfigureState(sessionId);
+    }
+
     @MessageMapping("/sessions/{sessionId}/teams/{teamId}/leader")
     public void assignLeader(@DestinationVariable Long sessionId,
                              @DestinationVariable Long teamId,
