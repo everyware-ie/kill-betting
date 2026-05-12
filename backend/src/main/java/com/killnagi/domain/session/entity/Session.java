@@ -129,6 +129,14 @@ public class Session {
         return targetKills != null;
     }
 
+    public boolean hasTimeLimit() {
+        return timeLimitMinutes != null;
+    }
+
+    public LocalDateTime getExpiresAt() {
+        return startedAt.plusMinutes(timeLimitMinutes);
+    }
+
     public boolean isHostedBy(Long userId) {
         return this.host.hasId(userId);
     }

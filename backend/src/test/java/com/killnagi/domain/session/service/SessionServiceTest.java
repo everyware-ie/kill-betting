@@ -53,6 +53,7 @@ class SessionServiceTest {
     @Mock private MatchResultRepository matchResultRepository;
     @Mock private MatchService matchService;
     @Mock private SessionParticipantRegistry registry;
+    @Mock private SessionTimerService sessionTimerService;
     @InjectMocks private SessionService sessionService;
 
     private static final Long HOST_ID = 1L;

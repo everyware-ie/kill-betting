@@ -98,6 +98,15 @@ public class SessionController implements SessionControllerDocs {
         return ResponseEntity.ok(ApiResponse.ok(sessionService.getMySessions(userId)));
     }
 
+    @PostMapping("/{sessionId}/end")
+    public ResponseEntity<ApiResponse<Void>> endSession(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long sessionId) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+        sessionEndService.endByHost(sessionId, userId);
+        return ResponseEntity.ok(ApiResponse.ok("세션이 종료되었습니다.", null));
+    }
+
     @PutMapping("/{sessionId}/rules/{ruleId}")
     public ResponseEntity<ApiResponse<Void>> updateRule(
             @PathVariable Long sessionId,

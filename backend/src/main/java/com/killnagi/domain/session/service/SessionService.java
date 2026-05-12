@@ -56,6 +56,7 @@ public class SessionService {
     private final MatchResultRepository matchResultRepository;
     private final MatchService matchService;
     private final SessionParticipantRegistry registry;
+    private final SessionTimerService sessionTimerService;
 
     @Transactional
     public SessionResponse createSession(Long hostUserId, CreateRequest request) {
@@ -108,6 +109,10 @@ public class SessionService {
                         .build()));
 
         session.start();
+
+        if (session.hasTimeLimit()) {
+            sessionTimerService.scheduleExpiry(session.getId(), session.getExpiresAt());
+        }
     }
 
     @Transactional
