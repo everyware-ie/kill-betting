@@ -6,8 +6,10 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetUrlRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
@@ -21,9 +23,6 @@ public class S3FileStorageService implements FileStorageService {
 
     @Value("${aws.s3.bucket-name}")
     private String bucketName;
-
-    @Value("${aws.s3.region}")
-    private String region;
 
     public S3FileStorageService(S3Client s3Client) {
         this.s3Client = s3Client;
@@ -45,10 +44,12 @@ public class S3FileStorageService implements FileStorageService {
                             .build(),
                     RequestBody.fromInputStream(file.getInputStream(), file.getSize())
             );
-        } catch (IOException e) {
+        } catch (IOException | SdkException e) {
             throw new KillnagiException("파일 저장에 실패했습니다.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
-        return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, key);
+        return s3Client.utilities()
+                .getUrl(GetUrlRequest.builder().bucket(bucketName).key(key).build())
+                .toString();
     }
 }
