@@ -10,7 +10,6 @@
  *
  *  [개념 정리]
  *
- *  room.participants  → 로그인해서 방에 들어온 유저 목록
  *  team.players       → 배그 닉네임 문자열 목록 (계정 연동 없음)
  *
  * ============================================================
@@ -104,8 +103,7 @@ export const RoomAPI = {
         status:       'WAITING',
         rule:         { ...DEFAULT_RULE, ...rule },
         teams:        createDefaultTeams(),
-        // 방 참여자: 방장이 자동으로 첫 참여자
-        participants: [{ userId: hostUserId, username: hostUsername, role: 'HOST', joinedAt: new Date().toISOString() }],
+        hostUserId,
         createdAt:    new Date().toISOString(),
       };
       _runtimeRooms.push(room);
@@ -315,9 +313,8 @@ export const RoomAPI = {
   list: async (userId) => {
     if (USE_MOCK) {
       await delay(200);
-      // 내가 참여자(participants)로 있는 방만 필터링
       const myRooms = _runtimeRooms.filter((r) =>
-        r.participants?.some((p) => p.userId === userId)
+        r.hostUserId === userId
       );
       // 최신순 정렬
       const sorted = [...myRooms].sort(
@@ -355,17 +352,6 @@ export const RoomAPI = {
       if (!room) return err('초대 코드를 찾을 수 없습니다');
       if (room.status === 'DONE') return err('이미 종료된 방입니다');
 
-      // 이미 participants에 있으면 방 정보만 반환 (재입장 허용)
-      const alreadyIn = room.participants?.some((p) => p.userId === user.id);
-      if (!alreadyIn) {
-        if (!room.participants) room.participants = [];
-        room.participants.push({
-          userId:   user.id,
-          username: user.username,
-          role:     'MEMBER',
-          joinedAt: new Date().toISOString(),
-        });
-      }
       return ok({ room });
     }
     const cleaned = code.replace(/^#/, '').trim().toUpperCase();
