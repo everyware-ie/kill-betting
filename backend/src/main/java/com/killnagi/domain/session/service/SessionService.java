@@ -83,6 +83,15 @@ public class SessionService {
             throw KillnagiException.badRequest("최소 " + MIN_TEAMS_TO_START + "팀이 필요합니다.");
         }
 
+        teams.forEach(team -> {
+            if (!team.hasLeader()) {
+                throw KillnagiException.badRequest(team.getName() + "에 리더가 배정되지 않았습니다.");
+            }
+            if (team.getPlayers().isEmpty()) {
+                throw KillnagiException.badRequest(team.getName() + "에 배그 닉네임이 등록되지 않았습니다.");
+            }
+        });
+
         userRepository.findAllById(registry.getParticipantIds(sessionId)).forEach(participant ->
                 sessionUserRepository.save(SessionUser.builder()
                         .session(session)

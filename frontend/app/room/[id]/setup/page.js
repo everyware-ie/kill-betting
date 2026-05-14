@@ -44,7 +44,7 @@ export default function SetupPage() {
     room, loading, error, starting, inputs, setInputs,
     user, hostUserId, isHost,
     totalPlayers, canStart,
-    handleAddTeam, handleMoveToTeam,
+    handleAddTeam, handleDeleteTeam, handleMoveToTeam,
     addPlayer, removePlayer,
     handleSetLeader, handleUnassignLeader,
     handleSaveRule, handleStart,
@@ -103,6 +103,7 @@ export default function SetupPage() {
               onAddPlayer={addPlayer}
               onRemovePlayer={removePlayer}
               onUnassignLeader={handleUnassignLeader}
+              onDeleteTeam={handleDeleteTeam}
             />
           ))}
 
@@ -121,6 +122,7 @@ export default function SetupPage() {
         starting={starting}
         teamCount={room?.teams.length ?? 0}
         totalPlayers={totalPlayers}
+        teams={room?.teams}
         onStart={handleStart}
       />
 
@@ -179,14 +181,19 @@ function RuleBanner({ rule, onEdit }) {
   );
 }
 
-function Footer({ canStart, starting, teamCount, totalPlayers, onStart }) {
+function Footer({ canStart, starting, teamCount, totalPlayers, teams, onStart }) {
   let statusText;
   if (canStart) {
     statusText = `✓ 준비 완료 — ${teamCount}개 팀, 총 ${totalPlayers}명`;
   } else if (teamCount < 2) {
     statusText = '팀이 2개 이상 필요합니다';
   } else {
-    statusText = `배그 닉네임을 팀 전체 합산 2명 이상 입력해주세요 (현재 ${totalPlayers}명)`;
+    const noLeader = (teams || []).filter((t) => !t.leaderUserId).map((t) => t.name);
+    const noPlayer = (teams || []).filter((t) => (t.players || []).length === 0).map((t) => t.name);
+    const issues = [];
+    if (noLeader.length > 0) issues.push(`리더 미배정: ${noLeader.join(', ')}`);
+    if (noPlayer.length > 0) issues.push(`닉네임 미등록: ${noPlayer.join(', ')}`);
+    statusText = issues.length > 0 ? issues.join(' | ') : '모든 팀의 준비를 완료해주세요';
   }
 
   return (

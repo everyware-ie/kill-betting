@@ -123,7 +123,10 @@ class SessionServiceTest {
     void 호스트가_세션을_시작하면_성공한다() {
         User host = TestFixtures.user(HOST_ID);
         Session session = TestFixtures.session(SESSION_ID, host);
-        List<Team> teams = List.of(TestFixtures.team(session), TestFixtures.team(session));
+        List<Team> teams = List.of(
+                TestFixtures.readyTeam(session, TestFixtures.user(2L)),
+                TestFixtures.readyTeam(session, TestFixtures.user(3L))
+        );
 
         given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
         given(teamRepository.findBySessionId(SESSION_ID)).willReturn(teams);
@@ -158,6 +161,44 @@ class SessionServiceTest {
         assertThatThrownBy(() -> sessionService.startSession(SESSION_ID, HOST_ID))
                 .isInstanceOf(KillnagiException.class)
                 .hasMessage("최소 2팀이 필요합니다.");
+    }
+
+    @Test
+    void 리더가_없는_팀이_있으면_세션_시작시_예외가_발생한다() {
+        User host = TestFixtures.user(HOST_ID);
+        Session session = TestFixtures.session(SESSION_ID, host);
+        Team teamWithoutLeader = TestFixtures.team(session);
+        teamWithoutLeader.getPlayers().add(TestFixtures.player(teamWithoutLeader));
+        List<Team> teams = List.of(
+                TestFixtures.readyTeam(session, TestFixtures.user(2L)),
+                teamWithoutLeader
+        );
+
+        given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
+        given(teamRepository.findBySessionId(SESSION_ID)).willReturn(teams);
+
+        assertThatThrownBy(() -> sessionService.startSession(SESSION_ID, HOST_ID))
+                .isInstanceOf(KillnagiException.class)
+                .hasMessageContaining("리더가 배정되지 않았습니다");
+    }
+
+    @Test
+    void 플레이어가_없는_팀이_있으면_세션_시작시_예외가_발생한다() {
+        User host = TestFixtures.user(HOST_ID);
+        Session session = TestFixtures.session(SESSION_ID, host);
+        Team teamWithoutPlayers = TestFixtures.team(session);
+        teamWithoutPlayers.assignLeader(TestFixtures.user(2L));
+        List<Team> teams = List.of(
+                TestFixtures.readyTeam(session, TestFixtures.user(3L)),
+                teamWithoutPlayers
+        );
+
+        given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
+        given(teamRepository.findBySessionId(SESSION_ID)).willReturn(teams);
+
+        assertThatThrownBy(() -> sessionService.startSession(SESSION_ID, HOST_ID))
+                .isInstanceOf(KillnagiException.class)
+                .hasMessageContaining("배그 닉네임이 등록되지 않았습니다");
     }
 
     @Test

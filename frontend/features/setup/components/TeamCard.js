@@ -3,7 +3,7 @@
 export default function TeamCard({
   team, isHost, userId, hostUserId,
   inputs, setInputs,
-  onAddPlayer, onRemovePlayer, onUnassignLeader,
+  onAddPlayer, onRemovePlayer, onUnassignLeader, onDeleteTeam,
 }) {
   const players = team.players || [];
 
@@ -13,7 +13,17 @@ export default function TeamCard({
       {/* 팀 헤더 */}
       <div style={{ background: 'rgba(200,155,0,0.06)', borderBottom: '1px solid rgba(200,155,0,0.12)', padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.5, color: '#8A8060' }}>{team.name}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.5, color: '#8A8060' }}>{team.name}</span>
+            {isHost && (
+              <button
+                onClick={() => onDeleteTeam(team.id)}
+                style={{ background: 'none', border: '1px solid rgba(229,57,53,0.3)', color: '#E53935', fontSize: 10, padding: '1px 6px', borderRadius: 2, cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                삭제
+              </button>
+            )}
+          </div>
           <span style={{ fontSize: 10, color: players.length > 0 ? '#F5A623' : '#555', background: 'rgba(200,155,0,0.07)', border: '1px solid rgba(200,155,0,0.12)', borderRadius: 3, padding: '1px 6px', alignSelf: 'flex-start' }}>
             🎮 {players.length}명
           </span>

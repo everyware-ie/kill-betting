@@ -42,6 +42,25 @@ public class TeamService {
         return toResponse(newTeam);
     }
 
+    @Transactional
+    public void deleteTeam(Long sessionId, Long teamId, Long hostUserId) {
+        Session session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> KillnagiException.notFound("세션을 찾을 수 없습니다."));
+
+        if (!session.isHostedBy(hostUserId)) {
+            throw KillnagiException.forbidden("세션 호스트만 팀을 삭제할 수 있습니다.");
+        }
+
+        if (!session.isWaiting()) {
+            throw KillnagiException.badRequest("대기 중인 세션에서만 팀을 삭제할 수 있습니다.");
+        }
+
+        Team team = teamRepository.findByIdAndSessionId(teamId, sessionId)
+                .orElseThrow(() -> KillnagiException.notFound("팀을 찾을 수 없습니다."));
+
+        teamRepository.delete(team);
+    }
+
     public List<TeamResponse> getTeams(Long sessionId) {
         return teamRepository.findBySessionId(sessionId).stream()
                 .map(this::toResponse)

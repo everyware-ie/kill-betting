@@ -90,6 +90,11 @@ export default function useSetupRoom() {
     publish(`/sessions/${sessionId}/teams/create`, { name: generateRandomTeamName() });
   };
 
+  // ── 팀 삭제 ──
+  const handleDeleteTeam = (teamId) => {
+    publish(`/sessions/${sessionId}/teams/${teamId}/delete`);
+  };
+
   // ── 대기석 유저를 팀 리더로 배정 (호스트) ──
   const handleMoveToTeam = (teamId, targetUserId) => {
     publish(`/sessions/${sessionId}/teams/${teamId}/leader`, { userId: targetUserId });
@@ -139,13 +144,16 @@ export default function useSetupRoom() {
   };
 
   const totalPlayers = room?.teams.reduce((s, t) => s + (t.players || []).length, 0) ?? 0;
-  const canStart = (room?.teams.length ?? 0) >= 2 && totalPlayers >= 2;
+  const allTeamsReady = (room?.teams ?? []).every(
+    (t) => t.leaderUserId && (t.players || []).length > 0
+  );
+  const canStart = (room?.teams.length ?? 0) >= 2 && allTeamsReady;
 
   return {
     room, loading, error, starting, inputs, setInputs,
     user, hostUserId, isHost,
     totalPlayers, canStart,
-    handleAddTeam, handleMoveToTeam,
+    handleAddTeam, handleDeleteTeam, handleMoveToTeam,
     addPlayer, removePlayer,
     handleSetLeader, handleUnassignLeader,
     handleSaveRule, handleStart,
