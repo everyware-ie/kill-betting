@@ -1,43 +1,68 @@
-/**
- * Button 컴포넌트
- *
- * Props:
- *   variant  : 'primary' | 'secondary' | 'ghost' | 'danger'  (기본: primary)
- *   size     : 'sm' | 'md' | 'lg'  (기본: md)
- *   loading  : boolean  로딩 스피너 표시
- *   disabled : boolean
- *   fullWidth: boolean  width: 100%
- */
-
 'use client';
 
+import Icon from './Icon';
+
 const VARIANTS = {
-  primary:   { background: '#F5A623', color: '#1a1500', border: 'none' },
-  secondary: { background: 'transparent', color: '#E8DFC0', border: '1px solid rgba(200,155,0,0.35)' },
-  ghost:     { background: 'rgba(200,155,0,0.08)', color: '#F5A623', border: '1px solid rgba(200,155,0,0.3)' },
-  danger:    { background: 'transparent', color: '#E53935', border: '1px solid rgba(229,57,53,0.5)' },
+  primary: {
+    background: 'var(--kn-accent)',
+    color: 'oklch(15% 0.005 250)',
+    border: '1px solid transparent',
+    fontWeight: 'var(--kn-w-bold)',
+  },
+  secondary: {
+    background: 'var(--kn-surface-2)',
+    color: 'var(--kn-text)',
+    border: '1px solid var(--kn-border-strong)',
+    fontWeight: 500,
+  },
+  ghost: {
+    background: 'transparent',
+    color: 'var(--kn-text)',
+    border: '1px solid transparent',
+    fontWeight: 500,
+  },
+  outline: {
+    background: 'transparent',
+    color: 'var(--kn-text)',
+    border: '1px solid var(--kn-border-strong)',
+    fontWeight: 500,
+  },
+  danger: {
+    background: 'transparent',
+    color: 'var(--kn-danger)',
+    border: '1px solid color-mix(in oklab, var(--kn-danger) 40%, transparent)',
+    fontWeight: 500,
+  },
+  accent: {
+    background: 'var(--kn-accent-bg)',
+    color: 'var(--kn-accent)',
+    border: '1px solid color-mix(in oklab, var(--kn-accent) 30%, transparent)',
+    fontWeight: 'var(--kn-w-semi)',
+  },
 };
 
 const SIZES = {
-  sm: { padding: '6px 14px',  fontSize: 12 },
-  md: { padding: '10px 18px', fontSize: 13 },
-  lg: { padding: '14px 24px', fontSize: 15 },
+  sm: { h: 28, px: 12, fs: 12, gap: 6, iSize: 14 },
+  md: { h: 36, px: 14, fs: 13, gap: 7, iSize: 16 },
+  lg: { h: 44, px: 18, fs: 14, gap: 8, iSize: 18 },
 };
 
 export default function Button({
   children,
   onClick,
-  variant  = 'primary',
-  size     = 'md',
-  loading  = false,
+  variant = 'primary',
+  size = 'md',
+  icon,
+  iconRight,
+  loading = false,
   disabled = false,
   fullWidth = false,
-  style = {},
   type = 'button',
+  style = {},
 }) {
-  const vs = VARIANTS[variant] || VARIANTS.primary;
-  const sz = SIZES[size]       || SIZES.md;
   const isDisabled = disabled || loading;
+  const vs = VARIANTS[variant] || VARIANTS.primary;
+  const sz = SIZES[size] || SIZES.md;
 
   return (
     <button
@@ -45,28 +70,29 @@ export default function Button({
       onClick={onClick}
       disabled={isDisabled}
       style={{
-        ...vs,
-        ...sz,
-        width: fullWidth ? '100%' : undefined,
-        borderRadius: 4,
-        cursor: isDisabled ? 'not-allowed' : 'pointer',
-        fontWeight: 700,
+        height: sz.h,
+        padding: `0 ${sz.px}px`,
+        fontSize: sz.fs,
+        gap: sz.gap,
         fontFamily: 'inherit',
+        letterSpacing: '-0.005em',
+        borderRadius: 'var(--kn-r-md)',
+        cursor: isDisabled ? 'not-allowed' : 'pointer',
         opacity: isDisabled ? 0.45 : 1,
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 7,
-        transition: 'opacity .15s',
+        width: fullWidth ? '100%' : undefined,
+        transition: 'background .15s, color .15s, opacity .15s, border-color .15s',
+        ...vs,
         ...style,
       }}
     >
-      {loading && (
-        <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite', fontSize: 13 }}>
-          ⟳
-        </span>
-      )}
+      {loading
+        ? <Icon name="spinner" size={sz.iSize} style={{ animation: 'kn-spin 0.9s linear infinite' }} />
+        : icon && <Icon name={icon} size={sz.iSize} />}
       {children}
+      {iconRight && <Icon name={iconRight} size={sz.iSize} />}
     </button>
   );
 }
