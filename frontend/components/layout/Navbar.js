@@ -1,32 +1,55 @@
 'use client';
 
 import { useAuth } from '@/lib/auth-context';
+import Icon from '../ui/Icon';
+import Button from '../ui/Button';
 
 export default function Navbar() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   return (
     <nav style={{
       display: 'flex',
-      justifyContent: 'flex-end',
+      justifyContent: 'space-between',
       alignItems: 'center',
-      padding: '16px 24px',
-      backgroundColor: 'rgba(22, 19, 8, 0.8)',
-      borderBottom: '1px solid rgba(200, 155, 0, 0.1)',
+      padding: '12px 24px',
+      background: 'var(--kn-surface-1)',
+      borderBottom: '1px solid var(--kn-border)',
       position: 'sticky',
       top: 0,
       zIndex: 100,
     }}>
-      {user && (
+      {/* logomark */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          color: '#F5A623',
-          fontSize: '14px',
-          fontWeight: '500',
+          width: 28, height: 28,
+          background: 'var(--kn-accent)',
+          display: 'grid', placeItems: 'center',
+          borderRadius: 'var(--kn-r-sm)',
         }}>
-          <span>{user.nickname || user.username}</span>
+          <Icon name="target" size={17} color="var(--kn-bg)" strokeWidth={2} />
+        </div>
+        <span style={{ fontSize: 15, fontWeight: 'var(--kn-w-bold)', letterSpacing: '-0.02em' }}>
+          Killnagi
+        </span>
+      </div>
+
+      {/* user actions */}
+      {user && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            fontSize: 13, color: 'var(--kn-text-muted)',
+          }}>
+            <Icon name="user" size={16} />
+            <span style={{ fontWeight: 'var(--kn-w-semi)', color: 'var(--kn-text)' }}>
+              {user.nickname || user.username}
+            </span>
+          </div>
+          <Button variant="ghost" size="sm" icon="settings" onClick={() => window.location.href = '/mypage'} />
+          {logout && (
+            <Button variant="ghost" size="sm" icon="logout" onClick={logout} />
+          )}
         </div>
       )}
     </nav>
