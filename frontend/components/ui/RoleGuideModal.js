@@ -3,66 +3,60 @@
  * ──────────────
  * 킬내기 서비스의 역할(방장 / 리더) 안내 모달.
  * setup 페이지와 live 페이지 양쪽에서 공용으로 사용합니다.
- *
- * Props:
- *   onClose  () => void   — 모달 닫기 콜백
  */
 
 'use client';
 
-// ── 안내 항목 ──────────────────────────────────────────
+import Icon from '@/components/ui/Icon';
+
 const HOST_ITEMS = [
-  { icon: '🏗', text: '팀 추가 · 팀 구성 관리' },
-  { icon: '✏️', text: '배그 닉네임 추가 · 삭제' },
-  { icon: '⚙️', text: '킬내기 룰 설정' },
-  { icon: '🚀', text: '킬내기 시작' },
-  { icon: '🔧', text: '점수 수동 조정' },
-  { icon: '🏁', text: '경기 종료' },
+  { icon: 'grid', text: '팀 추가 · 팀 구성 관리' },
+  { icon: 'edit', text: '배그 닉네임 추가 · 삭제' },
+  { icon: 'settings', text: '킬내기 룰 설정' },
+  { icon: 'play', text: '킬내기 시작' },
+  { icon: 'zap', text: '점수 수동 조정' },
+  { icon: 'flag', text: '경기 종료' },
 ];
 
 const LEADER_ITEMS = [
-  { icon: '👤', text: '팀 대표 유저 (팀당 1명)' },
-  { icon: '📸', text: 'OCR 스크린샷 업로드' },
-  { icon: '✏️', text: '매치 결과 수치 수정' },
-  { icon: '🎯', text: '담당 팀 결과 관리' },
+  { icon: 'user', text: '팀 대표 유저 (팀당 1명)' },
+  { icon: 'image', text: 'OCR 스크린샷 업로드' },
+  { icon: 'edit', text: '매치 결과 수치 수정' },
+  { icon: 'target', text: '담당 팀 결과 관리' },
 ];
 
-// ── 서브 컴포넌트: 역할 카드 ────────────────────────────
-function RoleCard({ badge, badgeBg, title, subtitle, accentColor, borderColor, items }) {
+function RoleCard({ badge, title, subtitle, accentVar, items }) {
   return (
     <div style={{
-      background: `rgba(${accentColor}, 0.04)`,
-      border: `1px solid rgba(${borderColor}, 0.28)`,
-      borderRadius: 10,
+      background: `color-mix(in oklab, ${accentVar} 5%, transparent)`,
+      border: `1px solid color-mix(in oklab, ${accentVar} 28%, transparent)`,
+      borderRadius: 'var(--kn-r-lg)',
       padding: '18px 16px',
       display: 'flex',
       flexDirection: 'column',
       gap: 14,
     }}>
-      {/* 배지 + 역할명 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <span style={{
-          fontSize: 11, padding: '3px 9px', borderRadius: 3,
-          fontWeight: 700, background: badgeBg, color: '#1a1500',
+          fontSize: 11, padding: '3px 9px', borderRadius: 'var(--kn-r-sm)',
+          fontWeight: 700, background: accentVar, color: 'var(--kn-bg)',
           letterSpacing: 0.5, flexShrink: 0,
         }}>
           {badge}
         </span>
         <div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: `rgb(${accentColor})` }}>{title}</div>
-          <div style={{ fontSize: 10, color: '#8A8060', marginTop: 1 }}>{subtitle}</div>
+          <div style={{ fontSize: 14, fontWeight: 'var(--kn-w-bold)', color: accentVar }}>{title}</div>
+          <div style={{ fontSize: 10, color: 'var(--kn-text-muted)', marginTop: 1 }}>{subtitle}</div>
         </div>
       </div>
 
-      {/* 구분선 */}
-      <div style={{ height: 1, background: `rgba(${borderColor}, 0.15)` }} />
+      <div style={{ height: 1, background: `color-mix(in oklab, ${accentVar} 15%, transparent)` }} />
 
-      {/* 권한 목록 */}
       <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 9 }}>
         {items.map(({ icon, text }) => (
           <li key={text} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-            <span style={{ fontSize: 13, flexShrink: 0, lineHeight: 1.4 }}>{icon}</span>
-            <span style={{ fontSize: 12, color: '#C8B97A', lineHeight: 1.4 }}>{text}</span>
+            <Icon name={icon} size={14} color={accentVar} style={{ marginTop: 1, flexShrink: 0 }} />
+            <span style={{ fontSize: 12, color: 'var(--kn-text)', lineHeight: 1.4 }}>{text}</span>
           </li>
         ))}
       </ul>
@@ -70,7 +64,6 @@ function RoleCard({ badge, badgeBg, title, subtitle, accentColor, borderColor, i
   );
 }
 
-// ── 메인 컴포넌트 ───────────────────────────────────────
 export default function RoleGuideModal({ onClose }) {
   return (
     <div
@@ -85,40 +78,41 @@ export default function RoleGuideModal({ onClose }) {
       }}
     >
       <div style={{
-        background: '#1C1A0C',
-        border: '1px solid rgba(200,155,0,0.28)',
-        borderRadius: 12,
+        background: 'var(--kn-surface-1)',
+        border: '1px solid var(--kn-border)',
+        borderRadius: 'var(--kn-r-xl)',
         width: '100%',
         maxWidth: 600,
         maxHeight: '90vh',
         overflowY: 'auto',
       }}>
 
-        {/* ── 모달 헤더 ── */}
+        {/* 모달 헤더 */}
         <div style={{
           padding: '20px 24px 16px',
-          borderBottom: '1px solid rgba(200,155,0,0.12)',
+          borderBottom: '1px solid var(--kn-border)',
           display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
         }}>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: 0.5 }}>역할 안내</div>
-            <div style={{ fontSize: 11, color: '#8A8060', marginTop: 4, lineHeight: 1.5 }}>
+            <div style={{ fontSize: 16, fontWeight: 'var(--kn-w-bold)', letterSpacing: 0.5 }}>역할 안내</div>
+            <div style={{ fontSize: 11, color: 'var(--kn-text-muted)', marginTop: 4, lineHeight: 1.5 }}>
               킬내기에서 각 역할이 무엇을 할 수 있는지 확인하세요
             </div>
           </div>
           <button
             onClick={onClose}
             style={{
-              background: '#2a2810', border: '1px solid rgba(200,155,0,0.2)',
-              color: '#E8DFC0', width: 28, height: 28, borderRadius: 4,
-              cursor: 'pointer', fontSize: 13, display: 'flex',
+              background: 'var(--kn-surface-3)', border: '1px solid var(--kn-border-strong)',
+              color: 'var(--kn-text)', width: 28, height: 28, borderRadius: 'var(--kn-r-md)',
+              cursor: 'pointer', display: 'flex',
               alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              fontFamily: 'inherit',
             }}
-          >✕</button>
+          >
+            <Icon name="close" size={14} />
+          </button>
         </div>
 
-        {/* ── 역할 카드 (방장 / 리더) ── */}
+        {/* 역할 카드 */}
         <div style={{
           padding: '20px 24px 0',
           display: 'grid',
@@ -126,76 +120,75 @@ export default function RoleGuideModal({ onClose }) {
           gap: 14,
         }}>
           <RoleCard
-            badge="👑 방장"
-            badgeBg="#FFD700"
+            badge="방장"
             title="방장"
             subtitle="HOST · 방 전체 관리자"
-            accentColor="255,215,0"
-            borderColor="255,215,0"
+            accentVar="var(--kn-accent)"
             items={HOST_ITEMS}
           />
           <RoleCard
-            badge="★ LEADER"
-            badgeBg="#F5A623"
+            badge="LEADER"
             title="리더"
             subtitle="LEADER · 팀당 1명"
-            accentColor="245,166,35"
-            borderColor="245,166,35"
+            accentVar="var(--kn-success)"
             items={LEADER_ITEMS}
           />
         </div>
 
-        {/* ── 방장 + 리더 겸임 안내 ── */}
+        {/* 방장 + 리더 겸임 안내 */}
         <div style={{
           margin: '16px 24px',
-          background: 'rgba(200,155,0,0.06)',
-          border: '1px solid rgba(200,155,0,0.18)',
-          borderRadius: 8,
+          background: 'var(--kn-surface-2)',
+          border: '1px solid var(--kn-border)',
+          borderRadius: 'var(--kn-r-lg)',
           padding: '14px 16px',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-            <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 3, fontWeight: 700, background: '#FFD700', color: '#1a1500' }}>👑 방장</span>
-            <span style={{ fontSize: 13, color: '#555' }}>+</span>
-            <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 3, fontWeight: 700, background: '#F5A623', color: '#1a1500' }}>★ LEADER</span>
-            <span style={{ fontSize: 11, color: '#8A8060', fontWeight: 700 }}>겸임 가능</span>
+            <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 'var(--kn-r-sm)', fontWeight: 700, background: 'var(--kn-accent)', color: 'var(--kn-bg)' }}>방장</span>
+            <span style={{ fontSize: 13, color: 'var(--kn-text-dim)' }}>+</span>
+            <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 'var(--kn-r-sm)', fontWeight: 700, background: 'var(--kn-success)', color: 'var(--kn-bg)' }}>LEADER</span>
+            <span style={{ fontSize: 11, color: 'var(--kn-text-muted)', fontWeight: 700 }}>겸임 가능</span>
           </div>
-          <div style={{ fontSize: 11, color: '#8A8060', lineHeight: 1.7 }}>
-            방장이 특정 팀에 합류하면 <span style={{ color: '#C8B97A' }}>해당 팀의 리더를 겸임</span>합니다.<br />
-            방장이 대기석에 있으면 방장과 리더는 <span style={{ color: '#C8B97A' }}>완전히 분리</span>됩니다.
+          <div style={{ fontSize: 11, color: 'var(--kn-text-muted)', lineHeight: 1.7 }}>
+            방장이 특정 팀에 합류하면 <span style={{ color: 'var(--kn-text)' }}>해당 팀의 리더를 겸임</span>합니다.<br />
+            방장이 대기석에 있으면 방장과 리더는 <span style={{ color: 'var(--kn-text)' }}>완전히 분리</span>됩니다.
           </div>
         </div>
 
-        {/* ── 흐름 안내 ── */}
+        {/* 흐름 안내 */}
         <div style={{ padding: '0 24px 20px' }}>
-          <div style={{ fontSize: 10, color: '#8A8060', letterSpacing: 1, marginBottom: 10 }}>진행 흐름</div>
+          <span data-label="" style={{ marginBottom: 10, display: 'block' }}>진행 흐름</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 0, overflowX: 'auto' }}>
             {[
-              { step: '방 생성',    role: '방장',   icon: '🏠' },
-              { step: '팀 구성',    role: '방장',   icon: '🏗' },
-              { step: '닉네임 등록', role: '방장',   icon: '✏️' },
-              { step: '킬내기 시작', role: '방장',   icon: '🚀' },
-              { step: 'OCR 업로드', role: 'LEADER', icon: '📸' },
-              { step: '경기 종료',  role: '방장',   icon: '🏁' },
-            ].map(({ step, role, icon }, idx, arr) => (
+              { step: '방 생성', icon: 'grid', isLeader: false },
+              { step: '팀 구성', icon: 'users', isLeader: false },
+              { step: '닉네임 등록', icon: 'edit', isLeader: false },
+              { step: '킬내기 시작', icon: 'play', isLeader: false },
+              { step: 'OCR 업로드', icon: 'image', isLeader: true },
+              { step: '경기 종료', icon: 'flag', isLeader: false },
+            ].map(({ step, icon, isLeader }, idx, arr) => (
               <div key={step} style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
                   <div style={{
                     width: 36, height: 36,
-                    background: role === 'LEADER' ? 'rgba(245,166,35,0.1)' : 'rgba(255,215,0,0.08)',
-                    border: `1px solid ${role === 'LEADER' ? 'rgba(245,166,35,0.3)' : 'rgba(255,215,0,0.25)'}`,
-                    borderRadius: 8,
+                    background: isLeader
+                      ? 'color-mix(in oklab, var(--kn-success) 10%, transparent)'
+                      : 'var(--kn-accent-bg)',
+                    border: `1px solid ${isLeader ? 'color-mix(in oklab, var(--kn-success) 30%, transparent)' : 'color-mix(in oklab, var(--kn-accent) 25%, transparent)'}`,
+                    borderRadius: 'var(--kn-r-lg)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 16,
-                  }}>{icon}</div>
-                  <div style={{ fontSize: 9, color: '#E8DFC0', fontWeight: 600, textAlign: 'center', whiteSpace: 'nowrap' }}>{step}</div>
+                  }}>
+                    <Icon name={icon} size={16} color={isLeader ? 'var(--kn-success)' : 'var(--kn-accent)'} />
+                  </div>
+                  <div style={{ fontSize: 9, color: 'var(--kn-text)', fontWeight: 600, textAlign: 'center', whiteSpace: 'nowrap' }}>{step}</div>
                   <div style={{
-                    fontSize: 8, padding: '1px 5px', borderRadius: 2, fontWeight: 700,
-                    background: role === 'LEADER' ? '#F5A623' : '#FFD700',
-                    color: '#1a1500',
-                  }}>{role === 'LEADER' ? '★ LEADER' : '👑 방장'}</div>
+                    fontSize: 8, padding: '1px 5px', borderRadius: 'var(--kn-r-sm)', fontWeight: 700,
+                    background: isLeader ? 'var(--kn-success)' : 'var(--kn-accent)',
+                    color: 'var(--kn-bg)',
+                  }}>{isLeader ? 'LEADER' : '방장'}</div>
                 </div>
                 {idx < arr.length - 1 && (
-                  <div style={{ width: 16, height: 1, background: 'rgba(200,155,0,0.2)', margin: '0 4px', marginBottom: 18 }} />
+                  <div style={{ width: 16, height: 1, background: 'var(--kn-border)', margin: '0 4px', marginBottom: 18 }} />
                 )}
               </div>
             ))}

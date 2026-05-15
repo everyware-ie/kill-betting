@@ -1,79 +1,146 @@
 'use client';
 
+import Icon from '@/components/ui/Icon';
+
+const TEAM_COLORS = [
+  'oklch(0.65 0.22 25)',   // red
+  'oklch(0.75 0.16 75)',   // amber
+  'oklch(0.72 0.19 145)',  // green
+  'oklch(0.65 0.18 265)',  // indigo
+  'oklch(0.70 0.18 330)',  // pink
+  'oklch(0.68 0.15 200)',  // teal
+];
+
 export default function TeamCard({
-  team, isHost, userId, hostUserId,
+  team, teamIndex = 0, isHost, userId, hostUserId,
   inputs, setInputs,
   onAddPlayer, onRemovePlayer, onUnassignLeader, onDeleteTeam,
 }) {
   const players = team.players || [];
+  const dotColor = TEAM_COLORS[teamIndex % TEAM_COLORS.length];
+  const maxPlayers = team.maxPlayers;
 
   return (
-    <div style={{ background: '#1C1A0C', border: '1px solid rgba(200,155,0,0.18)', borderRadius: 8, overflow: 'hidden' }}>
+    <div style={{
+      background: 'var(--kn-surface-1)',
+      border: '1px solid var(--kn-border)',
+      borderRadius: 'var(--kn-r-lg)',
+      padding: '16px 18px',
+      display: 'flex', flexDirection: 'column', gap: 12,
+      minHeight: 120,
+    }}>
 
-      {/* 팀 헤더 */}
-      <div style={{ background: 'rgba(200,155,0,0.06)', borderBottom: '1px solid rgba(200,155,0,0.12)', padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.5, color: '#8A8060' }}>{team.name}</span>
-            {isHost && (
-              <button
-                onClick={() => onDeleteTeam(team.id)}
-                style={{ background: 'none', border: '1px solid rgba(229,57,53,0.3)', color: '#E53935', fontSize: 10, padding: '1px 6px', borderRadius: 2, cursor: 'pointer', fontFamily: 'inherit' }}
-              >
-                삭제
-              </button>
-            )}
-          </div>
-          <span style={{ fontSize: 10, color: players.length > 0 ? '#F5A623' : '#555', background: 'rgba(200,155,0,0.07)', border: '1px solid rgba(200,155,0,0.12)', borderRadius: 3, padding: '1px 6px', alignSelf: 'flex-start' }}>
-            🎮 {players.length}명
-          </span>
+      {/* 팀 헤더: 컬러 도트 + TEAM + 이름 + 인원수 */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 10, height: 10, borderRadius: 3, background: dotColor, flexShrink: 0 }} />
+          <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: 1.2, color: 'var(--kn-text-muted)' }}>TEAM</span>
+          <span style={{ fontSize: 14, fontWeight: 'var(--kn-w-bold)', color: 'var(--kn-text)' }}>{team.name}</span>
         </div>
-        {team.leaderNickname && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 2, fontWeight: 700, background: '#F5A623', color: '#1a1500' }}>
-              ★ {team.leaderNickname}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {team.leaderNickname && (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              fontSize: 10, fontWeight: 700,
+              padding: '2px 7px',
+              borderRadius: 'var(--kn-r-sm)',
+              background: 'var(--kn-accent)',
+              color: 'var(--kn-bg)',
+            }}>
+              <Icon name="shield" size={10} /> {team.leaderNickname}
+              {isHost && (
+                <button
+                  onClick={() => onUnassignLeader(team.id)}
+                  style={{ background: 'none', border: 'none', color: 'var(--kn-bg)', cursor: 'pointer', padding: 0, display: 'flex', marginLeft: 2, opacity: 0.7 }}
+                >
+                  <Icon name="close" size={10} />
+                </button>
+              )}
             </span>
+          )}
+          <span data-mono="" style={{ fontSize: 12, color: 'var(--kn-text-muted)' }}>
+            {players.length}{maxPlayers ? `/${maxPlayers}` : ''}
+          </span>
+          {isHost && (
+            <button
+              onClick={() => onDeleteTeam(team.id)}
+              title="팀 삭제"
+              style={{ background: 'none', border: 'none', color: 'var(--kn-text-dim)', cursor: 'pointer', padding: 2, display: 'flex' }}
+            >
+              <Icon name="close" size={14} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* 플레이어 칩 목록 */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        {players.map((player) => (
+          <span
+            key={player.id}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 5,
+              background: 'var(--kn-surface-3)',
+              border: '1px solid var(--kn-border)',
+              borderRadius: 'var(--kn-r-md)',
+              padding: '4px 10px',
+              fontSize: 12,
+              color: 'var(--kn-text)',
+            }}
+          >
+            <Icon name="user" size={11} color="var(--kn-text-muted)" />
+            {player.nickname}
             {isHost && (
               <button
-                onClick={() => onUnassignLeader(team.id)}
-                style={{ background: 'none', border: '1px solid rgba(229,57,53,0.3)', color: '#E53935', fontSize: 10, padding: '1px 6px', borderRadius: 2, cursor: 'pointer', fontFamily: 'inherit' }}
+                onClick={() => onRemovePlayer(team.id, player.id)}
+                style={{ background: 'none', border: 'none', color: 'var(--kn-text-dim)', cursor: 'pointer', padding: 0, display: 'flex', marginLeft: 2 }}
               >
-                해제
+                <Icon name="close" size={12} />
               </button>
             )}
-          </div>
+          </span>
+        ))}
+
+        {players.length === 0 && (
+          <span style={{ fontSize: 12, color: 'var(--kn-text-dim)', padding: '4px 0' }}>닉네임을 입력해주세요</span>
         )}
       </div>
 
-      {/* 배그 닉네임 목록 */}
-      <div style={{ padding: '10px 14px', minHeight: 48 }}>
-        <div style={{ fontSize: 10, color: '#8A8060', letterSpacing: 1, marginBottom: 6 }}>배그 닉네임 (킬내기 참가자)</div>
-        {players.length === 0 ? (
-          <div style={{ color: '#555', fontSize: 12, textAlign: 'center', padding: '6px 0' }}>닉네임을 입력해주세요</div>
-        ) : (
-          players.map((player) => (
-            <div key={player.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid rgba(200,155,0,0.05)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#F5A623', flexShrink: 0 }} />
-                <span style={{ fontSize: 13 }}>{player.nickname}</span>
-              </div>
-              {isHost && <button onClick={() => onRemovePlayer(team.id, player.id)} style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 13, padding: '0 4px' }}>✕</button>}
-            </div>
-          ))
-        )}
-      </div>
-
-      {/* 닉네임 입력창 */}
+      {/* 닉네임 입력 (호스트만) */}
       {isHost && (
-        <div style={{ padding: '8px 14px', borderTop: '1px solid rgba(200,155,0,0.08)', display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 6, marginTop: 'auto' }}>
           <input
             value={inputs[team.id] || ''}
             onChange={(e) => setInputs((p) => ({ ...p, [team.id]: e.target.value.replace(/\s/g, '') }))}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); onAddPlayer(team.id); } }}
             placeholder="배그 닉네임..."
-            style={{ flex: 1, background: '#141200', border: '1px solid rgba(200,155,0,0.22)', color: '#E8DFC0', padding: '7px 10px', borderRadius: 4, fontSize: 12, outline: 'none', fontFamily: 'inherit' }}
+            style={{
+              flex: 1,
+              background: 'var(--kn-surface-3)',
+              border: '1px solid var(--kn-border)',
+              color: 'var(--kn-text)',
+              padding: '6px 10px',
+              borderRadius: 'var(--kn-r-md)',
+              fontSize: 12,
+              outline: 'none',
+              fontFamily: 'inherit',
+            }}
           />
-          <button onClick={() => onAddPlayer(team.id)} style={{ background: 'rgba(200,155,0,0.1)', border: '1px solid rgba(200,155,0,0.3)', color: '#F5A623', padding: '7px 12px', borderRadius: 4, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit' }}>추가</button>
+          <button
+            onClick={() => onAddPlayer(team.id)}
+            style={{
+              background: 'none',
+              border: '1px solid var(--kn-border)',
+              color: 'var(--kn-text-muted)',
+              padding: '6px 10px',
+              borderRadius: 'var(--kn-r-md)',
+              cursor: 'pointer',
+              fontSize: 12,
+              fontFamily: 'inherit',
+            }}
+          >
+            추가
+          </button>
         </div>
       )}
     </div>
