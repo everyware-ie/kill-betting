@@ -1,11 +1,19 @@
 package com.killnagi.domain.session.service;
 
+import com.killnagi.domain.match.event.MatchConfirmedEvent;
+import com.killnagi.domain.scoreboard.dto.ScoreBoardUpdateMessage;
+import com.killnagi.domain.session.dto.response.SessionEndMessage;
 import com.killnagi.domain.session.dto.response.SessionMessage;
 import com.killnagi.domain.session.dto.response.SessionMessage.Type;
+import com.killnagi.domain.session.event.SessionEndEvent;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class SessionBroadcaster {
@@ -18,12 +26,25 @@ public class SessionBroadcaster {
         send(sessionId, Type.SESSION_STARTED, null);
     }
 
-    public void broadcastScoreUpdated(Long sessionId, Object data) {
-        send(sessionId, Type.SCORE_UPDATED, data);
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleMatchConfirmed(MatchConfirmedEvent event) {
+        ScoreBoardUpdateMessage message = ScoreBoardUpdateMessage.from(event);
+
+        log.info("스코어보드 브로드캐스트: sessionId={}, matchNumber={}, team={}",
+                event.sessionId(), event.matchNumber(), event.teamSnapshot().teamName());
+
+        send(event.sessionId(), Type.SCORE_UPDATED, message);
     }
 
-    public void broadcastSessionEnded(Long sessionId, Object data) {
-        send(sessionId, Type.SESSION_ENDED, data);
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleSessionEnd(SessionEndEvent event) {
+        SessionEndMessage message = SessionEndMessage.from(event);
+
+        log.info("세션 종료 브로드캐스트: sessionId={}, reason={}, winner={}",
+                event.sessionId(), event.reason(),
+                event.isDraw() ? "DRAW" : event.winnerTeamName());
+
+        send(event.sessionId(), Type.SESSION_ENDED, message);
     }
 
     public void broadcastAdjustmentApplied(Long sessionId, Object data) {
