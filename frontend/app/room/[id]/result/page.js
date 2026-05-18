@@ -28,42 +28,17 @@ import { mapSessionRule } from '@/features/setup/helpers/mappers';
 import Button       from '@/components/ui/Button';
 
 // ─────────────────────────────────────────
-//  점수 계산 유틸 (live 페이지와 동일 로직)
+//  데미지 집계 (매치 히스토리 기반)
 // ─────────────────────────────────────────
 
-/** 팀 총점 계산 */
-function calcTeamScore(teamId, matches, rule, adjustments = []) {
-  let kills = 0, bonus = 0, penalty = 0;
-  for (const m of matches) {
-    const teamResults = (m.memberResults || []).filter((r) => r.teamId === teamId);
-    if (teamResults.length === 0) continue;
-
-    const hasChicken = teamResults.some((r) => r.isChicken);
-    if (rule.chickenBonusOn && hasChicken) bonus += rule.chickenBonus;
-
-    for (const r of teamResults) {
-      kills += r.kills;
-    }
-  }
-  const adj = adjustments
-    .filter((a) => a.teamId === teamId)
-    .reduce((s, a) => s + a.amount, 0);
-  return { kills, bonus, penalty, adj, total: kills + bonus - penalty + adj };
-}
-
-/** 개인 통계 계산 */
-function calcPlayerStats(nick, matches, rule) {
-  let kills = 0, bonus = 0, penalty = 0, damage = 0, chickens = 0;
+function getPlayerDamage(nick, matches) {
+  let damage = 0;
   for (const m of matches) {
     for (const r of (m.memberResults || [])) {
-      if (r.playerNickname !== nick) continue;
-      kills  += r.kills;
-      damage += r.damage || 0;
+      if (r.playerNickname === nick) damage += r.damage || 0;
     }
-    const myResult = (m.memberResults || []).find((r) => r.playerNickname === nick);
-    if (myResult?.isChicken) chickens++;
   }
-  return { kills, bonus, penalty, damage, chickens, total: kills + bonus - penalty };
+  return damage;
 }
 
 // ─────────────────────────────────────────
@@ -101,10 +76,11 @@ export default function ResultPage() {
   const { id: roomCode } = useParams();
   const { user } = useAuth();
 
-  const [room,    setRoom]    = useState(null);
-  const [matches, setMatches] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState('');
+  const [room,       setRoom]       = useState(null);
+  const [scoreboard, setScoreboard] = useState(null);
+  const [matches,    setMatches]    = useState([]);
+  const [loading,    setLoading]    = useState(true);
+  const [error,      setError]      = useState('');
 
   // ── 데이터 로드 ──
   useEffect(() => {
@@ -112,20 +88,13 @@ export default function ResultPage() {
     RoomAPI.get(roomCode).then(async (roomRes) => {
       if (!roomRes.success) { setError(roomRes.error); setLoading(false); return; }
       const session = roomRes.data;
+      setRoom({ ...session, rule: mapSessionRule(session) });
 
-      const teamsRes = await RoomAPI.getTeams(session.id);
-      const teams = teamsRes.success ? teamsRes.data.map((t) => ({
-        id: t.id,
-        name: t.name,
-        players: (t.players || []).map((nick, idx) => ({ id: idx, nickname: nick })),
-      })) : [];
-
-      setRoom({
-        ...session,
-        rule: mapSessionRule(session),
-        teams,
-      });
-      const matchRes = await RoomAPI.getMatches(session.id);
+      const [scoreboardRes, matchRes] = await Promise.all([
+        RoomAPI.getScoreboard(session.id),
+        RoomAPI.getMatches(session.id),
+      ]);
+      if (scoreboardRes.success) setScoreboard(scoreboardRes.data);
       if (matchRes.success) setMatches(matchRes.data?.matches || []);
       setLoading(false);
     });
@@ -149,25 +118,39 @@ export default function ResultPage() {
     </div>
   );
 
-  const { rule, teams } = room;
-  const adjs = room.adjustments || [];
+  const { rule } = room;
 
-  // ── 팀 최종 점수 계산 및 순위 정렬 ──
-  const teamScores = [...teams]
-    .map((t) => ({ ...t, ...calcTeamScore(t.id, matches, rule, adjs) }))
+  // ── 스코어보드 기반 팀 순위 ──
+  const teamScores = [...(scoreboard?.teams || [])]
+    .map((t) => ({
+      id:      t.teamId,
+      name:    t.teamName,
+      kills:   t.totalKills,
+      bonus:   t.ruleScore,
+      penalty: Math.max(0, t.totalKills - t.effectiveKills),
+      total:   t.effectiveKills + t.ruleScore,
+      members: t.members || [],
+    }))
     .sort((a, b) => b.total - a.total);
 
-  const winner = teamScores[0]; // 1위 팀
+  const winner = scoreboard?.isDraw
+    ? null
+    : teamScores.find((t) => t.id === scoreboard?.winnerTeamId) ?? teamScores[0];
 
-  // ── 전체 플레이어 통계 (킬 수 기준 MVP 선정) ──
-  const allPlayerStats = teams.flatMap((t) =>
-    (t.players || []).map((p) => {
-      const nick = typeof p === 'string' ? p : p.nickname;
-      return { nick, teamName: t.name, ...calcPlayerStats(nick, matches, rule) };
-    })
+  // ── MVP (스코어보드 기준 킬 수 1위) ──
+  const allPlayerStats = (scoreboard?.teams || []).flatMap((t) =>
+    (t.members || []).map((m) => ({
+      nick:     m.playerNickname,
+      teamName: t.teamName,
+      kills:    m.totalKills,
+      bonus:    m.bonusKills,
+      penalty:  m.penaltyKills,
+      total:    m.effectiveKills,
+      damage:   getPlayerDamage(m.playerNickname, matches),
+    }))
   ).sort((a, b) => b.kills - a.kills);
 
-  const mvp = allPlayerStats[0]; // 킬 수 1위 플레이어
+  const mvp = allPlayerStats[0];
 
   return (
     <div style={{ minHeight: '100vh', background: '#12100A', display: 'flex', flexDirection: 'column' }}>
@@ -296,9 +279,16 @@ export default function ResultPage() {
             <section>
               <div style={{ fontSize: 11, color: '#8A8060', letterSpacing: 2, marginBottom: 10 }}>개인 최종 통계</div>
               <div style={{ background: '#1C1A0C', border: '1px solid rgba(200,155,0,0.15)', borderRadius: 8, overflow: 'hidden' }}>
-                {teams.map((team, tIdx) => {
-                  const stats = (team.players || [])
-                    .map((p) => { const nick = typeof p === 'string' ? p : p.nickname; return { nick, ...calcPlayerStats(nick, matches, rule) }; })
+                {teamScores.map((team, tIdx) => {
+                  const stats = [...(team.members || [])]
+                    .map((m) => ({
+                      nick:    m.playerNickname,
+                      kills:   m.totalKills,
+                      bonus:   m.bonusKills,
+                      penalty: m.penaltyKills,
+                      total:   m.effectiveKills,
+                      damage:  getPlayerDamage(m.playerNickname, matches),
+                    }))
                     .sort((a, b) => b.kills - a.kills);
                   return (
                     <div key={team.id}>
@@ -310,7 +300,7 @@ export default function ResultPage() {
                         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                       }}>
                         <span>{team.name}</span>
-                        <span style={{ fontSize: 11, color: '#8A8060', fontWeight: 400 }}>{(team.players || []).length}명</span>
+                        <span style={{ fontSize: 11, color: '#8A8060', fontWeight: 400 }}>{(team.members || []).length}명</span>
                       </div>
                       {stats.length === 0 ? (
                         <div style={{ padding: '12px 14px', fontSize: 12, color: '#555' }}>플레이어 없음</div>
