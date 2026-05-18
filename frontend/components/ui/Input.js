@@ -1,16 +1,6 @@
-/**
- * Input 컴포넌트
- *
- * Props:
- *   label      : 라벨 텍스트
- *   hint       : 라벨 우측 보조 텍스트
- *   error      : 에러 메시지 (있으면 빨간 테두리 + 메시지 표시)
- *   success    : 성공 메시지 (있으면 초록 테두리 + 메시지 표시)
- *   prefix     : 입력창 왼쪽 아이콘/텍스트
- *   suffix     : 입력창 오른쪽 아이콘/텍스트
- */
-
 'use client';
+
+import Icon from './Icon';
 
 export default function Input({
   label,
@@ -19,83 +9,74 @@ export default function Input({
   success,
   prefix,
   suffix,
+  mono = false,
   style = {},
   containerStyle = {},
   ...props
 }) {
   const borderColor = error
-    ? 'rgba(229,57,53,0.6)'
+    ? 'var(--kn-danger)'
     : success
-    ? 'rgba(76,175,80,0.6)'
-    : 'rgba(200,155,0,0.3)';
+    ? 'var(--kn-success)'
+    : 'var(--kn-border-strong)';
 
   return (
-    <div style={{ ...containerStyle }}>
-      {/* 라벨 */}
-      {label && (
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 7 }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: '#C8B878', letterSpacing: 0.5 }}>
-            {label}
-          </span>
-          {hint && (
-            <span style={{ fontSize: 10, color: '#8A8060' }}>{hint}</span>
-          )}
+    <label style={{ display: 'block', ...containerStyle }}>
+      {(label || hint) && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+          {label && <span data-label="">{label}</span>}
+          {hint && <span style={{ fontSize: 11, color: 'var(--kn-text-dim)' }}>{hint}</span>}
         </div>
       )}
 
-      {/* 입력창 */}
-      <div style={{ position: 'relative' }}>
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
         {prefix && (
           <span style={{
             position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
-            color: '#5a5030', fontSize: 14, pointerEvents: 'none',
+            color: 'var(--kn-text-dim)', pointerEvents: 'none', display: 'flex',
           }}>
-            {prefix}
+            {typeof prefix === 'string' ? <Icon name={prefix} size={16} /> : prefix}
           </span>
         )}
         <input
           style={{
             width: '100%',
-            background: '#141200',
+            height: 'var(--kn-ctrl-h)',
+            paddingLeft: prefix ? 36 : 12,
+            paddingRight: suffix ? 36 : 12,
+            background: 'var(--kn-surface-3)',
             border: `1px solid ${borderColor}`,
-            color: '#E8DFC0',
-            padding: `9px ${suffix ? 40 : 12}px 9px ${prefix ? 38 : 12}px`,
-            borderRadius: 4,
-            fontSize: 13,
+            color: 'var(--kn-text)',
+            borderRadius: 'var(--kn-r-md)',
+            fontSize: 'var(--kn-fs)',
+            fontFamily: mono ? 'var(--kn-font-mono)' : 'inherit',
             outline: 'none',
-            fontFamily: 'inherit',
-            transition: 'border-color .15s',
+            transition: 'border-color .15s, background .15s',
             ...style,
           }}
+          onFocus={(e) => { e.target.style.borderColor = 'var(--kn-accent)'; e.target.style.background = 'var(--kn-surface-2)'; }}
+          onBlur={(e) => { e.target.style.borderColor = borderColor; e.target.style.background = 'var(--kn-surface-3)'; }}
           {...props}
         />
         {suffix && (
           <span style={{
             position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
-            color: '#8A8060',
+            color: 'var(--kn-text-muted)', display: 'flex',
           }}>
-            {suffix}
+            {typeof suffix === 'string' ? <Icon name={suffix} size={16} /> : suffix}
           </span>
         )}
       </div>
 
-      {/* 에러/성공 메시지 */}
-      {error && (
+      {(error || success) && (
         <div style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          marginTop: 6, fontSize: 12, color: '#E53935',
+          marginTop: 6, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6,
+          color: error ? 'var(--kn-danger)' : 'var(--kn-success)',
         }}>
-          ⚠ {error}
+          <Icon name={error ? 'alert' : 'check'} size={14} />
+          {error || success}
         </div>
       )}
-      {success && !error && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          marginTop: 6, fontSize: 12, color: '#4CAF50',
-        }}>
-          ✓ {success}
-        </div>
-      )}
-    </div>
+    </label>
   );
 }

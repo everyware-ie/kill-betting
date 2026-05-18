@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import Icon from '@/components/ui/Icon';
 
 export default function CopyCodeBadge({ code }) {
   const [copied, setCopied] = useState(false);
-  const [copyFailed, setCopyFailed] = useState(false);
 
   const handleCopy = async () => {
     if (!code) return;
@@ -23,46 +23,53 @@ export default function CopyCodeBadge({ code }) {
     if (success) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } else {
-      setCopyFailed(true);
-      setTimeout(() => setCopyFailed(false), 2000);
     }
   };
 
-  const borderColor = copied
-    ? 'rgba(76,175,80,0.5)'
-    : copyFailed
-      ? 'rgba(229,57,53,0.5)'
-      : 'rgba(200,155,0,0.25)';
-
-  const textColor = copied ? '#4CAF50' : copyFailed ? '#E53935' : '#8A8060';
-  const codeColor = copied ? '#4CAF50' : copyFailed ? '#E53935' : '#F5A623';
-  const label = copied ? '✓ 복사됨' : copyFailed ? '✕ 복사 실패' : '초대 코드  📋';
-
   return (
-    <button
-      onClick={handleCopy}
-      title="클릭하면 코드를 복사합니다"
-      style={{
-        background: '#141200',
-        border: `1px solid ${borderColor}`,
-        borderRadius: 4, padding: '4px 12px',
-        textAlign: 'center', cursor: 'pointer',
-        transition: 'border-color .2s',
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
-      }}
-    >
-      <div style={{ fontSize: 9, color: textColor, letterSpacing: 1.5 }}>
-        {label}
-      </div>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 0, height: 34 }}>
+      {/* 코드 표시 */}
       <div style={{
-        fontSize: 13, fontWeight: 700,
-        fontFamily: "'Share Tech Mono', monospace",
-        color: codeColor,
-        letterSpacing: 2,
+        display: 'flex', alignItems: 'center', gap: 6,
+        background: 'var(--kn-surface-3)',
+        border: '1px solid var(--kn-border)',
+        borderRight: 'none',
+        borderRadius: 'var(--kn-r-md) 0 0 var(--kn-r-md)',
+        padding: '0 12px',
+        height: '100%',
       }}>
-        {code ?? '—'}
+        <Icon name="hash" size={13} color="var(--kn-text-muted)" />
+        <span data-mono="" style={{
+          fontSize: 13,
+          fontWeight: 'var(--kn-w-bold)',
+          color: 'var(--kn-text)',
+          letterSpacing: 1.5,
+        }}>
+          {code ?? '—'}
+        </span>
       </div>
-    </button>
+
+      {/* 복사 버튼 */}
+      <button
+        onClick={handleCopy}
+        title="초대 코드 복사"
+        style={{
+          display: 'flex', alignItems: 'center', gap: 5,
+          background: 'var(--kn-surface-3)',
+          border: '1px solid var(--kn-border)',
+          borderRadius: '0 var(--kn-r-md) var(--kn-r-md) 0',
+          padding: '0 10px',
+          height: '100%',
+          cursor: 'pointer',
+          color: copied ? 'var(--kn-success)' : 'var(--kn-text-muted)',
+          fontSize: 12,
+          fontFamily: 'inherit',
+          transition: 'color .2s',
+        }}
+      >
+        <Icon name={copied ? 'check' : 'copy'} size={13} />
+        {copied ? '복사됨' : '복사'}
+      </button>
+    </div>
   );
 }

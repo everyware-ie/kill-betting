@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import Button from '@/components/ui/Button';
+import Icon from '@/components/ui/Icon';
 import Toggle from './Toggle';
 import Stepper from './Stepper';
 
 const RULES = [
-  { label: '치킨 보너스',    onKey: 'chickenBonusOn',      valKey: 'chickenBonus',    sign: '+', color: '#F5A623' },
-  { label: '생존 패널티',    onKey: 'survivalPenaltyOn',   valKey: 'survivalPenalty', sign: '-', color: '#E53935' },
+  { label: '치킨 보너스', onKey: 'chickenBonusOn', valKey: 'chickenBonus', sign: '+', color: 'var(--kn-success)' },
+  { label: '생존 패널티', onKey: 'survivalPenaltyOn', valKey: 'survivalPenalty', sign: '-', color: 'var(--kn-danger)' },
 ];
 
 export default function RuleEditModal({ rule, onSave, onClose }) {
@@ -15,42 +16,32 @@ export default function RuleEditModal({ rule, onSave, onClose }) {
   const set = (k, v) => setLocal((r) => ({ ...r, [k]: v }));
 
   return (
-    <div onClick={(e) => e.target === e.currentTarget && onClose()} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)', padding: 20 }}>
-      <div style={{ background: '#1C1A0C', border: '1px solid rgba(200,155,0,0.28)', borderRadius: 10, width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto' }}>
-        <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid rgba(200,155,0,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+    <div onClick={(e) => e.target === e.currentTarget && onClose()} style={{ position: 'fixed', inset: 0, background: 'var(--kn-overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)', padding: 20 }}>
+      <div style={{ background: 'var(--kn-surface-1)', border: '1px solid var(--kn-border)', borderRadius: 'var(--kn-r-xl)', width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto' }}>
+        <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid var(--kn-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>룰 수정</div>
-            <div style={{ fontSize: 11, color: '#8A8060', marginTop: 3 }}>저장 버튼을 눌러야 실제로 반영됩니다</div>
+            <div style={{ fontSize: 16, fontWeight: 'var(--kn-w-bold)' }}>룰 수정</div>
+            <div style={{ fontSize: 11, color: 'var(--kn-text-muted)', marginTop: 3 }}>저장 버튼을 눌러야 실제로 반영됩니다</div>
           </div>
-          <button onClick={onClose} style={{ background: '#2a2810', border: '1px solid rgba(200,155,0,0.2)', color: '#E8DFC0', width: 28, height: 28, borderRadius: 4, cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+          <button onClick={onClose} style={{ background: 'var(--kn-surface-3)', border: '1px solid var(--kn-border-strong)', color: 'var(--kn-text)', width: 28, height: 28, borderRadius: 'var(--kn-r-md)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="close" size={14} />
+          </button>
         </div>
         <div style={{ padding: '20px 24px' }}>
-          {/* 게임 모드 */}
-          <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color: '#F5A623', marginBottom: 10 }}>게임 모드</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-              {[{ mode: '솔로', icon: '👤' }, { mode: '듀오', icon: '👥' }, { mode: '스쿼드', icon: '👨‍👩‍👧‍👦' }].map(({ mode, icon }) => (
-                <div key={mode} onClick={() => set('gameMode', mode)} style={{ padding: '12px 8px', textAlign: 'center', background: local.gameMode === mode ? 'rgba(245,166,35,0.12)' : '#141200', border: `1px solid ${local.gameMode === mode ? '#F5A623' : 'rgba(200,155,0,0.18)'}`, borderRadius: 6, cursor: 'pointer' }}>
-                  <div style={{ fontSize: 18, marginBottom: 4 }}>{icon}</div>
-                  <div style={{ fontSize: 13, fontWeight: 700 }}>{mode}</div>
-                </div>
-              ))}
-            </div>
-          </div>
           {/* 기본 설정 */}
           <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color: '#F5A623', marginBottom: 10 }}>기본 설정</div>
-            <div style={{ background: '#141200', border: '1px solid rgba(200,155,0,0.15)', borderRadius: 8, overflow: 'hidden' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px', borderBottom: '1px solid rgba(200,155,0,0.08)' }}>
-                <div style={{ fontSize: 13, fontWeight: 600 }}>목표 킬 수</div>
+            <span data-label="" style={{ marginBottom: 10, display: 'block' }}>기본 설정</span>
+            <div style={{ background: 'var(--kn-surface-2)', border: '1px solid var(--kn-border)', borderRadius: 'var(--kn-r-lg)', overflow: 'hidden' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px', borderBottom: '1px solid var(--kn-border)' }}>
+                <div style={{ fontSize: 13, fontWeight: 'var(--kn-w-semi)' }}>목표 킬 수</div>
                 <Stepper value={local.targetKills} onChange={(v) => set('targetKills', v)} min={1} max={99} />
               </div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px' }}>
-                <div style={{ fontSize: 13, fontWeight: 600 }}>제한 시간 <span style={{ fontSize: 11, color: '#8A8060' }}>{local.noTimeLimit ? '(없음)' : `(${local.timeLimitMin}분)`}</span></div>
+                <div style={{ fontSize: 13, fontWeight: 'var(--kn-w-semi)' }}>제한 시간 <span style={{ fontSize: 11, color: 'var(--kn-text-dim)' }}>{local.noTimeLimit ? '(없음)' : `(${local.timeLimitMin}분)`}</span></div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <Toggle on={local.noTimeLimit} onChange={() => set('noTimeLimit', !local.noTimeLimit)} />
-                    <span style={{ fontSize: 11, color: '#8A8060' }}>제한 없음</span>
+                    <span style={{ fontSize: 11, color: 'var(--kn-text-muted)' }}>제한 없음</span>
                   </div>
                   {!local.noTimeLimit && <Stepper value={local.timeLimitMin} onChange={(v) => set('timeLimitMin', v)} min={10} max={300} />}
                 </div>
@@ -59,10 +50,10 @@ export default function RuleEditModal({ rule, onSave, onClose }) {
           </div>
           {/* 보너스/패널티 */}
           <div style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color: '#F5A623', marginBottom: 10 }}>보너스 / 패널티</div>
-            <div style={{ background: '#141200', border: '1px solid rgba(200,155,0,0.15)', borderRadius: 8, overflow: 'hidden' }}>
+            <span data-label="" style={{ marginBottom: 10, display: 'block' }}>보너스 / 패널티</span>
+            <div style={{ background: 'var(--kn-surface-2)', border: '1px solid var(--kn-border)', borderRadius: 'var(--kn-r-lg)', overflow: 'hidden' }}>
               {RULES.map((item, idx) => (
-                <div key={item.onKey} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: idx < RULES.length - 1 ? '1px solid rgba(200,155,0,0.06)' : 'none', opacity: local[item.onKey] ? 1 : 0.45 }}>
+                <div key={item.onKey} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: idx < RULES.length - 1 ? '1px solid var(--kn-border)' : 'none', opacity: local[item.onKey] ? 1 : 0.45 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <Toggle on={local[item.onKey]} onChange={() => set(item.onKey, !local[item.onKey])} />
                     <span style={{ fontSize: 13 }}>{item.label}</span>
@@ -77,7 +68,7 @@ export default function RuleEditModal({ rule, onSave, onClose }) {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10 }}>
             <Button variant="secondary" onClick={onClose}>취소</Button>
-            <Button onClick={() => onSave(local)}>💾 저장하기</Button>
+            <Button variant="primary" onClick={() => onSave(local)}>저장하기</Button>
           </div>
         </div>
       </div>
