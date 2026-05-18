@@ -8,8 +8,13 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="ko">
+    <html lang="ko" suppressHydrationWarning>
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('kn-theme');if(t==='dark')document.documentElement.setAttribute('data-theme','dark')}catch(e){}})()`,
+          }}
+        />
         <link
           rel="stylesheet"
           as="style"

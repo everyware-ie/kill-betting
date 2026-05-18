@@ -1,40 +1,43 @@
 /* ============================================================
    globals.css — 디자인 토큰 & 전역 스타일
    ============================================================
-   새 디자인 시스템: 차분한 모던 다크 (oklch 기반)
+   라이트(기본) / 다크 테마 지원 (oklch 기반)
    Pretendard Variable 폰트
    ============================================================ */
 
-/* ── 디자인 토큰 (색상 · 사이즈 · 타이포) ── */
+/* ── 라이트 테마 (기본) ── */
 :root {
   /* surface */
-  --kn-bg:            oklch(15% 0.005 250);
-  --kn-surface-1:     oklch(18% 0.006 250);
-  --kn-surface-2:     oklch(22% 0.007 250);
-  --kn-surface-3:     oklch(26% 0.008 250);
+  --kn-bg:            oklch(98% 0.003 250);
+  --kn-surface-1:     oklch(95% 0.004 250);
+  --kn-surface-2:     oklch(91% 0.005 250);
+  --kn-surface-3:     oklch(87% 0.006 250);
 
   /* border */
-  --kn-border:        oklch(100% 0 0 / 0.08);
-  --kn-border-strong: oklch(100% 0 0 / 0.14);
+  --kn-border:        oklch(0% 0 0 / 0.08);
+  --kn-border-strong: oklch(0% 0 0 / 0.15);
 
   /* text */
-  --kn-text:          oklch(96% 0.003 250);
-  --kn-text-muted:    oklch(64% 0.005 250);
-  --kn-text-dim:      oklch(46% 0.005 250);
+  --kn-text:          oklch(18% 0.005 250);
+  --kn-text-muted:    oklch(45% 0.005 250);
+  --kn-text-dim:      oklch(62% 0.005 250);
 
   /* overlay */
-  --kn-overlay:       oklch(0% 0 0 / 0.7);
+  --kn-overlay:       oklch(0% 0 0 / 0.5);
 
   /* accent — amber */
-  --kn-accent:        oklch(74% 0.13 78);
-  --kn-accent-bg:     oklch(74% 0.13 78 / 0.12);
-  --kn-accent-strong: oklch(68% 0.16 65);
+  --kn-accent:        oklch(68% 0.16 65);
+  --kn-accent-bg:     oklch(68% 0.16 65 / 0.10);
+  --kn-accent-strong: oklch(60% 0.18 60);
+
+  /* primary button text (accent 위의 텍스트) */
+  --kn-on-accent:     oklch(100% 0 0);
 
   /* semantic */
-  --kn-success:       oklch(72% 0.13 158);
-  --kn-danger:        oklch(66% 0.18 22);
-  --kn-warning:       oklch(76% 0.13 75);
-  --kn-info:          oklch(72% 0.11 230);
+  --kn-success:       oklch(55% 0.16 158);
+  --kn-danger:        oklch(55% 0.2 22);
+  --kn-warning:       oklch(65% 0.15 75);
+  --kn-info:          oklch(55% 0.13 230);
 
   /* sizing */
   --kn-unit:    4px;
@@ -61,6 +64,34 @@
   --kn-w-label: 500;
 }
 
+/* ── 다크 테마 ── */
+[data-theme="dark"] {
+  --kn-bg:            oklch(15% 0.005 250);
+  --kn-surface-1:     oklch(18% 0.006 250);
+  --kn-surface-2:     oklch(22% 0.007 250);
+  --kn-surface-3:     oklch(26% 0.008 250);
+
+  --kn-border:        oklch(100% 0 0 / 0.08);
+  --kn-border-strong: oklch(100% 0 0 / 0.14);
+
+  --kn-text:          oklch(96% 0.003 250);
+  --kn-text-muted:    oklch(64% 0.005 250);
+  --kn-text-dim:      oklch(46% 0.005 250);
+
+  --kn-overlay:       oklch(0% 0 0 / 0.7);
+
+  --kn-accent:        oklch(74% 0.13 78);
+  --kn-accent-bg:     oklch(74% 0.13 78 / 0.12);
+  --kn-accent-strong: oklch(68% 0.16 65);
+
+  --kn-on-accent:     oklch(15% 0.005 250);
+
+  --kn-success:       oklch(72% 0.13 158);
+  --kn-danger:        oklch(66% 0.18 22);
+  --kn-warning:       oklch(76% 0.13 75);
+  --kn-info:          oklch(72% 0.11 230);
+}
+
 /* ── 리셋 ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; }
@@ -74,6 +105,7 @@ body {
   line-height: 1.5;
   min-height: 100vh;
   font-feature-settings: "ss01", "tnum";
+  transition: background 0.2s, color 0.2s;
 }
 
 /* ── 유틸리티 속성 ── */

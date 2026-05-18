@@ -5,7 +5,7 @@ import Icon from './Icon';
 const VARIANTS = {
   primary: {
     background: 'var(--kn-accent)',
-    color: 'oklch(15% 0.005 250)',
+    color: 'var(--kn-on-accent)',
     border: '1px solid transparent',
     fontWeight: 'var(--kn-w-bold)',
   },
