@@ -5,9 +5,10 @@ import com.killnagi.domain.team.dto.request.AssignLeaderRequest;
 import com.killnagi.domain.team.dto.request.CreateTeamRequest;
 import com.killnagi.domain.team.dto.request.UpdatePlayerRequest;
 import com.killnagi.domain.team.dto.response.ConfigureStateMessage;
-import com.killnagi.domain.team.service.TeamConfigureBroadcaster;
 import com.killnagi.domain.team.service.TeamConfigureService;
 import com.killnagi.domain.team.service.TeamService;
+import com.killnagi.domain.session.dto.response.SessionMessage;
+import com.killnagi.domain.session.dto.response.SessionMessage.Type;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
@@ -24,82 +25,88 @@ public class TeamMessageController {
 
     private final TeamService teamService;
     private final TeamConfigureService teamConfigureService;
-    private final TeamConfigureBroadcaster configureBroadcaster;
 
     @MessageMapping("/sessions/{sessionId}/teams/create")
-    public void createTeam(@DestinationVariable Long sessionId,
-                           Principal principal,
-                           CreateTeamRequest request) {
+    @SendTo("/topic/sessions/{sessionId}")
+    public SessionMessage createTeam(@DestinationVariable Long sessionId,
+                                     Principal principal,
+                                     CreateTeamRequest request) {
         Long userId = parseUserId(principal);
         teamService.createTeam(sessionId, userId, request);
-        broadcastConfigureState(sessionId);
+        return buildResponse(sessionId);
     }
 
     @MessageMapping("/sessions/{sessionId}/teams/{teamId}/players/add")
-    public void addPlayer(@DestinationVariable Long sessionId,
-                          @DestinationVariable Long teamId,
-                          Principal principal,
-                          AddPlayerRequest request) {
+    @SendTo("/topic/sessions/{sessionId}")
+    public SessionMessage addPlayer(@DestinationVariable Long sessionId,
+                                    @DestinationVariable Long teamId,
+                                    Principal principal,
+                                    AddPlayerRequest request) {
         Long userId = parseUserId(principal);
         teamConfigureService.addPlayer(sessionId, teamId, userId, request.playerNickname());
-        broadcastConfigureState(sessionId);
+        return buildResponse(sessionId);
     }
 
     @MessageMapping("/sessions/{sessionId}/teams/{teamId}/players/{playerId}/update")
-    public void updatePlayer(@DestinationVariable Long sessionId,
-                             @DestinationVariable Long teamId,
-                             @DestinationVariable Long playerId,
-                             Principal principal,
-                             UpdatePlayerRequest request) {
+    @SendTo("/topic/sessions/{sessionId}")
+    public SessionMessage updatePlayer(@DestinationVariable Long sessionId,
+                                       @DestinationVariable Long teamId,
+                                       @DestinationVariable Long playerId,
+                                       Principal principal,
+                                       UpdatePlayerRequest request) {
         Long userId = parseUserId(principal);
         teamConfigureService.updatePlayer(sessionId, teamId, playerId, userId, request.playerNickname());
-        broadcastConfigureState(sessionId);
+        return buildResponse(sessionId);
     }
 
     @MessageMapping("/sessions/{sessionId}/teams/{teamId}/players/{playerId}/remove")
-    public void removePlayer(@DestinationVariable Long sessionId,
-                             @DestinationVariable Long teamId,
-                             @DestinationVariable Long playerId,
-                             Principal principal) {
+    @SendTo("/topic/sessions/{sessionId}")
+    public SessionMessage removePlayer(@DestinationVariable Long sessionId,
+                                       @DestinationVariable Long teamId,
+                                       @DestinationVariable Long playerId,
+                                       Principal principal) {
         Long userId = parseUserId(principal);
         teamConfigureService.removePlayer(sessionId, teamId, playerId, userId);
-        broadcastConfigureState(sessionId);
+        return buildResponse(sessionId);
     }
 
     @MessageMapping("/sessions/{sessionId}/teams/{teamId}/delete")
-    public void deleteTeam(@DestinationVariable Long sessionId,
-                           @DestinationVariable Long teamId,
-                           Principal principal) {
+    @SendTo("/topic/sessions/{sessionId}")
+    public SessionMessage deleteTeam(@DestinationVariable Long sessionId,
+                                     @DestinationVariable Long teamId,
+                                     Principal principal) {
         Long userId = parseUserId(principal);
         teamService.deleteTeam(sessionId, teamId, userId);
-        broadcastConfigureState(sessionId);
+        return buildResponse(sessionId);
     }
 
     @MessageMapping("/sessions/{sessionId}/teams/{teamId}/leader")
-    public void assignLeader(@DestinationVariable Long sessionId,
-                             @DestinationVariable Long teamId,
-                             Principal principal,
-                             AssignLeaderRequest request) {
+    @SendTo("/topic/sessions/{sessionId}")
+    public SessionMessage assignLeader(@DestinationVariable Long sessionId,
+                                       @DestinationVariable Long teamId,
+                                       Principal principal,
+                                       AssignLeaderRequest request) {
         Long userId = parseUserId(principal);
         teamConfigureService.assignLeader(sessionId, teamId, userId, request.userId());
-        broadcastConfigureState(sessionId);
+        return buildResponse(sessionId);
     }
 
     @MessageMapping("/sessions/{sessionId}/teams/{teamId}/leader/remove")
-    public void unassignLeader(@DestinationVariable Long sessionId,
-                               @DestinationVariable Long teamId,
-                               Principal principal) {
+    @SendTo("/topic/sessions/{sessionId}")
+    public SessionMessage unassignLeader(@DestinationVariable Long sessionId,
+                                         @DestinationVariable Long teamId,
+                                         Principal principal) {
         Long userId = parseUserId(principal);
         teamConfigureService.unassignLeader(sessionId, teamId, userId);
-        broadcastConfigureState(sessionId);
+        return buildResponse(sessionId);
     }
 
     private Long parseUserId(Principal principal) {
         return Long.parseLong(principal.getName());
     }
 
-    private void broadcastConfigureState(Long sessionId) {
+    private SessionMessage buildResponse(Long sessionId) {
         ConfigureStateMessage state = teamConfigureService.buildConfigureState(sessionId);
-        configureBroadcaster.broadcast(sessionId, state);
+        return new SessionMessage(Type.PARTICIPANT_UPDATED, state);
     }
 }
