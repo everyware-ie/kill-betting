@@ -190,6 +190,7 @@ export default function ResultPage() {
               </div>
               <div style={{ fontSize: 13, color: '#8A8060' }}>
                 총 {matches.length}판 진행 &nbsp;·&nbsp; 킬 {winner.kills} &nbsp;+{winner.bonus} &nbsp;-{winner.penalty}
+                {winner.adj !== 0 && <> &nbsp;·&nbsp; 조정 {winner.adj > 0 ? '+' : ''}{winner.adj}</>}
               </div>
             </div>
             <div style={{
@@ -349,9 +350,9 @@ export default function ResultPage() {
                   [...matches].reverse().map((m) => {
                     const results = m.memberResults || [];
                     const hasChicken = results.some((r) => r.isChicken);
-                    const chickenTeam = hasChicken ? teamScores.find((t) => results.find((r) => r.isChicken && r.teamId === t.id)) : null;
+                    const chickenTeam = hasChicken ? teams.find((t) => results.find((r) => r.isChicken && r.teamId === t.id)) : null;
                     // 팀별 킬 합산
-                    const teamKills = teamScores.map((t) => ({
+                    const teamKills = teams.map((t) => ({
                       name: t.name,
                       kills: results.filter((r) => r.teamId === t.id).reduce((s, r) => s + r.kills, 0),
                     }));
