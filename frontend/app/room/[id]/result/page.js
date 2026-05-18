@@ -126,9 +126,10 @@ export default function ResultPage() {
       id:      t.teamId,
       name:    t.teamName,
       kills:   t.totalKills,
-      bonus:   t.ruleScore,
-      penalty: Math.max(0, t.totalKills - t.effectiveKills),
-      total:   t.effectiveKills + t.ruleScore,
+      bonus:   Math.max(0, t.ruleScore),
+      penalty: Math.max(0, -t.ruleScore),
+      adj:     t.adjustmentScore ?? 0,
+      total:   t.effectiveKills,
       members: t.members || [],
     }))
     .sort((a, b) => b.total - a.total);

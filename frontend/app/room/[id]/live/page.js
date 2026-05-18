@@ -906,6 +906,9 @@ export default function LivePage() {
         if (matchRes.success) setMatches(matchRes.data?.matches || []);
       });
     }
+    if (envelope.type === 'ADJUSTMENT_APPLIED' && envelope.data) {
+      setAdjs((prev) => [...prev, { teamId: envelope.data.teamId, amount: envelope.data.amount }]);
+    }
     if (envelope.type === 'SESSION_ENDED') {
       router.push(`/room/${roomCode}/result`);
     }
@@ -931,7 +934,9 @@ export default function LivePage() {
   // ── 점수 조정 ──
   const handleAdjust = async (teamId, amount, reason) => {
     const res = await RoomAPI.addAdjustment(sessionId, teamId, amount, reason);
-    if (res.success) setAdjs(res.data.adjustments);
+    if (res.success) {
+      setAdjs((prev) => [...prev, { teamId: parseInt(teamId), amount }]);
+    }
   };
 
   // ── 룰 변경 ──
@@ -975,7 +980,7 @@ export default function LivePage() {
 
   // ── 경기 종료 조건 체크 ──
   // 목표 킬에 먼저 도달한 팀이 있거나, 제한 시간이 만료되면 종료 안내
-  const targetReachedTeam = teamScores.find((t) => t.kills >= rule.targetKills);
+  const targetReachedTeam = teamScores.find((t) => t.total >= rule.targetKills);
   const timeOver          = timeLeft !== null && timeLeft === 0;
   const gameOver          = !!targetReachedTeam || timeOver;
 
@@ -1083,8 +1088,8 @@ export default function LivePage() {
             {teamScores.map((t, idx) => {
               const isFirst       = idx === 0;
               const safeTarget    = rule.targetKills > 0 ? rule.targetKills : 1;
-              const progress      = Math.min(100, Math.round((t.kills / safeTarget) * 100));
-              const isTargetDone  = t.kills >= rule.targetKills;  // 이 팀이 목표 킬 달성했는지
+              const progress      = Math.min(100, Math.round((t.total / safeTarget) * 100));
+              const isTargetDone  = t.total >= rule.targetKills;
               return (
                 <div key={t.id} style={{
                   background: '#1C1A0C',
@@ -1102,7 +1107,7 @@ export default function LivePage() {
                   <div style={{ fontSize: 10, color: '#8A8060', marginBottom: 8 }}>
                     목표: {rule.targetKills}킬 &nbsp;
                     <span style={{ color: isTargetDone ? '#4CAF50' : '#8A8060', fontWeight: isTargetDone ? 700 : 400 }}>
-                      {t.kills}/{rule.targetKills}킬 {isTargetDone ? '✓ 달성' : `(${Math.round(progress)}%)`}
+                      {t.total}/{rule.targetKills}킬 {isTargetDone ? '✓ 달성' : `(${Math.round(progress)}%)`}
                     </span>
                   </div>
                   {/* 프로그레스바 */}

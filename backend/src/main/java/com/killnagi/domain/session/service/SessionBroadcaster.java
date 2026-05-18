@@ -26,6 +26,10 @@ public class SessionBroadcaster {
         send(sessionId, Type.SESSION_ENDED, data);
     }
 
+    public void broadcastAdjustmentApplied(Long sessionId, Object data) {
+        send(sessionId, Type.ADJUSTMENT_APPLIED, data);
+    }
+
     private void send(Long sessionId, Type type, Object data) {
         messagingTemplate.convertAndSend(
                 TOPIC_PREFIX + sessionId,

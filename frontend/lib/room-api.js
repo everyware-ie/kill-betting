@@ -215,7 +215,6 @@ export const RoomAPI = {
     });
   },
 
-  // TODO: 백엔드 미구현 상태 — 추후 구현 예정
   addAdjustment: async (sessionId, teamId, amount, reason) => {
     if (USE_MOCK) {
       await delay(200);
@@ -226,7 +225,10 @@ export const RoomAPI = {
       room.adjustments.push(adj);
       return ok({ adjustments: room.adjustments });
     }
-    return err('백엔드 미구현');
+    return apiFetch(`/sessions/${sessionId}/teams/${teamId}/adjustments`, {
+      method: 'POST',
+      body: JSON.stringify({ amount, reason }),
+    });
   },
 
   // TODO: 백엔드 미구현 상태 — 추후 구현 예정
