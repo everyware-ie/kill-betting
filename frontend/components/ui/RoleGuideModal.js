@@ -70,7 +70,7 @@ export default function RoleGuideModal({ onClose }) {
       onClick={(e) => e.target === e.currentTarget && onClose()}
       style={{
         position: 'fixed', inset: 0,
-        background: 'rgba(0,0,0,0.82)',
+        background: 'var(--kn-overlay)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         zIndex: 2000,
         backdropFilter: 'blur(4px)',

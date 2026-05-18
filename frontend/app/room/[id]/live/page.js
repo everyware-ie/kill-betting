@@ -12,6 +12,7 @@ import { useAuth }  from '@/lib/auth-context';
 import { RoomAPI }  from '@/lib/room-api';
 import { useWebSocket } from '@/lib/useWebSocket';
 import { mapSessionRule } from '@/features/setup/helpers/mappers';
+import { useTheme } from '@/lib/theme-context';
 import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
 import RoleGuideModal from '@/components/ui/RoleGuideModal';
@@ -166,7 +167,7 @@ function TeamResultModal({ room, teamId, matchNumber, sessionId, onConfirmed, on
   };
 
   return (
-    <div onClick={(e) => e.target === e.currentTarget && onClose()} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)', padding: 16 }}>
+    <div onClick={(e) => e.target === e.currentTarget && onClose()} style={{ position: 'fixed', inset: 0, background: 'var(--kn-overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)', padding: 16 }}>
       <div style={{ background: 'var(--kn-surface-1)', border: '1px solid var(--kn-border)', borderRadius: 'var(--kn-r-xl)', width: '100%', maxWidth: 720, maxHeight: '90vh', overflowY: 'auto' }}>
 
         {/* 헤더 */}
@@ -354,7 +355,7 @@ function ScreenshotModal({ info, onClose }) {
   const hasChicken = match.chickenTeamId === match.teamId;
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: 20, backdropFilter: 'blur(6px)' }}>
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'var(--kn-overlay)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: 20, backdropFilter: 'blur(6px)' }}>
       <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 860, display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -426,7 +427,7 @@ function AdminModal({ room, onAdjust, onEnd, onRuleUpdate, onClose }) {
   const handleRuleSave = async () => { setRuleSaving(true); await onRuleUpdate(rule); setRuleSaving(false); onClose(); };
 
   return (
-    <div onClick={(e) => e.target === e.currentTarget && onClose()} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)', padding: 20 }}>
+    <div onClick={(e) => e.target === e.currentTarget && onClose()} style={{ position: 'fixed', inset: 0, background: 'var(--kn-overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)', padding: 20 }}>
       <div style={{ background: 'var(--kn-surface-1)', border: '1px solid var(--kn-border)', borderRadius: 'var(--kn-r-xl)', width: '100%', maxWidth: 460, maxHeight: '90vh', overflowY: 'auto' }}>
         <div style={{ padding: '18px 22px 14px', borderBottom: '1px solid var(--kn-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ fontSize: 15, fontWeight: 'var(--kn-w-bold)', display: 'flex', alignItems: 'center', gap: 8 }}><Icon name="settings" size={18} /> 운영 메뉴</div>
@@ -590,6 +591,7 @@ function AdminModal({ room, onAdjust, onEnd, onRuleUpdate, onClose }) {
 export default function LivePage() {
   const router = useRouter();
   const { id: roomCode } = useParams();
+  const { theme, toggle: toggleTheme } = useTheme();
   const [sessionId, setSessionId] = useState(null);
   const { user } = useAuth();
 
@@ -729,6 +731,11 @@ export default function LivePage() {
         </div>
 
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <button
+            onClick={toggleTheme}
+            title="테마 전환"
+            style={{ background: 'var(--kn-surface-3)', border: '1px solid var(--kn-border-strong)', color: 'var(--kn-text-muted)', width: 30, height: 30, borderRadius: 'var(--kn-r-md)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+          ><Icon name={theme === 'dark' ? 'sun' : 'moon'} size={16} /></button>
           <button
             onClick={() => setShowRoleGuide(true)}
             title="역할 안내"
