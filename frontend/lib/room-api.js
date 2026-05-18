@@ -239,7 +239,7 @@ export const RoomAPI = {
       room.endedAt = new Date().toISOString();
       return ok({ room });
     }
-    return err('백엔드 미구현');
+    return apiFetch(`/sessions/${sessionId}/end`, { method: 'POST' });
   },
 
   /**
