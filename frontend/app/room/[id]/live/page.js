@@ -135,6 +135,7 @@ function TeamResultModal({ room, teamId, matchNumber, sessionId, onConfirmed, on
     const ocr = data.ocrResult;
     if (ocr) {
       setOcrMapName(ocr.mapName || ''); setOcrPlacement(ocr.placement || 0); setOcrPlayTime(ocr.playTime || '');
+      if (ocr.placement === 1) setClaimsChicken(true);
       const stats = ocr.playerStats || [];
       const filled = new Set();
       setResults((prev) => prev.map((row) => {
@@ -169,9 +170,7 @@ function TeamResultModal({ room, teamId, matchNumber, sessionId, onConfirmed, on
     .map((r) => r.nick);
 
   const previewKills = results.reduce((s, r) => s + r.kills, 0);
-  const previewBonus = results.reduce((s, r) =>
-    s + (rule.assistBonusOn ? (r.assists || 0) * rule.assistBonus : 0), 0)
-    + (claimsChicken && rule.chickenBonusOn ? rule.chickenBonus : 0);
+  const previewBonus = claimsChicken && rule.chickenBonusOn ? rule.chickenBonus : 0;
   const previewPenalty = rule.survivalPenaltyOn
     ? results.filter((r) => !r.isTop10).length * rule.survivalPenalty
     : 0;
@@ -583,18 +582,9 @@ function AdminModal({ room, onAdjust, onEnd, onRuleUpdate, onClose }) {
               <RuleBonusRow label="치킨 보너스" on={rule.chickenBonusOn} onToggle={() => setR('chickenBonusOn', !rule.chickenBonusOn)}>
                 <NumberStepper val={rule.chickenBonus} min={1} disabled={!rule.chickenBonusOn} onChange={(v) => setR('chickenBonus', v)} />
               </RuleBonusRow>
-              <RuleBonusRow label="헤드샷 보너스" on={rule.headShotBonusOn} onToggle={() => setR('headShotBonusOn', !rule.headShotBonusOn)}>
-                <NumberStepper val={rule.headShotBonus} min={1} disabled={!rule.headShotBonusOn} onChange={(v) => setR('headShotBonus', v)} />
-              </RuleBonusRow>
-              <RuleBonusRow label="어시스트 보너스" on={rule.assistBonusOn} onToggle={() => setR('assistBonusOn', !rule.assistBonusOn)}>
-                <NumberStepper val={rule.assistBonus} min={1} disabled={!rule.assistBonusOn} onChange={(v) => setR('assistBonus', v)} />
-              </RuleBonusRow>
 
               <div style={{ borderTop: '1px solid var(--kn-border)', margin: '12px 0' }} />
               <span data-label="" style={{ marginBottom: 10, display: 'block' }}>패널티</span>
-              <RuleBonusRow label="팀킬 패널티" on={rule.teamKillPenaltyOn} onToggle={() => setR('teamKillPenaltyOn', !rule.teamKillPenaltyOn)}>
-                <NumberStepper val={rule.teamKillPenalty} min={1} disabled={!rule.teamKillPenaltyOn} onChange={(v) => setR('teamKillPenalty', v)} color="var(--kn-danger)" />
-              </RuleBonusRow>
               <RuleBonusRow label="조기사망 패널티" on={rule.survivalPenaltyOn} onToggle={() => setR('survivalPenaltyOn', !rule.survivalPenaltyOn)}>
                 <NumberStepper val={rule.survivalPenalty} min={1} disabled={!rule.survivalPenaltyOn} onChange={(v) => setR('survivalPenalty', v)} color="var(--kn-danger)" />
               </RuleBonusRow>
