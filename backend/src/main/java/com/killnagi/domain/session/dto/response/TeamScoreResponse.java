@@ -9,6 +9,7 @@ public record TeamScoreResponse(
         String teamName,
         int totalKills,
         int ruleScore,
+        int adjustmentScore,
         int effectiveKills,
         List<MemberScoreResponse> members
 ) {
@@ -17,10 +18,11 @@ public record TeamScoreResponse(
                 .map(MemberScoreResponse::from)
                 .toList();
         return new TeamScoreResponse(
-                team.getId(), 
+                team.getId(),
                 team.getName(),
-                team.getTotalKills(), 
-                team.getRuleScore(), 
+                team.getTotalKills(),
+                team.getRuleScore(),
+                team.getAdjustmentScore(),
                 team.getEffectiveKills(),
                 members
         );

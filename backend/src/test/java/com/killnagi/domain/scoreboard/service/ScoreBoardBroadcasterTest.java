@@ -1,6 +1,7 @@
 package com.killnagi.domain.scoreboard.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.times;
@@ -22,6 +23,7 @@ import com.killnagi.domain.scoreboard.dto.MemberResult;
 import com.killnagi.domain.scoreboard.dto.ScoreBoardUpdateMessage;
 import com.killnagi.domain.scoreboard.dto.TeamUpdate;
 import com.killnagi.domain.session.service.SessionBroadcaster;
+import com.killnagi.domain.team.event.AdjustmentAppliedEvent;
 
 @ExtendWith(MockitoExtension.class)
 class ScoreBoardBroadcasterTest {
@@ -105,6 +107,31 @@ class ScoreBoardBroadcasterTest {
         then(sessionBroadcaster).should().broadcastScoreUpdated(eq(1L), captor.capture());
         assertThat(captor.getValue().mapName()).isEqualTo("에란겔");
         assertThat(captor.getValue().matchNumber()).isEqualTo(3);
+    }
+
+    @Test
+    void 조정_이벤트_수신시_올바른_세션으로_브로드캐스트한다() {
+        AdjustmentAppliedEvent event = new AdjustmentAppliedEvent(5L, 20L, "팀A", 3);
+
+        scoreBoardBroadcaster.handleAdjustmentApplied(event);
+
+        then(sessionBroadcaster).should(times(1))
+                .broadcastAdjustmentApplied(eq(5L), any());
+    }
+
+    @Test
+    void 조정_이벤트의_teamId와_amount가_메시지에_포함된다() {
+        AdjustmentAppliedEvent event = new AdjustmentAppliedEvent(5L, 20L, "팀A", 3);
+        ArgumentCaptor<Object> captor = ArgumentCaptor.forClass(Object.class);
+
+        scoreBoardBroadcaster.handleAdjustmentApplied(event);
+
+        then(sessionBroadcaster).should().broadcastAdjustmentApplied(eq(5L), captor.capture());
+        @SuppressWarnings("unchecked")
+        java.util.Map<String, Object> data = (java.util.Map<String, Object>) captor.getValue();
+        assertThat(data.get("teamId")).isEqualTo(20L);
+        assertThat(data.get("amount")).isEqualTo(3);
+        assertThat(data.get("teamName")).isEqualTo("팀A");
     }
 
     // --- fixtures ---

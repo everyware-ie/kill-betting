@@ -81,6 +81,40 @@ class TeamTest {
     }
 
     @Test
+    void 조정_적용시_adjustmentScore가_증가한다() {
+        team.applyAdjustment(3);
+        assertThat(team.getAdjustmentScore()).isEqualTo(3);
+    }
+
+    @Test
+    void 조정_음수_적용시_adjustmentScore가_감소한다() {
+        team.applyAdjustment(-2);
+        assertThat(team.getAdjustmentScore()).isEqualTo(-2);
+    }
+
+    @Test
+    void 조정을_여러번_적용하면_누적된다() {
+        team.applyAdjustment(3);
+        team.applyAdjustment(-1);
+        assertThat(team.getAdjustmentScore()).isEqualTo(2);
+    }
+
+    @Test
+    void 유효킬은_총킬_더하기_룰스코어_더하기_조정값이다() {
+        team.addKills(10);
+        team.addRuleScore(2);
+        team.applyAdjustment(3);
+        assertThat(team.getEffectiveKills()).isEqualTo(15);
+    }
+
+    @Test
+    void 조정값이_없으면_유효킬_계산에_영향_없다() {
+        team.addKills(10);
+        team.addRuleScore(2);
+        assertThat(team.getEffectiveKills()).isEqualTo(12);
+    }
+
+    @Test
     void 초기_팀은_리더가_없다() {
         assertThat(team.hasLeader()).isFalse();
         assertThat(team.getLeaderUserId()).isNull();
