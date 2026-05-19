@@ -13,16 +13,17 @@ export function mapSessionRule(session) {
     timeLimitMin: session.timeLimitMinutes ?? 60,
     chickenBonusOn: !!chickenBonus,
     chickenBonus: chickenBonus?.value ?? 0,
+    chickenBonusRuleId: chickenBonus?.id ?? null,
     survivalPenaltyOn: !!survivalPenalty,
     survivalPenalty: survivalPenalty?.value ?? 0,
+    survivalPenaltyRuleId: survivalPenalty?.id ?? null,
+    // 백엔드 미지원 — UI 기본값 유지
     headShotBonusOn: false,
     headShotBonus: 0,
     assistBonusOn: false,
     assistBonus: 0,
     teamKillPenaltyOn: false,
     teamKillPenalty: 0,
-    deathPenaltyOn: false,
-    deathPenalty: 0,
   };
 }
 
