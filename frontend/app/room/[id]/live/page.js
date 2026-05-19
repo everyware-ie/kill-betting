@@ -701,7 +701,6 @@ export default function LivePage() {
   // ── 경기 종료 조건 체크 ──
   // 목표 킬에 먼저 도달한 팀이 있거나, 제한 시간이 만료되면 종료 안내
   const targetReachedTeam = teamScores.find((t) => t.total >= rule.targetKills);
-  const timeLeft = timeLimit ? Math.max(0, timeLimit - elapsed) : null;
   const timeOver = timeLeft !== null && timeLeft === 0;
   const gameOver = !!targetReachedTeam || timeOver;
 
