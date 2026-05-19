@@ -2,20 +2,6 @@
  * ============================================================
  *  최종 결과 페이지  /room/:id/result
  * ============================================================
- *
- *  [화면 구성]
- *   - 우승 팀 선언 배너 (1위 팀 이름 + 점수 크게 표시)
- *   - 최종 팀 순위 카드 (킬/보너스/패널티/조정 상세 포함)
- *   - MVP 플레이어 (전체 중 킬 수 1위)
- *   - 개인별 최종 통계 테이블
- *   - 매치 히스토리 요약
- *   - [대시보드로] 버튼
- *
- *  [API 호출]
- *   RoomAPI.get(roomId)        — 방/팀/룰 정보
- *   RoomAPI.getMatches(roomId) — 전체 매치 데이터
- *
- * ============================================================
  */
 
 'use client';
@@ -26,13 +12,29 @@ import { useAuth }  from '@/lib/auth-context';
 import { RoomAPI }  from '@/lib/room-api';
 import { mapSessionRule } from '@/features/setup/helpers/mappers';
 import Button       from '@/components/ui/Button';
+import Icon         from '@/components/ui/Icon';
 
 // ─────────────────────────────────────────
-//  데미지 집계 (매치 히스토리 기반)
+//  점수 계산 유틸
 // ─────────────────────────────────────────
 
-function getPlayerDamage(nick, matches) {
-  let damage = 0;
+function calcTeamScore(teamId, matches, rule, adjustments = []) {
+  let kills = 0, bonus = 0, penalty = 0;
+  for (const m of matches) {
+    const teamResults = (m.memberResults || []).filter((r) => r.teamId === teamId);
+    if (teamResults.length === 0) continue;
+    const hasChicken = teamResults.some((r) => r.isChicken);
+    if (rule.chickenBonusOn && hasChicken) bonus += rule.chickenBonus;
+    for (const r of teamResults) { kills += r.kills; }
+  }
+  const adj = adjustments
+    .filter((a) => a.teamId === teamId)
+    .reduce((s, a) => s + a.amount, 0);
+  return { kills, bonus, penalty, adj, total: kills + bonus - penalty + adj };
+}
+
+function calcPlayerStats(nick, matches, rule) {
+  let kills = 0, bonus = 0, penalty = 0, damage = 0, chickens = 0;
   for (const m of matches) {
     for (const r of (m.memberResults || [])) {
       if (r.playerNickname === nick) damage += r.damage || 0;
@@ -42,27 +44,24 @@ function getPlayerDamage(nick, matches) {
 }
 
 // ─────────────────────────────────────────
-//  순위 배지 컴포넌트
+//  순위 배지
 // ─────────────────────────────────────────
 
-/** 1위/2위/3위 뱃지 */
 function RankBadge({ rank }) {
-  // 순위별 색상과 아이콘
   const styles = {
-    1: { bg: 'rgba(245,166,35,0.15)', border: 'rgba(245,166,35,0.6)', color: '#F5A623', icon: '🥇' },
-    2: { bg: 'rgba(180,180,180,0.1)', border: 'rgba(180,180,180,0.4)', color: '#C0C0C0', icon: '🥈' },
-    3: { bg: 'rgba(180,100,40,0.1)',  border: 'rgba(180,100,40,0.4)',  color: '#CD7F32', icon: '🥉' },
+    1: { bg: 'var(--kn-accent-bg)', border: 'var(--kn-accent)', color: 'var(--kn-accent)', icon: 'trophy' },
+    2: { bg: 'var(--kn-surface-3)', border: 'var(--kn-border-strong)', color: 'var(--kn-text-muted)', icon: 'shield' },
+    3: { bg: 'var(--kn-surface-3)', border: 'var(--kn-border)', color: 'var(--kn-text-dim)', icon: 'shield' },
   };
-  const s = styles[rank] || { bg: 'transparent', border: 'rgba(200,155,0,0.15)', color: '#8A8060', icon: `#${rank}` };
+  const s = styles[rank] || { bg: 'transparent', border: 'var(--kn-border)', color: 'var(--kn-text-dim)', icon: null };
   return (
     <div style={{
       width: 40, height: 40, borderRadius: '50%',
       background: s.bg, border: `1px solid ${s.border}`,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: rank <= 3 ? 20 : 13, fontWeight: 700, color: s.color,
-      flexShrink: 0,
+      fontWeight: 700, color: s.color, flexShrink: 0,
     }}>
-      {s.icon}
+      {s.icon ? <Icon name={s.icon} size={20} color={s.color} /> : `#${rank}`}
     </div>
   );
 }
@@ -82,7 +81,6 @@ export default function ResultPage() {
   const [loading,    setLoading]    = useState(true);
   const [error,      setError]      = useState('');
 
-  // ── 데이터 로드 ──
   useEffect(() => {
     if (!user) return;
     RoomAPI.get(roomCode).then(async (roomRes) => {
@@ -100,102 +98,87 @@ export default function ResultPage() {
     });
   }, [roomCode, user]);
 
-  // ── 로그인 체크 ──
-  useEffect(() => {
-    if (!user) router.push('/auth/login');
-  }, [user]);
+  useEffect(() => { if (!user) router.push('/auth/login'); }, [user]);
 
-  // ── 로딩/에러 화면 ──
   if (loading) return (
-    <div style={{ minHeight: '100vh', background: '#12100A', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8A8060' }}>
-      결과를 불러오는 중...
+    <div style={{ minHeight: '100vh', background: 'var(--kn-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--kn-text-muted)' }}>
+      <Icon name="spinner" size={20} style={{ animation: 'kn-spin 0.9s linear infinite' }} />
     </div>
   );
   if (error || !room) return (
-    <div style={{ minHeight: '100vh', background: '#12100A', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-      <div style={{ color: '#E53935', fontSize: 15 }}>{error || '방을 찾을 수 없습니다'}</div>
+    <div style={{ minHeight: '100vh', background: 'var(--kn-bg)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, color: 'var(--kn-text)' }}>
+      <div style={{ color: 'var(--kn-danger)', fontSize: 15, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Icon name="alert" size={18} /> {error || '방을 찾을 수 없습니다'}
+      </div>
       <Button variant="secondary" onClick={() => router.push('/dashboard')}>대시보드로</Button>
     </div>
   );
 
-  const { rule } = room;
+  const { rule, teams } = room;
+  const adjs = room.adjustments || [];
 
-  // ── 스코어보드 기반 팀 순위 ──
-  const teamScores = [...(scoreboard?.teams || [])]
-    .map((t) => ({
-      id:      t.teamId,
-      name:    t.teamName,
-      kills:   t.totalKills,
-      bonus:   t.ruleScore,
-      penalty: Math.max(0, t.totalKills - t.effectiveKills),
-      total:   t.effectiveKills + t.ruleScore,
-      members: t.members || [],
-    }))
+  const teamScores = [...teams]
+    .map((t) => ({ ...t, ...calcTeamScore(t.id, matches, rule, adjs) }))
     .sort((a, b) => b.total - a.total);
 
-  const winner = scoreboard?.isDraw
-    ? null
-    : teamScores.find((t) => t.id === scoreboard?.winnerTeamId) ?? teamScores[0];
+  const winner = teamScores[0];
 
-  // ── MVP (스코어보드 기준 킬 수 1위) ──
-  const allPlayerStats = (scoreboard?.teams || []).flatMap((t) =>
-    (t.members || []).map((m) => ({
-      nick:     m.playerNickname,
-      teamName: t.teamName,
-      kills:    m.totalKills,
-      bonus:    m.bonusKills,
-      penalty:  m.penaltyKills,
-      total:    m.effectiveKills,
-      damage:   getPlayerDamage(m.playerNickname, matches),
-    }))
+  const allPlayerStats = teams.flatMap((t) =>
+    (t.players || []).map((p) => {
+      const nick = typeof p === 'string' ? p : p.nickname;
+      return { nick, teamName: t.name, ...calcPlayerStats(nick, matches, rule) };
+    })
   ).sort((a, b) => b.kills - a.kills);
 
   const mvp = allPlayerStats[0];
 
   return (
-    <div style={{ minHeight: '100vh', background: '#12100A', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--kn-bg)', color: 'var(--kn-text)', display: 'flex', flexDirection: 'column' }}>
 
-      {/* ── 헤더 ── */}
+      {/* 헤더 */}
       <div style={{
-        background: '#1C1A0C', borderBottom: '1px solid rgba(200,155,0,0.18)',
+        background: 'var(--kn-surface-1)', borderBottom: '1px solid var(--kn-border)',
         padding: '0 24px', height: 56, flexShrink: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
-        <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 20, fontWeight: 900, fontStyle: 'italic', color: '#F5A623', letterSpacing: 2 }}>
-          KILL CHALLENGE
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Icon name="trophy" size={22} color="var(--kn-accent)" />
+          <div>
+            <div data-label="" style={{ fontSize: 10 }}>FINAL RESULT</div>
+            <div style={{ fontSize: 15, fontWeight: 'var(--kn-w-bold)' }}>{room.title}</div>
+          </div>
         </div>
-        <div style={{ fontSize: 12, color: '#8A8060' }}>{room.title}</div>
       </div>
 
-      {/* ── 본문 ── */}
+      {/* 본문 */}
       <div style={{ flex: 1, padding: '24px', maxWidth: 960, margin: '0 auto', width: '100%' }}>
 
         {/* 우승 팀 선언 배너 */}
         {winner && (
           <div style={{
-            background: 'linear-gradient(135deg, rgba(245,166,35,0.12) 0%, rgba(28,26,12,0) 60%)',
-            border: '1px solid rgba(245,166,35,0.4)',
-            borderRadius: 12, padding: '28px 32px', marginBottom: 28,
+            background: 'linear-gradient(135deg, color-mix(in oklab, var(--kn-accent) 12%, transparent) 0%, transparent 60%)',
+            border: '1px solid color-mix(in oklab, var(--kn-accent) 40%, transparent)',
+            borderRadius: 'var(--kn-r-xl)', padding: '28px 32px', marginBottom: 28,
             display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap',
           }}>
-            <div style={{ fontSize: 52 }}>🏆</div>
+            <Icon name="trophy" size={48} color="var(--kn-accent)" />
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 11, color: '#8A8060', letterSpacing: 3, marginBottom: 4 }}>FINAL WINNER</div>
+              <div data-label="" style={{ fontSize: 11, marginBottom: 4 }}>FINAL WINNER</div>
               <div style={{
-                fontFamily: "'Barlow Condensed', sans-serif",
-                fontSize: 42, fontWeight: 900, fontStyle: 'italic',
-                color: '#F5A623', lineHeight: 1, marginBottom: 6,
+                fontSize: 36, fontWeight: 'var(--kn-w-black)',
+                fontFamily: 'var(--kn-font-mono)',
+                color: 'var(--kn-accent)', lineHeight: 1, marginBottom: 6,
               }}>
                 {winner.name}
               </div>
-              <div style={{ fontSize: 13, color: '#8A8060' }}>
+              <div style={{ fontSize: 13, color: 'var(--kn-text-muted)' }}>
                 총 {matches.length}판 진행 &nbsp;·&nbsp; 킬 {winner.kills} &nbsp;+{winner.bonus} &nbsp;-{winner.penalty}
                 {winner.adj !== 0 && <> &nbsp;·&nbsp; 조정 {winner.adj > 0 ? '+' : ''}{winner.adj}</>}
               </div>
             </div>
-            <div style={{
-              fontFamily: "'Barlow Condensed', sans-serif",
-              fontSize: 80, fontWeight: 900, color: '#F5A623', lineHeight: 1,
+            <div data-display="" style={{
+              fontSize: 72, color: 'var(--kn-accent)',
+              fontFamily: 'var(--kn-font-mono)',
             }}>
               {winner.total}
             </div>
@@ -205,26 +188,26 @@ export default function ResultPage() {
         {/* MVP 배너 */}
         {mvp && mvp.kills > 0 && (
           <div style={{
-            background: '#1C1A0C', border: '1px solid rgba(200,155,0,0.2)',
-            borderRadius: 10, padding: '16px 20px', marginBottom: 28,
+            background: 'var(--kn-surface-1)', border: '1px solid var(--kn-border)',
+            borderRadius: 'var(--kn-r-lg)', padding: '16px 20px', marginBottom: 28,
             display: 'flex', alignItems: 'center', gap: 16,
           }}>
-            <div style={{ fontSize: 30 }}>⭐</div>
+            <Icon name="zap" size={28} color="var(--kn-accent)" />
             <div>
-              <div style={{ fontSize: 10, color: '#8A8060', letterSpacing: 2, marginBottom: 2 }}>MVP</div>
-              <div style={{ fontSize: 18, fontWeight: 700 }}>{mvp.nick}
-                <span style={{ fontSize: 12, color: '#8A8060', fontWeight: 400, marginLeft: 8 }}>{mvp.teamName}</span>
+              <div data-label="" style={{ fontSize: 10, marginBottom: 2 }}>MVP</div>
+              <div style={{ fontSize: 18, fontWeight: 'var(--kn-w-bold)' }}>{mvp.nick}
+                <span style={{ fontSize: 12, color: 'var(--kn-text-muted)', fontWeight: 400, marginLeft: 8 }}>{mvp.teamName}</span>
               </div>
             </div>
             <div style={{ marginLeft: 'auto', display: 'flex', gap: 20 }}>
               {[
-                { label: '킬', val: mvp.kills, color: '#E8DFC0' },
-                { label: '보너스', val: `+${mvp.bonus}`, color: '#F5A623' },
-                { label: '총점', val: mvp.total, color: '#F5A623' },
+                { label: '킬', val: mvp.kills, color: 'var(--kn-text)' },
+                { label: '보너스', val: `+${mvp.bonus}`, color: 'var(--kn-success)' },
+                { label: '총점', val: mvp.total, color: 'var(--kn-accent)' },
               ].map((s) => (
                 <div key={s.label} style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 10, color: '#8A8060', marginBottom: 2 }}>{s.label}</div>
-                  <div style={{ fontSize: 20, fontWeight: 900, color: s.color }}>{s.val}</div>
+                  <div style={{ fontSize: 10, color: 'var(--kn-text-muted)', marginBottom: 2 }}>{s.label}</div>
+                  <div data-display="" style={{ fontSize: 20, color: s.color }}>{s.val}</div>
                 </div>
               ))}
             </div>
@@ -238,34 +221,31 @@ export default function ResultPage() {
 
             {/* 최종 팀 순위 */}
             <section>
-              <div style={{ fontSize: 11, color: '#8A8060', letterSpacing: 2, marginBottom: 10 }}>최종 팀 순위</div>
+              <span data-label="" style={{ marginBottom: 10, display: 'block' }}>최종 팀 순위</span>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {teamScores.map((t, idx) => (
                   <div key={t.id} style={{
-                    background: '#1C1A0C',
-                    border: `1px solid ${idx === 0 ? 'rgba(245,166,35,0.4)' : 'rgba(200,155,0,0.15)'}`,
-                    borderRadius: 8, padding: '14px 18px',
+                    background: 'var(--kn-surface-1)',
+                    border: `1px solid ${idx === 0 ? 'color-mix(in oklab, var(--kn-accent) 40%, transparent)' : 'var(--kn-border)'}`,
+                    borderRadius: 'var(--kn-r-lg)', padding: '14px 18px',
                     display: 'flex', alignItems: 'center', gap: 16,
                   }}>
                     <RankBadge rank={idx + 1} />
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 3 }}>{t.name}</div>
-                      {/* 점수 세부 내역 */}
-                      <div style={{ display: 'flex', gap: 12, fontSize: 11, color: '#8A8060', flexWrap: 'wrap' }}>
-                        <span>킬 <b style={{ color: '#E8DFC0' }}>{t.kills}</b></span>
-                        <span>보너스 <b style={{ color: '#F5A623' }}>+{t.bonus}</b></span>
-                        <span>패널티 <b style={{ color: '#E53935' }}>-{t.penalty}</b></span>
+                      <div style={{ fontSize: 14, fontWeight: 'var(--kn-w-bold)', marginBottom: 3 }}>{t.name}</div>
+                      <div style={{ display: 'flex', gap: 12, fontSize: 11, color: 'var(--kn-text-muted)', flexWrap: 'wrap' }}>
+                        <span>킬 <b style={{ color: 'var(--kn-text)' }}>{t.kills}</b></span>
+                        <span>보너스 <b style={{ color: 'var(--kn-success)' }}>+{t.bonus}</b></span>
+                        <span>패널티 <b style={{ color: 'var(--kn-danger)' }}>-{t.penalty}</b></span>
                         {t.adj !== 0 && (
-                          <span>수동조정 <b style={{ color: t.adj > 0 ? '#F5A623' : '#E53935' }}>{t.adj > 0 ? '+' : ''}{t.adj}</b></span>
+                          <span>수동조정 <b style={{ color: t.adj > 0 ? 'var(--kn-success)' : 'var(--kn-danger)' }}>{t.adj > 0 ? '+' : ''}{t.adj}</b></span>
                         )}
                       </div>
                     </div>
-                    {/* 최종 점수 */}
-                    <div style={{
-                      fontFamily: "'Barlow Condensed', sans-serif",
-                      fontSize: idx === 0 ? 44 : 36,
-                      fontWeight: 900,
-                      color: idx === 0 ? '#F5A623' : '#E8DFC0',
+                    <div data-display="" style={{
+                      fontSize: idx === 0 ? 40 : 32,
+                      color: idx === 0 ? 'var(--kn-accent)' : 'var(--kn-text)',
+                      fontFamily: 'var(--kn-font-mono)',
                       minWidth: 60, textAlign: 'right',
                     }}>
                       {t.total}
@@ -277,54 +257,46 @@ export default function ResultPage() {
 
             {/* 개인별 최종 통계 */}
             <section>
-              <div style={{ fontSize: 11, color: '#8A8060', letterSpacing: 2, marginBottom: 10 }}>개인 최종 통계</div>
-              <div style={{ background: '#1C1A0C', border: '1px solid rgba(200,155,0,0.15)', borderRadius: 8, overflow: 'hidden' }}>
-                {teamScores.map((team, tIdx) => {
-                  const stats = [...(team.members || [])]
-                    .map((m) => ({
-                      nick:    m.playerNickname,
-                      kills:   m.totalKills,
-                      bonus:   m.bonusKills,
-                      penalty: m.penaltyKills,
-                      total:   m.effectiveKills,
-                      damage:  getPlayerDamage(m.playerNickname, matches),
-                    }))
+              <span data-label="" style={{ marginBottom: 10, display: 'block' }}>개인 최종 통계</span>
+              <div style={{ background: 'var(--kn-surface-1)', border: '1px solid var(--kn-border)', borderRadius: 'var(--kn-r-lg)', overflow: 'hidden' }}>
+                {teams.map((team, tIdx) => {
+                  const stats = (team.players || [])
+                    .map((p) => { const nick = typeof p === 'string' ? p : p.nickname; return { nick, ...calcPlayerStats(nick, matches, rule) }; })
                     .sort((a, b) => b.kills - a.kills);
                   return (
                     <div key={team.id}>
-                      {/* 팀 헤더 */}
                       <div style={{
-                        background: 'rgba(200,155,0,0.06)', borderLeft: '3px solid #F5A623',
-                        padding: '8px 14px', fontSize: 12, fontWeight: 700,
-                        borderTop: tIdx > 0 ? '1px solid rgba(200,155,0,0.1)' : 'none',
+                        background: 'var(--kn-surface-2)', borderLeft: '3px solid var(--kn-accent)',
+                        padding: '8px 14px', fontSize: 12, fontWeight: 'var(--kn-w-bold)',
+                        borderTop: tIdx > 0 ? '1px solid var(--kn-border)' : 'none',
                         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                       }}>
                         <span>{team.name}</span>
-                        <span style={{ fontSize: 11, color: '#8A8060', fontWeight: 400 }}>{(team.members || []).length}명</span>
+                        <span style={{ fontSize: 11, color: 'var(--kn-text-muted)', fontWeight: 400 }}>{(team.players || []).length}명</span>
                       </div>
                       {stats.length === 0 ? (
-                        <div style={{ padding: '12px 14px', fontSize: 12, color: '#555' }}>플레이어 없음</div>
+                        <div style={{ padding: '12px 14px', fontSize: 12, color: 'var(--kn-text-dim)' }}>플레이어 없음</div>
                       ) : (
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                           <thead>
-                            <tr style={{ borderBottom: '1px solid rgba(200,155,0,0.08)' }}>
+                            <tr style={{ borderBottom: '1px solid var(--kn-border)' }}>
                               {['닉네임', '킬', '데미지', '보너스', '패널티', '총점'].map((h) => (
-                                <th key={h} style={{ padding: '7px 12px', textAlign: 'left', fontSize: 11, color: '#8A8060', fontWeight: 500 }}>{h}</th>
+                                <th key={h} style={{ padding: '7px 12px', textAlign: 'left', fontSize: 11, color: 'var(--kn-text-muted)', fontWeight: 500 }}>{h}</th>
                               ))}
                             </tr>
                           </thead>
                           <tbody>
                             {stats.map((p, pIdx) => (
-                              <tr key={p.nick} style={{ borderBottom: '1px solid rgba(200,155,0,0.05)', background: pIdx === 0 && p.kills > 0 ? 'rgba(245,166,35,0.03)' : 'transparent' }}>
+                              <tr key={p.nick} style={{ borderBottom: '1px solid var(--kn-border)', background: pIdx === 0 && p.kills > 0 ? 'color-mix(in oklab, var(--kn-accent) 3%, transparent)' : 'transparent' }}>
                                 <td style={{ padding: '8px 12px', fontSize: 13, fontWeight: pIdx === 0 ? 700 : 400 }}>
-                                  {pIdx === 0 && p.kills > 0 && <span style={{ color: '#F5A623', marginRight: 4 }}>★</span>}
+                                  {pIdx === 0 && p.kills > 0 && <Icon name="zap" size={12} color="var(--kn-accent)" style={{ marginRight: 4 }} />}
                                   {p.nick}
                                 </td>
                                 <td style={{ padding: '8px 12px', fontSize: 13, fontWeight: 700 }}>{p.kills}</td>
-                                <td style={{ padding: '8px 12px', fontSize: 12, color: '#8A8060' }}>{p.damage}</td>
-                                <td style={{ padding: '8px 12px', fontSize: 13, color: '#F5A623' }}>{p.bonus > 0 ? `+${p.bonus}` : '0'}</td>
-                                <td style={{ padding: '8px 12px', fontSize: 13, color: p.penalty > 0 ? '#E53935' : '#555' }}>{p.penalty > 0 ? `-${p.penalty}` : '0'}</td>
-                                <td style={{ padding: '8px 12px', fontSize: 16, fontWeight: 900, color: '#F5A623' }}>{p.total}</td>
+                                <td style={{ padding: '8px 12px', fontSize: 12, color: 'var(--kn-text-muted)' }}>{p.damage}</td>
+                                <td style={{ padding: '8px 12px', fontSize: 13, color: 'var(--kn-success)' }}>{p.bonus > 0 ? `+${p.bonus}` : '0'}</td>
+                                <td style={{ padding: '8px 12px', fontSize: 13, color: p.penalty > 0 ? 'var(--kn-danger)' : 'var(--kn-text-dim)' }}>{p.penalty > 0 ? `-${p.penalty}` : '0'}</td>
+                                <td style={{ padding: '8px 12px', fontSize: 16, fontWeight: 900, color: 'var(--kn-accent)' }}>{p.total}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -342,41 +314,39 @@ export default function ResultPage() {
 
             {/* 매치 히스토리 */}
             <section>
-              <div style={{ fontSize: 11, color: '#8A8060', letterSpacing: 2, marginBottom: 10 }}>매치 히스토리</div>
-              <div style={{ background: '#1C1A0C', border: '1px solid rgba(200,155,0,0.15)', borderRadius: 8, padding: '12px 14px', maxHeight: 320, overflowY: 'auto' }}>
+              <span data-label="" style={{ marginBottom: 10, display: 'block' }}>매치 히스토리</span>
+              <div style={{ background: 'var(--kn-surface-1)', border: '1px solid var(--kn-border)', borderRadius: 'var(--kn-r-lg)', padding: '12px 14px', maxHeight: 320, overflowY: 'auto' }}>
                 {matches.length === 0 ? (
-                  <div style={{ color: '#555', fontSize: 12, textAlign: 'center', padding: '20px 0' }}>매치 기록 없음</div>
+                  <div style={{ color: 'var(--kn-text-dim)', fontSize: 12, textAlign: 'center', padding: '20px 0' }}>매치 기록 없음</div>
                 ) : (
                   [...matches].reverse().map((m) => {
                     const results = m.memberResults || [];
                     const hasChicken = results.some((r) => r.isChicken);
                     const chickenTeam = hasChicken ? teams.find((t) => results.find((r) => r.isChicken && r.teamId === t.id)) : null;
-                    // 팀별 킬 합산
                     const teamKills = teams.map((t) => ({
                       name: t.name,
                       kills: results.filter((r) => r.teamId === t.id).reduce((s, r) => s + r.kills, 0),
                     }));
                     return (
-                      <div key={m.matchId} style={{ padding: '10px 0', borderBottom: '1px solid rgba(200,155,0,0.07)' }}>
+                      <div key={m.matchId} style={{ padding: '10px 0', borderBottom: '1px solid var(--kn-border)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: '#F5A623' }}>매치 #{m.matchNumber}</span>
-                          <span style={{ fontSize: 10, color: '#555' }}>{m.playedAt ? new Date(m.playedAt).toLocaleTimeString('ko') : ''}</span>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--kn-accent)' }}>매치 #{m.matchNumber}</span>
+                          <span style={{ fontSize: 10, color: 'var(--kn-text-dim)' }}>{m.playedAt ? new Date(m.playedAt).toLocaleTimeString('ko') : ''}</span>
                         </div>
-                        {/* 팀별 이번 매치 킬 */}
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                           {teamKills.map((tk) => (
                             <div key={tk.name} style={{
-                              background: '#141200', border: '1px solid rgba(200,155,0,0.12)',
-                              borderRadius: 4, padding: '3px 8px', fontSize: 11,
+                              background: 'var(--kn-surface-2)', border: '1px solid var(--kn-border)',
+                              borderRadius: 'var(--kn-r-sm)', padding: '3px 8px', fontSize: 11,
                             }}>
-                              <span style={{ color: '#8A8060' }}>{tk.name} </span>
+                              <span style={{ color: 'var(--kn-text-muted)' }}>{tk.name} </span>
                               <span style={{ fontWeight: 700 }}>{tk.kills}킬</span>
                             </div>
                           ))}
                         </div>
                         {chickenTeam && (
-                          <div style={{ fontSize: 11, color: '#F5A623', marginTop: 4 }}>
-                            🍗 {chickenTeam.name} 치킨!
+                          <div style={{ fontSize: 11, color: 'var(--kn-accent)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <Icon name="trophy" size={12} /> {chickenTeam.name} 치킨!
                           </div>
                         )}
                       </div>
@@ -388,25 +358,25 @@ export default function ResultPage() {
 
             {/* 룰 요약 */}
             <section>
-              <div style={{ fontSize: 11, color: '#8A8060', letterSpacing: 2, marginBottom: 10 }}>적용 룰</div>
-              <div style={{ background: '#1C1A0C', border: '1px solid rgba(200,155,0,0.15)', borderRadius: 8, padding: '14px 16px' }}>
-                {/* 기본 설정 */}
-                <div style={{ fontSize: 12, color: '#8A8060', marginBottom: 8 }}>
-                  {rule.gameMode} · 목표 {rule.targetKills}킬 ·&nbsp;
+              <span data-label="" style={{ marginBottom: 10, display: 'block' }}>적용 룰</span>
+              <div style={{ background: 'var(--kn-surface-1)', border: '1px solid var(--kn-border)', borderRadius: 'var(--kn-r-lg)', padding: '14px 16px' }}>
+                <div style={{ fontSize: 12, color: 'var(--kn-text-muted)', marginBottom: 8 }}>
+                  목표 {rule.targetKills}킬 ·&nbsp;
                   {rule.noTimeLimit ? '시간 제한 없음' : `${rule.timeLimitMin}분`}
                 </div>
-                {/* 보너스/패널티 항목 */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   {[
-                    { label: '🎯 헤드샷',  on: rule.headShotBonusOn,   val: `+${rule.headShotBonus}` },
-                    { label: '🤝 어시스트', on: rule.assistBonusOn,     val: `+${rule.assistBonus}` },
-                    { label: '🍗 치킨',    on: rule.chickenBonusOn,    val: `+${rule.chickenBonus}` },
-                    { label: '💀 팀킬',    on: rule.teamKillPenaltyOn, val: `-${rule.teamKillPenalty}` },
-                    { label: '☠️ 사망',    on: rule.deathPenaltyOn,    val: `-${rule.deathPenalty}` },
+                    { label: '헤드샷', icon: 'target', on: rule.headShotBonusOn, val: `+${rule.headShotBonus}` },
+                    { label: '어시스트', icon: 'users', on: rule.assistBonusOn, val: `+${rule.assistBonus}` },
+                    { label: '치킨', icon: 'trophy', on: rule.chickenBonusOn, val: `+${rule.chickenBonus}` },
+                    { label: '팀킬', icon: 'alert', on: rule.teamKillPenaltyOn, val: `-${rule.teamKillPenalty}` },
+                    { label: '사망', icon: 'flame', on: rule.deathPenaltyOn, val: `-${rule.deathPenalty}` },
                   ].map((item) => (
-                    <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, opacity: item.on ? 1 : 0.35 }}>
-                      <span style={{ color: '#8A8060' }}>{item.label}</span>
-                      <span style={{ fontWeight: 700, color: item.val.startsWith('+') ? '#F5A623' : '#E53935' }}>
+                    <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, opacity: item.on ? 1 : 0.35 }}>
+                      <span style={{ color: 'var(--kn-text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Icon name={item.icon} size={13} /> {item.label}
+                      </span>
+                      <span style={{ fontWeight: 700, color: item.val.startsWith('+') ? 'var(--kn-success)' : 'var(--kn-danger)' }}>
                         {item.on ? item.val : '비활성'}
                       </span>
                     </div>
@@ -419,7 +389,7 @@ export default function ResultPage() {
 
         {/* 하단 버튼 */}
         <div style={{ marginTop: 32, display: 'flex', justifyContent: 'center' }}>
-          <Button size="lg" onClick={() => router.push('/dashboard')} style={{ minWidth: 200 }}>
+          <Button variant="primary" size="lg" onClick={() => router.push('/dashboard')} icon="back" style={{ minWidth: 200 }}>
             대시보드로 돌아가기
           </Button>
         </div>
