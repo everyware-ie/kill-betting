@@ -1,27 +1,11 @@
 services:
-  mysql:
-    image: mysql:8.0
-    container_name: killnagi-mysql
-    environment:
-      MYSQL_DATABASE: ${DB_NAME:-killnagi}
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql-data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   backend:
     build:
       context: ./backend
     image: ghcr.io/everyware-ie/kill-betting-backend:${IMAGE_TAG:-latest}
     container_name: killnagi-backend
     environment:
-      DB_HOST: mysql
+      DB_HOST: killnagi-mysql
       DB_PORT: 3306
       DB_NAME: ${DB_NAME:-killnagi}
       DB_USERNAME: ${DB_USERNAME:-root}
@@ -39,11 +23,12 @@ services:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-default}
     ports:
       - "8080:8080"
-    depends_on:
-      mysql:
-        condition: service_healthy
+    networks:
+      - default
+      - killnagi-net
     volumes:
       - upload-data:/app/uploads
+    restart: on-failure
 
   frontend:
     build:
@@ -58,5 +43,9 @@ services:
       - backend
 
 volumes:
-  mysql-data:
   upload-data:
+
+networks:
+  killnagi-net:
+    external: true
+    name: killnagi-net
