@@ -28,7 +28,10 @@ function calcTeamScore(teamId, matches, rule, adjustments = []) {
     if (teamResults.length === 0) continue;
     const hasChicken = teamResults.some((r) => r.isChicken);
     if (rule.chickenBonusOn && hasChicken) bonus += rule.chickenBonus;
-    for (const r of teamResults) { kills += r.kills; }
+    for (const r of teamResults) {
+      kills += r.kills;
+      if (rule.survivalPenaltyOn && !r.isTop10) penalty += rule.survivalPenalty;
+    }
   }
   const adj = adjustments
     .filter((a) => a.teamId === teamId)
@@ -43,6 +46,7 @@ function calcPlayerStats(nick, matches, rule) {
       if (r.playerNickname !== nick) continue;
       kills  += r.kills;
       damage += r.damage || 0;
+      if (rule.survivalPenaltyOn && !r.isTop10) penalty += rule.survivalPenalty;
     }
   }
   return { kills, bonus, penalty, damage, total: kills + bonus - penalty };
@@ -168,7 +172,9 @@ function TeamResultModal({ room, teamId, matchNumber, sessionId, onConfirmed, on
   const previewBonus = results.reduce((s, r) =>
     s + (rule.assistBonusOn ? (r.assists || 0) * rule.assistBonus : 0), 0)
     + (claimsChicken && rule.chickenBonusOn ? rule.chickenBonus : 0);
-  const previewPenalty = 0;
+  const previewPenalty = rule.survivalPenaltyOn
+    ? results.filter((r) => !r.isTop10).length * rule.survivalPenalty
+    : 0;
   const previewTotal = previewKills + previewBonus - previewPenalty;
 
   const handleSubmit = async () => {
@@ -589,8 +595,8 @@ function AdminModal({ room, onAdjust, onEnd, onRuleUpdate, onClose }) {
               <RuleBonusRow label="팀킬 패널티" on={rule.teamKillPenaltyOn} onToggle={() => setR('teamKillPenaltyOn', !rule.teamKillPenaltyOn)}>
                 <NumberStepper val={rule.teamKillPenalty} min={1} disabled={!rule.teamKillPenaltyOn} onChange={(v) => setR('teamKillPenalty', v)} color="var(--kn-danger)" />
               </RuleBonusRow>
-              <RuleBonusRow label="조기사망 패널티" on={rule.deathPenaltyOn} onToggle={() => setR('deathPenaltyOn', !rule.deathPenaltyOn)}>
-                <NumberStepper val={rule.deathPenalty} min={1} disabled={!rule.deathPenaltyOn} onChange={(v) => setR('deathPenalty', v)} color="var(--kn-danger)" />
+              <RuleBonusRow label="조기사망 패널티" on={rule.survivalPenaltyOn} onToggle={() => setR('survivalPenaltyOn', !rule.survivalPenaltyOn)}>
+                <NumberStepper val={rule.survivalPenalty} min={1} disabled={!rule.survivalPenaltyOn} onChange={(v) => setR('survivalPenalty', v)} color="var(--kn-danger)" />
               </RuleBonusRow>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10, marginTop: 18 }}>

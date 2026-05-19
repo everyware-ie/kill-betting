@@ -138,7 +138,6 @@ export const RoomAPI = {
     return apiFetch(`/sessions/join/${roomCode}`);
   },
 
-  // TODO: 백엔드 API 경로 불일치 — 백엔드: PUT /sessions/{id}/rules/{ruleId}, 프론트: 전체 룰 일괄 수정
   updateRule: async (sessionId, rule) => {
     if (USE_MOCK) {
       await delay(250);
@@ -147,7 +146,19 @@ export const RoomAPI = {
       room.rule = { ...rule };
       return ok({ rule });
     }
-    return err('백엔드 미구현');
+    const updates = [
+      { ruleId: rule.chickenBonusRuleId, value: rule.chickenBonusOn ? rule.chickenBonus : 0 },
+      { ruleId: rule.survivalPenaltyRuleId, value: rule.survivalPenaltyOn ? rule.survivalPenalty : 0 },
+    ].filter((u) => u.ruleId != null);
+
+    for (const { ruleId, value } of updates) {
+      const res = await apiFetch(`/sessions/${sessionId}/rules/${ruleId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ value }),
+      });
+      if (!res.success) return res;
+    }
+    return ok({ rule });
   },
 
   /**
