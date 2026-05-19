@@ -85,7 +85,7 @@ function TeamResultModal({ room, teamId, matchNumber, sessionId, onConfirmed, on
     (team.players || []).map((p) => ({
       nick: typeof p === 'string' ? p : p.nickname, teamId,
       kills: 0, damage: 0,
-      headShot: false, assist: false, teamKills: 0, earlyDeath: false,
+      assists: 0, isTop10: false,
     }))
   );
   const [claimsChicken, setClaimsChicken] = useState(false);
@@ -141,25 +141,40 @@ function TeamResultModal({ room, teamId, matchNumber, sessionId, onConfirmed, on
       }));
       setOcrFilledNicks(filled);
       const teamNicks = new Set((team.players || []).map((p) => (typeof p === 'string' ? p : p.nickname).toLowerCase()));
-      setOcrUnmatched(stats.filter((p) => !teamNicks.has(p.nickname?.toLowerCase())).map((p) => p.nickname));
+      setOcrUnmatched(stats.filter((p) => !teamNicks.has(p.nickname?.toLowerCase())));
     }
     setOcrDone(true);
   };
 
+  // ── 미매칭 OCR 결과를 팀원에 수동 매핑 ──
+  const handleOcrMapping = (ocrNickname, teamNick) => {
+    if (!teamNick) return;
+    const ocrItem = ocrUnmatched.find((u) => u.nickname === ocrNickname);
+    if (!ocrItem) return;
+    setResults((prev) => prev.map((r) =>
+      r.nick === teamNick
+        ? { ...r, kills: ocrItem.kills ?? r.kills, damage: ocrItem.damage ?? r.damage }
+        : r
+    ));
+    setOcrUnmatched((prev) => prev.filter((u) => u.nickname !== ocrNickname));
+    setOcrFilledNicks((prev) => new Set([...prev, teamNick]));
+  };
+
+  const unmappedTeamNicks = results
+    .filter((r) => !ocrFilledNicks.has(r.nick))
+    .map((r) => r.nick);
+
   const previewKills = results.reduce((s, r) => s + r.kills, 0);
   const previewBonus = results.reduce((s, r) =>
-    s + (rule.headShotBonusOn && r.headShot ? rule.headShotBonus : 0)
-      + (rule.assistBonusOn && r.assist ? rule.assistBonus : 0), 0)
+    s + (rule.assistBonusOn ? (r.assists || 0) * rule.assistBonus : 0), 0)
     + (claimsChicken && rule.chickenBonusOn ? rule.chickenBonus : 0);
-  const previewPenalty = results.reduce((s, r) =>
-    s + (rule.teamKillPenaltyOn ? (r.teamKills || 0) * rule.teamKillPenalty : 0)
-      + (rule.deathPenaltyOn && r.earlyDeath ? rule.deathPenalty : 0), 0);
+  const previewPenalty = 0;
   const previewTotal = previewKills + previewBonus - previewPenalty;
 
   const handleSubmit = async () => {
     if (!matchId) { setOcrError('먼저 스크린샷을 업로드하고 분석을 완료해주세요'); return; }
     setSubmitting(true);
-    const playerResults = results.map((r) => ({ nickname: r.nick, kills: r.kills, damage: r.damage || 0, assists: r.assist ? 1 : 0, isTop10: false }));
+    const playerResults = results.map((r) => ({ nickname: r.nick, kills: r.kills, damage: r.damage || 0, assists: r.assists || 0, isTop10: r.isTop10 || false }));
     const confirmRes = await RoomAPI.confirmMatch(matchId, { playerResults, isChicken: claimsChicken, mapName: ocrMapName, placement: ocrPlacement, playTime: ocrPlayTime });
     setSubmitting(false);
     if (!confirmRes.success) { setOcrError(confirmRes.error || '매치 확정에 실패했습니다'); return; }
@@ -250,7 +265,35 @@ function TeamResultModal({ room, teamId, matchNumber, sessionId, onConfirmed, on
                 <Icon name="check" size={13} /> OCR 완료 — {ocrFilledNicks.size}명 자동 입력됨
                 {ocrMapName && <span style={{ color: 'var(--kn-text-muted)' }}>맵: {ocrMapName}</span>}
                 {ocrPlacement > 0 && <span style={{ color: 'var(--kn-text-muted)' }}>순위: #{ocrPlacement}</span>}
-                {ocrUnmatched.length > 0 && <span style={{ color: 'var(--kn-accent)' }}>미매칭: {ocrUnmatched.join(', ')}</span>}
+              </div>
+            )}
+
+            {/* 미매칭 OCR 결과 — 수동 매핑 UI */}
+            {ocrDone && ocrUnmatched.length > 0 && (
+              <div style={{ marginTop: 8, padding: '10px 12px', background: 'color-mix(in oklab, var(--kn-accent) 6%, transparent)', border: '1px solid color-mix(in oklab, var(--kn-accent) 25%, transparent)', borderRadius: 'var(--kn-r-md)' }}>
+                <div style={{ fontSize: 11, color: 'var(--kn-accent)', fontWeight: 600, marginBottom: 8 }}>
+                  닉네임 미매칭 {ocrUnmatched.length}건 — 팀원을 선택해 연결하세요
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {ocrUnmatched.map((u) => (
+                    <div key={u.nickname} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 8px', background: 'var(--kn-surface-1)', borderRadius: 'var(--kn-r-md)', border: '1px solid var(--kn-border)' }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--kn-text)', minWidth: 80 }}>"{u.nickname}"</span>
+                      <span style={{ fontSize: 11, color: 'var(--kn-text-muted)' }}>킬 {u.kills ?? 0}</span>
+                      <span style={{ fontSize: 11, color: 'var(--kn-text-muted)' }}>데미지 {u.damage ?? 0}</span>
+                      <Icon name="arrow-right" size={12} color="var(--kn-text-dim)" />
+                      <select
+                        defaultValue=""
+                        onChange={(e) => { handleOcrMapping(u.nickname, e.target.value); e.target.value = ''; }}
+                        style={{ flex: 1, background: 'var(--kn-surface-3)', border: '1px solid color-mix(in oklab, var(--kn-accent) 30%, transparent)', color: 'var(--kn-text)', padding: '5px 8px', borderRadius: 'var(--kn-r-md)', fontSize: 12, fontFamily: 'inherit', outline: 'none', cursor: 'pointer' }}
+                      >
+                        <option value="">팀원 선택...</option>
+                        {unmappedTeamNicks.map((nick) => (
+                          <option key={nick} value={nick}>{nick}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -276,7 +319,7 @@ function TeamResultModal({ room, teamId, matchNumber, sessionId, onConfirmed, on
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--kn-border)' }}>
-                  {['닉네임', '킬', '데미지', '헤드샷', '어시스트', '팀킬', '일찍사망'].map((h) => (
+                  {['닉네임', '킬', '데미지', '어시스트', '개인 등수 10등 이내'].map((h) => (
                     <th key={h} style={{ padding: '8px 10px', textAlign: 'left', color: 'var(--kn-text-muted)', fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
@@ -302,16 +345,14 @@ function TeamResultModal({ room, teamId, matchNumber, sessionId, onConfirmed, on
                           onChange={(e) => setR(r.nick, 'damage', parseInt(e.target.value)||0)}
                           style={{ width: 70, background: 'var(--kn-surface-3)', border: '1px solid var(--kn-border-strong)', color: 'var(--kn-text)', padding: '4px 8px', borderRadius: 'var(--kn-r-md)', fontSize: 12, outline: 'none', fontFamily: 'var(--kn-font-mono)', textAlign: 'center' }} />
                       </td>
-                      <td style={{ padding: '6px 10px', textAlign: 'center' }}><ToggleMini on={r.headShot} onChange={() => setR(r.nick, 'headShot', !r.headShot)} /></td>
-                      <td style={{ padding: '6px 10px', textAlign: 'center' }}><ToggleMini on={r.assist} onChange={() => setR(r.nick, 'assist', !r.assist)} /></td>
                       <td style={{ padding: '6px 10px' }}>
                         <div style={{ display: 'flex' }}>
-                          <button onClick={() => setR(r.nick, 'teamKills', Math.max(0, (r.teamKills||0) - 1))} style={btnStyle}>−</button>
-                          <span style={{ width: 28, textAlign: 'center', lineHeight: '26px', background: 'var(--kn-surface-3)', borderTop: '1px solid var(--kn-border-strong)', borderBottom: '1px solid var(--kn-border-strong)', fontWeight: 700, color: 'var(--kn-danger)', fontFamily: 'var(--kn-font-mono)' }}>{r.teamKills||0}</span>
-                          <button onClick={() => setR(r.nick, 'teamKills', (r.teamKills||0) + 1)} style={btnStyle}>+</button>
+                          <button onClick={() => setR(r.nick, 'assists', Math.max(0, (r.assists||0) - 1))} style={btnStyle}>−</button>
+                          <span style={{ width: 32, textAlign: 'center', lineHeight: '26px', background: 'var(--kn-surface-3)', borderTop: '1px solid var(--kn-border-strong)', borderBottom: '1px solid var(--kn-border-strong)', fontWeight: 700, color: 'var(--kn-accent)', fontFamily: 'var(--kn-font-mono)' }}>{r.assists||0}</span>
+                          <button onClick={() => setR(r.nick, 'assists', (r.assists||0) + 1)} style={btnStyle}>+</button>
                         </div>
                       </td>
-                      <td style={{ padding: '6px 10px', textAlign: 'center' }}><ToggleMini on={r.earlyDeath} onChange={() => setR(r.nick, 'earlyDeath', !r.earlyDeath)} /></td>
+                      <td style={{ padding: '6px 10px', textAlign: 'center' }}><ToggleMini on={r.isTop10} onChange={() => setR(r.nick, 'isTop10', !r.isTop10)} /></td>
                     </tr>
                   );
                 })}
