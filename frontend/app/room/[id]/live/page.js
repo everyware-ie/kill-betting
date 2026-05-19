@@ -664,7 +664,7 @@ export default function LivePage() {
   const handleAdjust = async (teamId, amount, reason) => {
     const res = await RoomAPI.addAdjustment(sessionId, teamId, amount, reason);
     if (res.success) {
-      setAdjs((prev) => [...prev, { teamId: parseInt(teamId), amount }]);
+      setAdjs((prev) => [...prev, { teamId: parseInt(teamId), amount, reason }]);
     }
   };
 
@@ -701,7 +701,6 @@ export default function LivePage() {
   // ── 경기 종료 조건 체크 ──
   // 목표 킬에 먼저 도달한 팀이 있거나, 제한 시간이 만료되면 종료 안내
   const targetReachedTeam = teamScores.find((t) => t.total >= rule.targetKills);
-  const timeLeft = timeLimit ? Math.max(0, timeLimit - elapsed) : null;
   const timeOver = timeLeft !== null && timeLeft === 0;
   const gameOver = !!targetReachedTeam || timeOver;
 
@@ -804,8 +803,8 @@ export default function LivePage() {
             {teamScores.map((t, idx) => {
               const isFirst = idx === 0;
               const safeTarget = rule.targetKills > 0 ? rule.targetKills : 1;
-              const progress = Math.min(100, Math.round((t.kills / safeTarget) * 100));
-              const isTargetDone = t.kills >= rule.targetKills;
+              const progress = Math.min(100, Math.round((t.total / safeTarget) * 100));
+              const isTargetDone = t.total >= rule.targetKills;
               return (
                 <div key={t.id} style={{
                   background: 'var(--kn-surface-1)',
@@ -959,10 +958,10 @@ export default function LivePage() {
               <div style={{ marginTop: 12 }}>
                 <span data-label="" style={{ marginBottom: 8, display: 'block' }}>점수 조정 내역</span>
                 <div style={{ background: 'var(--kn-surface-1)', border: '1px solid var(--kn-border)', borderRadius: 'var(--kn-r-lg)', padding: '10px 14px' }}>
-                  {adjs.map((a) => {
+                  {adjs.map((a, i) => {
                     const team = teams.find((t) => t.id === a.teamId);
                     return (
-                      <div key={a.id} style={{ padding: '6px 0', borderBottom: '1px solid var(--kn-border)', fontSize: 11 }}>
+                      <div key={i} style={{ padding: '6px 0', borderBottom: '1px solid var(--kn-border)', fontSize: 11 }}>
                         <span style={{ color: 'var(--kn-text-muted)' }}>{team?.name}</span>
                         <span style={{ marginLeft: 8, color: a.amount > 0 ? 'var(--kn-success)' : 'var(--kn-danger)', fontWeight: 700 }}>
                           {a.amount > 0 ? '+' : ''}{a.amount}
