@@ -643,6 +643,9 @@ export default function LivePage() {
         if (matchRes.success) setMatches(matchRes.data?.matches || []);
       });
     }
+    if (envelope.type === 'SESSION_ENDED') {
+      router.push(`/room/${roomCode}/result`);
+    }
   }, !!user && !!sessionId);
 
   const openTeamModal = useCallback((teamId) => {

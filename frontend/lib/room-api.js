@@ -239,7 +239,24 @@ export const RoomAPI = {
       room.endedAt = new Date().toISOString();
       return ok({ room });
     }
-    return err('백엔드 미구현');
+    return apiFetch(`/sessions/${sessionId}/end`, { method: 'POST' });
+  },
+
+  /**
+   * 스코어보드 조회
+   *
+   * [실제 API]
+   *   GET /sessions/:sessionId/scoreboard
+   *   Response 200: { sessionId, sessionName, status, winnerTeamId, winnerTeamName, isDraw, teams[] }
+   */
+  getScoreboard: async (sessionId) => {
+    if (USE_MOCK) {
+      await delay(150);
+      const room = _runtimeRooms.find((r) => r.id === sessionId);
+      if (!room) return err('방을 찾을 수 없습니다');
+      return ok({ teams: [] });
+    }
+    return apiFetch(`/sessions/${sessionId}/scoreboard`);
   },
 
   /**

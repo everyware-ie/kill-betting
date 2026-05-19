@@ -37,14 +37,10 @@ function calcPlayerStats(nick, matches, rule) {
   let kills = 0, bonus = 0, penalty = 0, damage = 0, chickens = 0;
   for (const m of matches) {
     for (const r of (m.memberResults || [])) {
-      if (r.playerNickname !== nick) continue;
-      kills  += r.kills;
-      damage += r.damage || 0;
+      if (r.playerNickname === nick) damage += r.damage || 0;
     }
-    const myResult = (m.memberResults || []).find((r) => r.playerNickname === nick);
-    if (myResult?.isChicken) chickens++;
   }
-  return { kills, bonus, penalty, damage, chickens, total: kills + bonus - penalty };
+  return damage;
 }
 
 // ─────────────────────────────────────────
@@ -79,23 +75,24 @@ export default function ResultPage() {
   const { id: roomCode } = useParams();
   const { user } = useAuth();
 
-  const [room,    setRoom]    = useState(null);
-  const [matches, setMatches] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState('');
+  const [room,       setRoom]       = useState(null);
+  const [scoreboard, setScoreboard] = useState(null);
+  const [matches,    setMatches]    = useState([]);
+  const [loading,    setLoading]    = useState(true);
+  const [error,      setError]      = useState('');
 
   useEffect(() => {
     if (!user) return;
     RoomAPI.get(roomCode).then(async (roomRes) => {
       if (!roomRes.success) { setError(roomRes.error); setLoading(false); return; }
       const session = roomRes.data;
-      const teamsRes = await RoomAPI.getTeams(session.id);
-      const teams = teamsRes.success ? teamsRes.data.map((t) => ({
-        id: t.id, name: t.name,
-        players: (t.players || []).map((nick, idx) => ({ id: idx, nickname: nick })),
-      })) : [];
-      setRoom({ ...session, rule: mapSessionRule(session), teams });
-      const matchRes = await RoomAPI.getMatches(session.id);
+      setRoom({ ...session, rule: mapSessionRule(session) });
+
+      const [scoreboardRes, matchRes] = await Promise.all([
+        RoomAPI.getScoreboard(session.id),
+        RoomAPI.getMatches(session.id),
+      ]);
+      if (scoreboardRes.success) setScoreboard(scoreboardRes.data);
       if (matchRes.success) setMatches(matchRes.data?.matches || []);
       setLoading(false);
     });
