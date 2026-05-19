@@ -15,29 +15,14 @@ import Button       from '@/components/ui/Button';
 import Icon         from '@/components/ui/Icon';
 
 // ─────────────────────────────────────────
-//  점수 계산 유틸
+//  유틸
 // ─────────────────────────────────────────
 
-function calcTeamScore(teamId, matches, rule, adjustments = []) {
-  let kills = 0, bonus = 0, penalty = 0;
-  for (const m of matches) {
-    const teamResults = (m.memberResults || []).filter((r) => r.teamId === teamId);
-    if (teamResults.length === 0) continue;
-    const hasChicken = teamResults.some((r) => r.isChicken);
-    if (rule.chickenBonusOn && hasChicken) bonus += rule.chickenBonus;
-    for (const r of teamResults) { kills += r.kills; }
-  }
-  const adj = adjustments
-    .filter((a) => a.teamId === teamId)
-    .reduce((s, a) => s + a.amount, 0);
-  return { kills, bonus, penalty, adj, total: kills + bonus - penalty + adj };
-}
-
-function calcPlayerStats(nick, matches, rule) {
-  let kills = 0, bonus = 0, penalty = 0, damage = 0, chickens = 0;
+function getPlayerDamage(nickname, matches) {
+  let damage = 0;
   for (const m of matches) {
     for (const r of (m.memberResults || [])) {
-      if (r.playerNickname === nick) damage += r.damage || 0;
+      if (r.playerNickname === nickname) damage += r.damage || 0;
     }
   }
   return damage;
@@ -114,20 +99,39 @@ export default function ResultPage() {
     </div>
   );
 
-  const { rule, teams } = room;
-  const adjs = room.adjustments || [];
+  const { rule } = room;
 
-  const teamScores = [...teams]
-    .map((t) => ({ ...t, ...calcTeamScore(t.id, matches, rule, adjs) }))
-    .sort((a, b) => b.total - a.total);
+  // scoreboard API 응답 기반으로 팀 점수 구성
+  // TeamScoreResponse: { teamId, teamName, totalKills, ruleScore, adjustmentScore, effectiveKills, members[] }
+  const teamScores = scoreboard
+    ? [...scoreboard.teams]
+        .map((t) => ({
+          id:      t.teamId,
+          name:    t.teamName,
+          kills:   t.totalKills,
+          bonus:   Math.max(0, t.ruleScore),
+          penalty: Math.max(0, -t.ruleScore),
+          adj:     t.adjustmentScore ?? 0,
+          total:   t.effectiveKills,
+          members: t.members || [],
+        }))
+        .sort((a, b) => b.total - a.total)
+    : [];
 
   const winner = teamScores[0];
 
-  const allPlayerStats = teams.flatMap((t) =>
-    (t.players || []).map((p) => {
-      const nick = typeof p === 'string' ? p : p.nickname;
-      return { nick, teamName: t.name, ...calcPlayerStats(nick, matches, rule) };
-    })
+  // MVP: scoreboard members 기반 (누적 킬 기준)
+  // MemberScoreResponse: { playerId, playerNickname, totalKills, bonusKills, penaltyKills, effectiveKills }
+  const allPlayerStats = (scoreboard?.teams || []).flatMap((t) =>
+    (t.members || []).map((m) => ({
+      nick:     m.playerNickname,
+      teamName: t.teamName,
+      kills:    m.totalKills,
+      bonus:    m.bonusKills,
+      penalty:  m.penaltyKills,
+      total:    m.effectiveKills,
+      damage:   getPlayerDamage(m.playerNickname, matches),
+    }))
   ).sort((a, b) => b.kills - a.kills);
 
   const mvp = allPlayerStats[0];
@@ -259,9 +263,16 @@ export default function ResultPage() {
             <section>
               <span data-label="" style={{ marginBottom: 10, display: 'block' }}>개인 최종 통계</span>
               <div style={{ background: 'var(--kn-surface-1)', border: '1px solid var(--kn-border)', borderRadius: 'var(--kn-r-lg)', overflow: 'hidden' }}>
-                {teams.map((team, tIdx) => {
-                  const stats = (team.players || [])
-                    .map((p) => { const nick = typeof p === 'string' ? p : p.nickname; return { nick, ...calcPlayerStats(nick, matches, rule) }; })
+                {teamScores.map((team, tIdx) => {
+                  const stats = (team.members || [])
+                    .map((m) => ({
+                      nick:    m.playerNickname,
+                      kills:   m.totalKills,
+                      bonus:   m.bonusKills,
+                      penalty: m.penaltyKills,
+                      total:   m.effectiveKills,
+                      damage:  getPlayerDamage(m.playerNickname, matches),
+                    }))
                     .sort((a, b) => b.kills - a.kills);
                   return (
                     <div key={team.id}>
@@ -272,7 +283,7 @@ export default function ResultPage() {
                         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                       }}>
                         <span>{team.name}</span>
-                        <span style={{ fontSize: 11, color: 'var(--kn-text-muted)', fontWeight: 400 }}>{(team.players || []).length}명</span>
+                        <span style={{ fontSize: 11, color: 'var(--kn-text-muted)', fontWeight: 400 }}>{team.members.length}명</span>
                       </div>
                       {stats.length === 0 ? (
                         <div style={{ padding: '12px 14px', fontSize: 12, color: 'var(--kn-text-dim)' }}>플레이어 없음</div>
@@ -322,9 +333,11 @@ export default function ResultPage() {
                   [...matches].reverse().map((m) => {
                     const results = m.memberResults || [];
                     const hasChicken = results.some((r) => r.isChicken);
-                    const chickenTeam = hasChicken ? teams.find((t) => results.find((r) => r.isChicken && r.teamId === t.id)) : null;
-                    const teamKills = teams.map((t) => ({
-                      name: t.name,
+                    const chickenTeam = hasChicken
+                      ? teamScores.find((t) => results.find((r) => r.isChicken && r.teamId === t.id))
+                      : null;
+                    const teamKills = teamScores.map((t) => ({
+                      name:  t.name,
                       kills: results.filter((r) => r.teamId === t.id).reduce((s, r) => s + r.kills, 0),
                     }));
                     return (
