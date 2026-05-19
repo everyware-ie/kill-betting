@@ -86,13 +86,13 @@ export default function ResultPage() {
     RoomAPI.get(roomCode).then(async (roomRes) => {
       if (!roomRes.success) { setError(roomRes.error); setLoading(false); return; }
       const session = roomRes.data;
-      const teamsRes = await RoomAPI.getTeams(session.id);
-      const teams = teamsRes.success ? teamsRes.data.map((t) => ({
-        id: t.id, name: t.name,
-        players: (t.players || []).map((nick, idx) => ({ id: idx, nickname: nick })),
-      })) : [];
-      setRoom({ ...session, rule: mapSessionRule(session), teams });
-      const matchRes = await RoomAPI.getMatches(session.id);
+      setRoom({ ...session, rule: mapSessionRule(session) });
+
+      const [scoreboardRes, matchRes] = await Promise.all([
+        RoomAPI.getScoreboard(session.id),
+        RoomAPI.getMatches(session.id),
+      ]);
+      if (scoreboardRes.success) setScoreboard(scoreboardRes.data);
       if (matchRes.success) setMatches(matchRes.data?.matches || []);
       setLoading(false);
     });
