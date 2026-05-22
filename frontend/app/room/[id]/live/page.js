@@ -650,7 +650,7 @@ export default function LivePage() {
   const isHost = hostUserId === user?.id;
 
   useEffect(() => {
-    if (!user) return;
+    if (!roomCode) return;
     RoomAPI.get(roomCode).then(async (roomRes) => {
       if (!roomRes.success) { setLoading(false); return; }
       const session = roomRes.data;
@@ -666,7 +666,7 @@ export default function LivePage() {
       if (matchRes.success) setMatches(matchRes.data?.matches || []);
       setLoading(false);
     });
-  }, [roomCode, user]);
+  }, [roomCode]);
 
   useEffect(() => {
     const id = setInterval(() => setElapsed((e) => e + 1), 1000);

@@ -28,10 +28,12 @@ export function AuthProvider({ children }) {
 
   // 앱 시작 시 기존 세션 확인
   useEffect(() => {
-    AuthAPI.me().then((res) => {
-      if (res.success) setUser(res.data);
-      setLoading(false);
-    });
+    AuthAPI.me()
+      .then((res) => {
+        if (res.success) setUser(res.data);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
   }, []);
 
   /**
