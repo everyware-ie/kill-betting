@@ -28,7 +28,7 @@ export const DEFAULT_RULE = {
   gameMode: '스쿼드',         // '솔로' | '듀오' | '스쿼드'
   targetKills: 20,            // 목표 킬 수
   timeLimitMin: 60,           // 제한 시간 (분)
-  noTimeLimit: false,         // 시간 제한 없음
+  noTimeLimit: true,          // 시간 제한 없음
 
   // 보너스 / 패널티 (백엔드 RuleType: CHICKEN_BONUS, SURVIVAL_PENALTY만 지원)
   chickenBonusOn: true,
