@@ -12,14 +12,16 @@ public record MemberMatchResultResponse(
         int damage,
         int assists,
         Integer placement,
-        boolean isChicken
+        boolean isChicken,
+        boolean isTop10
 ) {
     public static MemberMatchResultResponse from(MatchResult result) {
         TeamPlayer player = result.getTeamPlayer();
         return new MemberMatchResultResponse(
                 player.getId(), player.getTeamId(), player.getTeam().getName(), player.getPlayerNickname(),
                 result.getKills(), result.getDamage(), result.getAssists(),
-                result.getMatch().getPlacement(), result.getMatch().isChicken()
+                result.getMatch().getPlacement(), result.getMatch().isChicken(),
+                result.isTop10()
         );
     }
 }
