@@ -686,7 +686,7 @@ export default function LivePage() {
     if (envelope.type === 'SESSION_ENDED') {
       router.push(`/room/${roomCode}/result`);
     }
-  }, !!user && !!sessionId);
+  }, !!sessionId);
 
   const openTeamModal = useCallback((teamId) => {
     const teamMatchCount = matches.filter((m) => (m.memberResults || []).some((r) => r.teamId === teamId)).length;
