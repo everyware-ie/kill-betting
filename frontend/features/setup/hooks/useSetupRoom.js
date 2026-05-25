@@ -83,7 +83,7 @@ export default function useSetupRoom() {
           : prev.teams,
       }));
     }
-  }, !!user && !!room);
+  }, !!room);
 
   // ── 팀 생성 ──
   const handleAddTeam = () => {
