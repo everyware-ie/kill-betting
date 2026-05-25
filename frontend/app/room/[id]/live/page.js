@@ -681,7 +681,7 @@ export default function LivePage() {
       });
     }
     if (envelope.type === 'ADJUSTMENT_APPLIED' && envelope.data) {
-      setAdjs((prev) => [...prev, { teamId: envelope.data.teamId, amount: envelope.data.amount }]);
+      setAdjs((prev) => [...prev, { teamId: envelope.data.teamId, amount: envelope.data.amount, reason: envelope.data.reason }]);
     }
     if (envelope.type === 'SESSION_ENDED') {
       router.push(`/room/${roomCode}/result`);
@@ -699,10 +699,7 @@ export default function LivePage() {
   const handleMatchConfirmed = () => { setShowTeamModal(false); setMatchError(''); };
 
   const handleAdjust = async (teamId, amount, reason) => {
-    const res = await RoomAPI.addAdjustment(sessionId, teamId, amount, reason);
-    if (res.success) {
-      setAdjs((prev) => [...prev, { teamId: parseInt(teamId), amount, reason }]);
-    }
+    await RoomAPI.addAdjustment(sessionId, teamId, amount, reason);
   };
 
   const handleRuleUpdate = async (newRule) => {

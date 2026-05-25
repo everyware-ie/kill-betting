@@ -36,6 +36,6 @@ public class TeamAdjustmentService {
                 .orElseThrow(() -> KillnagiException.notFound("팀을 찾을 수 없습니다."));
 
         team.applyAdjustment(amount);
-        eventPublisher.publishEvent(new AdjustmentAppliedEvent(sessionId, teamId, team.getName(), amount));
+        eventPublisher.publishEvent(new AdjustmentAppliedEvent(sessionId, teamId, team.getName(), amount, reason));
     }
 }

@@ -37,7 +37,8 @@ public class ScoreBoardBroadcaster {
         sessionBroadcaster.broadcastAdjustmentApplied(event.sessionId(), Map.of(
                 "teamId", event.teamId(),
                 "teamName", event.teamName(),
-                "amount", event.amount()
+                "amount", event.amount(),
+                "reason", event.reason()
         ));
     }
 }
