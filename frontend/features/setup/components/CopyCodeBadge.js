@@ -3,27 +3,54 @@
 import { useState } from 'react';
 import Icon from '@/components/ui/Icon';
 
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const el = document.createElement('input');
+    el.value = text;
+    document.body.appendChild(el);
+    el.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(el);
+    return ok;
+  }
+}
+
 export default function CopyCodeBadge({ code }) {
   const [copied, setCopied] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
 
-  const handleCopy = async () => {
+  const handleCopyCode = async () => {
     if (!code) return;
-    let success = false;
-    try {
-      await navigator.clipboard.writeText(code);
-      success = true;
-    } catch {
-      const el = document.createElement('input');
-      el.value = code;
-      document.body.appendChild(el);
-      el.select();
-      success = document.execCommand('copy');
-      document.body.removeChild(el);
-    }
-    if (success) {
+    if (await copyText(code)) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
+  };
+
+  const handleCopyUrl = async () => {
+    if (!code) return;
+    const codeParam = code.replace(/^#/, '');
+    const url = `${window.location.origin}/room/${codeParam}`;
+    if (await copyText(url)) {
+      setCopiedUrl(true);
+      setTimeout(() => setCopiedUrl(false), 2000);
+    }
+  };
+
+  const btnBase = {
+    display: 'flex', alignItems: 'center', gap: 5,
+    background: 'var(--kn-surface-3)',
+    border: '1px solid var(--kn-border)',
+    borderLeft: 'none',
+    padding: '0 10px',
+    height: '100%',
+    cursor: 'pointer',
+    fontSize: 12,
+    fontFamily: 'inherit',
+    transition: 'color .2s',
   };
 
   return (
@@ -49,26 +76,31 @@ export default function CopyCodeBadge({ code }) {
         </span>
       </div>
 
-      {/* 복사 버튼 */}
+      {/* 코드 복사 버튼 */}
       <button
-        onClick={handleCopy}
+        onClick={handleCopyCode}
         title="초대 코드 복사"
         style={{
-          display: 'flex', alignItems: 'center', gap: 5,
-          background: 'var(--kn-surface-3)',
-          border: '1px solid var(--kn-border)',
-          borderRadius: '0 var(--kn-r-md) var(--kn-r-md) 0',
-          padding: '0 10px',
-          height: '100%',
-          cursor: 'pointer',
+          ...btnBase,
           color: copied ? 'var(--kn-success)' : 'var(--kn-text-muted)',
-          fontSize: 12,
-          fontFamily: 'inherit',
-          transition: 'color .2s',
         }}
       >
         <Icon name={copied ? 'check' : 'copy'} size={13} />
         {copied ? '복사됨' : '복사'}
+      </button>
+
+      {/* URL 복사 버튼 */}
+      <button
+        onClick={handleCopyUrl}
+        title="접속 URL 복사"
+        style={{
+          ...btnBase,
+          borderRadius: '0 var(--kn-r-md) var(--kn-r-md) 0',
+          color: copiedUrl ? 'var(--kn-success)' : 'var(--kn-text-muted)',
+        }}
+      >
+        <Icon name={copiedUrl ? 'check' : 'link'} size={13} />
+        {copiedUrl ? '복사됨' : 'URL'}
       </button>
     </div>
   );

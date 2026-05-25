@@ -41,6 +41,8 @@ const ICON_PATHS = {
   sun:     'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0 -8Z M12 2v2 M12 20v2 M4.9 4.9l1.4 1.4 M17.7 17.7l1.4 1.4 M2 12h2 M20 12h2 M4.9 19.1l1.4 -1.4 M17.7 6.3l1.4 -1.4',
   moon:    'M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z',
   image:   'M3 5h18v14H3z M3 16l5 -5 5 5 3 -3 5 5 M9 10a1.5 1.5 0 1 0 0 -3 1.5 1.5 0 0 0 0 3Z',
+  link:    'M10 13a5 5 0 0 0 7.54 .54l3 -3a5 5 0 0 0 -7.07 -7.07l-1.72 1.71 M14 11a5 5 0 0 0 -7.54 -.54l-3 3a5 5 0 0 0 7.07 7.07l1.71 -1.71',
+  'arrow-right': 'M5 12h14 M13 6l6 6 -6 6',
 };
 
 export default function Icon({ name, size = 16, strokeWidth = 1.6, color = 'currentColor', style }) {

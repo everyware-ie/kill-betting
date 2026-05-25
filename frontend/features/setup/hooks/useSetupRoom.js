@@ -32,7 +32,7 @@ export default function useSetupRoom() {
 
   // ── 방 정보 초기 로드 ──
   useEffect(() => {
-    if (!user) return;
+    if (!roomCode) return;
 
     RoomAPI.get(roomCode).then(async (res) => {
       if (!res.success) { setError(res.error); setLoading(false); return; }
@@ -54,7 +54,7 @@ export default function useSetupRoom() {
       });
       setLoading(false);
     });
-  }, [roomCode, user]);
+  }, [roomCode]);
 
   // ── WebSocket 실시간 동기화 ──
   const { publish } = useWebSocket(sessionId, (envelope) => {
