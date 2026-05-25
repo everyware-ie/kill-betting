@@ -39,6 +39,9 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/sessions/join/**").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/sessions/*/teams").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/sessions/*/scoreboard").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/sessions/*/match-history").permitAll()
                 .requestMatchers("/ws/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .anyRequest().authenticated()
