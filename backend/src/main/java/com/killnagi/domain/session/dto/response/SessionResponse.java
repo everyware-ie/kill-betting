@@ -13,7 +13,8 @@ public record SessionResponse(
         String roomCode,
         Integer targetKills,
         Integer timeLimitMinutes,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        LocalDateTime startedAt
 ) {
     public static SessionResponse from(Session session) {
         return new SessionResponse(
@@ -24,7 +25,8 @@ public record SessionResponse(
                 session.getRoomCode(),
                 session.getTargetKills(),
                 session.getTimeLimitMinutes(),
-                session.getCreatedAt()
+                session.getCreatedAt(),
+                session.getStartedAt()
         );
     }
 }
