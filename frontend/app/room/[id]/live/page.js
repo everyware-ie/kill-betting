@@ -146,22 +146,22 @@ function TeamResultModal({ room, teamId, matchNumber, sessionId, onConfirmed, on
       }));
       setOcrFilledNicks(filled);
       const teamNicks = new Set((team.players || []).map((p) => (typeof p === 'string' ? p : p.nickname).toLowerCase()));
-      setOcrUnmatched(stats.filter((p) => !teamNicks.has(p.nickname?.toLowerCase())));
+      setOcrUnmatched(stats.filter((p) => !teamNicks.has(p.nickname?.toLowerCase())).map((p, i) => ({ ...p, _id: i })));
     }
     setOcrDone(true);
   };
 
   // ── 미매칭 OCR 결과를 팀원에 수동 매핑 ──
-  const handleOcrMapping = (ocrNickname, teamNick) => {
+  const handleOcrMapping = (ocrId, teamNick) => {
     if (!teamNick) return;
-    const ocrItem = ocrUnmatched.find((u) => u.nickname === ocrNickname);
+    const ocrItem = ocrUnmatched.find((u) => u._id === ocrId);
     if (!ocrItem) return;
     setResults((prev) => prev.map((r) =>
       r.nick === teamNick
         ? { ...r, kills: ocrItem.kills ?? r.kills, damage: ocrItem.damage ?? r.damage }
         : r
     ));
-    setOcrUnmatched((prev) => prev.filter((u) => u.nickname !== ocrNickname));
+    setOcrUnmatched((prev) => prev.filter((u) => u._id !== ocrId));
     setOcrFilledNicks((prev) => new Set([...prev, teamNick]));
   };
 
@@ -281,14 +281,14 @@ function TeamResultModal({ room, teamId, matchNumber, sessionId, onConfirmed, on
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {ocrUnmatched.map((u) => (
-                    <div key={u.nickname} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 8px', background: 'var(--kn-surface-1)', borderRadius: 'var(--kn-r-md)', border: '1px solid var(--kn-border)' }}>
+                    <div key={u._id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 8px', background: 'var(--kn-surface-1)', borderRadius: 'var(--kn-r-md)', border: '1px solid var(--kn-border)' }}>
                       <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--kn-text)', minWidth: 80 }}>"{u.nickname}"</span>
                       <span style={{ fontSize: 11, color: 'var(--kn-text-muted)' }}>킬 {u.kills ?? 0}</span>
                       <span style={{ fontSize: 11, color: 'var(--kn-text-muted)' }}>데미지 {u.damage ?? 0}</span>
                       <Icon name="arrow-right" size={12} color="var(--kn-text-dim)" />
                       <select
                         defaultValue=""
-                        onChange={(e) => { handleOcrMapping(u.nickname, e.target.value); e.target.value = ''; }}
+                        onChange={(e) => { handleOcrMapping(u._id, e.target.value); e.target.value = ''; }}
                         style={{ flex: 1, background: 'var(--kn-surface-3)', border: '1px solid color-mix(in oklab, var(--kn-accent) 30%, transparent)', color: 'var(--kn-text)', padding: '5px 8px', borderRadius: 'var(--kn-r-md)', fontSize: 12, fontFamily: 'inherit', outline: 'none', cursor: 'pointer' }}
                       >
                         <option value="">팀원 선택...</option>
