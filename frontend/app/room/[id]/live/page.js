@@ -729,8 +729,7 @@ export default function LivePage() {
 
   const { rule, teams } = room;
   const teamScores = [...teams]
-    .map((t) => ({ ...t, ...calcTeamScore(t.id, matches, rule, adjs) }))
-    .sort((a, b) => b.total - a.total);
+    .map((t) => ({ ...t, ...calcTeamScore(t.id, matches, rule, adjs) }));
   const maxScore = Math.max(1, ...teamScores.map((t) => t.total));
   const timeLimit = rule.noTimeLimit ? null : rule.timeLimitMin * 60;
   const timeLeft  = timeLimit ? Math.max(0, timeLimit - elapsed) : null;
@@ -837,8 +836,11 @@ export default function LivePage() {
         <section style={{ marginBottom: 20 }}>
           <span data-label="" style={{ marginBottom: 10, display: 'block' }}>팀 현황</span>
           <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(teamScores.length, 4)}, 1fr)`, gap: 12 }}>
-            {teamScores.map((t, idx) => {
-              const isFirst = idx === 0;
+            {(() => {
+              const maxTotal = Math.max(...teamScores.map((t) => t.total));
+              return teamScores.map((t) => {
+              const isFirst = t.total === maxTotal && maxTotal > 0;
+              const rank = teamScores.filter((o) => o.total > t.total).length + 1;
               const safeTarget = rule.targetKills > 0 ? rule.targetKills : 1;
               const progress = Math.min(100, Math.round((t.total / safeTarget) * 100));
               const isTargetDone = t.total >= rule.targetKills;
@@ -851,7 +853,7 @@ export default function LivePage() {
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
                     <div style={{ fontSize: 10, color: isTargetDone ? 'var(--kn-accent)' : 'var(--kn-text-muted)', letterSpacing: 1.5, fontWeight: isTargetDone ? 700 : 400, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      {isTargetDone ? <><Icon name="trophy" size={12} /> WINNER</> : `RANK #${idx + 1}`}
+                      {isTargetDone ? <><Icon name="trophy" size={12} /> WINNER</> : `RANK #${rank}`}
                     </div>
                     <div data-display="" style={{ fontSize: 36, color: isFirst ? 'var(--kn-accent)' : 'var(--kn-text)', fontFamily: 'var(--kn-font-mono)' }}>{t.total}</div>
                   </div>
@@ -902,7 +904,8 @@ export default function LivePage() {
                   </div>
                 </div>
               );
-            })}
+            });
+            })()}
           </div>
         </section>
 
