@@ -10,14 +10,32 @@ env:
   REPO: kill-betting
 
 jobs:
-  build-and-push:
-    name: Build & Push Images
+  changes:
+    name: Detect Changed Paths
     runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+            frontend:
+              - 'frontend/**'
+
+  build-push-backend:
+    name: Build & Push Backend Image
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     timeout-minutes: 20
     permissions:
       contents: read
       packages: write
-
     steps:
       - uses: actions/checkout@v4
 
@@ -45,6 +63,31 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  build-push-frontend:
+    name: Build & Push Frontend Image
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set image tag
+        run: echo "IMAGE_TAG=${{ github.sha }}" >> $GITHUB_ENV
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build & push frontend
         uses: docker/build-push-action@v5
         with:
@@ -58,12 +101,11 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  deploy:
-    name: Deploy to EC2
+  deploy-backend:
+    name: Deploy Backend to EC2
     runs-on: ubuntu-latest
-    needs: build-and-push
+    needs: build-push-backend
     timeout-minutes: 10
-
     steps:
       - uses: actions/checkout@v4
 
@@ -89,8 +131,42 @@ jobs:
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
             docker pull ghcr.io/everyware-ie/kill-betting-backend:${{ github.sha }}
+
+            IMAGE_TAG=${{ github.sha }} docker compose up -d --no-build backend
+
+            docker image prune -f
+
+  deploy-frontend:
+    name: Deploy Frontend to EC2
+    runs-on: ubuntu-latest
+    needs: build-push-frontend
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copy docker-compose.yml to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: docker-compose.yml
+          target: /home/ubuntu/kill-betting/
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          command_timeout: 8m
+          script: |
+            cd /home/ubuntu/kill-betting
+
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
             docker pull ghcr.io/everyware-ie/kill-betting-frontend:${{ github.sha }}
 
-            IMAGE_TAG=${{ github.sha }} docker compose up -d --no-build --remove-orphans
+            IMAGE_TAG=${{ github.sha }} docker compose up -d --no-build frontend
 
             docker image prune -f
