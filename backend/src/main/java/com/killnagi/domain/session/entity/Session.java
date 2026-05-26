@@ -114,6 +114,10 @@ public class Session {
         return this.status == SessionStatus.IN_PROGRESS;
     }
 
+    public boolean isEnded() {
+        return this.status == SessionStatus.ENDED;
+    }
+
     public boolean isExpired(LocalDateTime now) {
         if (timeLimitMinutes == null || startedAt == null) {
             return false;

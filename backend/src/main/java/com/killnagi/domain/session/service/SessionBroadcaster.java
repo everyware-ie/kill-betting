@@ -30,6 +30,10 @@ public class SessionBroadcaster {
         send(sessionId, Type.ADJUSTMENT_APPLIED, data);
     }
 
+    public void broadcastSessionRenewed(Long originalSessionId, Object data) {
+        send(originalSessionId, Type.SESSION_RENEWED, data);
+    }
+
     private void send(Long sessionId, Type type, Object data) {
         messagingTemplate.convertAndSend(
                 TOPIC_PREFIX + sessionId,

@@ -256,6 +256,27 @@ export const RoomAPI = {
   },
 
   /**
+   * 이어하기 — 종료된 세션과 동일한 설정으로 새 세션 생성
+   *
+   * [실제 API]
+   *   POST /sessions/:sessionId/renew
+   *   Response 201: { sessionId, roomCode, name }
+   *
+   * [동작]
+   *   - 방 설정(이름·목표킬·시간·규칙)·팀 구성·리더·닉네임을 그대로 복사
+   *   - 방 이름에 "N라운드" suffix 자동 증가 (없으면 "2라운드" 추가)
+   *   - 수동 점수 조정 이력은 복사되지 않음
+   *   - 성공 시 기존 세션 WebSocket으로 SESSION_RENEWED 이벤트 브로드캐스트
+   */
+  renew: async (sessionId) => {
+    if (USE_MOCK) {
+      await delay(400);
+      return ok({ sessionId: `session-${Date.now()}`, roomCode: genCode().replace('#', '').replace('-', ''), name: '이어하기 2라운드' });
+    }
+    return apiFetch(`/sessions/${sessionId}/renew`, { method: 'POST' });
+  },
+
+  /**
    * 스코어보드 조회
    *
    * [실제 API]
