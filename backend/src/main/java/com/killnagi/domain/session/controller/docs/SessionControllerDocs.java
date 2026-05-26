@@ -5,6 +5,7 @@ import com.killnagi.domain.match.dto.response.ScreenshotUploadResponse;
 import com.killnagi.domain.session.dto.request.CreateRequest;
 import com.killnagi.domain.session.dto.response.MatchHistoryResponse;
 import com.killnagi.domain.session.dto.response.ScoreboardResponse;
+import com.killnagi.domain.session.dto.response.MySessionResponse;
 import com.killnagi.domain.session.dto.response.SessionDetailResponse;
 import com.killnagi.domain.session.dto.response.SessionResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -46,7 +47,7 @@ public interface SessionControllerDocs {
     ResponseEntity<ApiResponse<MatchHistoryResponse>> getMatchHistory(Long sessionId);
 
     @Operation(summary = "내 세션 목록 조회", description = "로그인한 사용자가 참여한 세션 목록을 조회합니다.")
-    ResponseEntity<ApiResponse<List<SessionResponse>>> getMySessions(UserDetails userDetails);
+    ResponseEntity<ApiResponse<List<MySessionResponse>>> getMySessions(UserDetails userDetails);
 
     @Operation(summary = "세션 종료", description = "세션을 강제 종료합니다. 호스트만 가능합니다.")
     ResponseEntity<ApiResponse<Void>> endSession(UserDetails userDetails, Long sessionId);

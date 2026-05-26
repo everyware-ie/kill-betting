@@ -6,6 +6,7 @@ import com.killnagi.domain.rule.dto.request.UpdateRuleRequest;
 import com.killnagi.domain.session.dto.request.CreateRequest;
 import com.killnagi.domain.session.dto.response.MatchHistoryResponse;
 import com.killnagi.domain.session.dto.response.ScoreboardResponse;
+import com.killnagi.domain.session.dto.response.MySessionResponse;
 import com.killnagi.domain.session.dto.response.SessionDetailResponse;
 import com.killnagi.domain.session.dto.response.SessionRenewResponse;
 import com.killnagi.domain.session.dto.response.SessionResponse;
@@ -100,7 +101,7 @@ public class SessionController implements SessionControllerDocs {
     }
 
     @GetMapping("/my")
-    public ResponseEntity<ApiResponse<List<SessionResponse>>> getMySessions(
+    public ResponseEntity<ApiResponse<List<MySessionResponse>>> getMySessions(
             @AuthenticationPrincipal UserDetails userDetails) {
         Long userId = Long.parseLong(userDetails.getUsername());
         return ResponseEntity.ok(ApiResponse.ok(sessionQueryService.getMySessions(userId)));

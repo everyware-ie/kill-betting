@@ -2,17 +2,21 @@ package com.killnagi.domain.session.service;
 
 import com.killnagi.common.exception.KillnagiException;
 import com.killnagi.domain.rule.repository.RuleRepository;
+import com.killnagi.domain.session.dto.response.MySessionResponse;
+import com.killnagi.domain.session.dto.response.MySessionResponse.SessionRole;
 import com.killnagi.domain.session.dto.response.RuleResponse;
 import com.killnagi.domain.session.dto.response.SessionDetailResponse;
 import com.killnagi.domain.session.dto.response.SessionResponse;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.session.entity.Session.SessionStatus;
 import com.killnagi.domain.session.repository.SessionRepository;
+import com.killnagi.domain.team.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +25,7 @@ public class SessionQueryService {
 
     private final SessionRepository sessionRepository;
     private final RuleRepository ruleRepository;
+    private final TeamRepository teamRepository;
 
     public List<SessionResponse> getWaitingSessions() {
         return sessionRepository.findByStatus(SessionStatus.WAITING).stream()
@@ -39,10 +44,23 @@ public class SessionQueryService {
         return SessionDetailResponse.from(session, rules);
     }
 
-    public List<SessionResponse> getMySessions(Long userId) {
-        return sessionRepository.findSessionsByUserId(userId).stream()
-                .map(SessionResponse::from)
+    public List<MySessionResponse> getMySessions(Long userId) {
+        List<Session> sessions = sessionRepository.findSessionsByUserId(userId);
+        Set<Long> leaderSessionIds = teamRepository.findSessionIdsByLeaderUserId(userId);
+
+        return sessions.stream()
+                .map(session -> MySessionResponse.of(session, resolveRole(session, userId, leaderSessionIds)))
                 .toList();
+    }
+
+    private SessionRole resolveRole(Session session, Long userId, Set<Long> leaderSessionIds) {
+        if (session.isHostedBy(userId)) {
+            return SessionRole.HOST;
+        }
+        if (leaderSessionIds.contains(session.getId())) {
+            return SessionRole.LEADER;
+        }
+        return SessionRole.PARTICIPANT;
     }
 
     private Session findByRoomCodeOrThrow(String roomCode) {
