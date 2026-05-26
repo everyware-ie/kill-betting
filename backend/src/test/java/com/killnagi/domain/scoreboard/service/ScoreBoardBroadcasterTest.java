@@ -111,7 +111,7 @@ class ScoreBoardBroadcasterTest {
 
     @Test
     void 조정_이벤트_수신시_올바른_세션으로_브로드캐스트한다() {
-        AdjustmentAppliedEvent event = new AdjustmentAppliedEvent(5L, 20L, "팀A", 3);
+        AdjustmentAppliedEvent event = new AdjustmentAppliedEvent(5L, 20L, "팀A", 3, "테스트 사유");
 
         scoreBoardBroadcaster.handleAdjustmentApplied(event);
 
@@ -121,7 +121,7 @@ class ScoreBoardBroadcasterTest {
 
     @Test
     void 조정_이벤트의_teamId와_amount가_메시지에_포함된다() {
-        AdjustmentAppliedEvent event = new AdjustmentAppliedEvent(5L, 20L, "팀A", 3);
+        AdjustmentAppliedEvent event = new AdjustmentAppliedEvent(5L, 20L, "팀A", 3, "테스트 사유");
         ArgumentCaptor<Object> captor = ArgumentCaptor.forClass(Object.class);
 
         scoreBoardBroadcaster.handleAdjustmentApplied(event);

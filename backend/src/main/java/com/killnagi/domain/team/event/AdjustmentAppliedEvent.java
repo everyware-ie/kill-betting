@@ -4,5 +4,6 @@ public record AdjustmentAppliedEvent(
         Long sessionId,
         Long teamId,
         String teamName,
-        int amount
+        int amount,
+        String reason
 ) {}
