@@ -315,11 +315,12 @@ export const RoomAPI = {
    *
    * [실제 API]
    *   GET /sessions/my
-   *   Response 200: { sessions: SessionResponse[] }
+   *   Response 200: { success, data: MySessionResponse[] }
    *
    * [반환 데이터]
-   *   sessions 배열 — 각 방의 id, title, status, createdAt, teams, rule 포함
-   *   status: 'WAITING' | 'LIVE' | 'DONE'
+   *   각 방의 id, name, hostNickname, status, roomCode, targetKills,
+   *   timeLimitMinutes, createdAt, startedAt, myRole(HOST/LEADER/PARTICIPANT)
+   *   status: 'WAITING' | 'IN_PROGRESS' | 'ENDED'
    */
   list: async (userId) => {
     if (USE_MOCK) {
@@ -327,11 +328,10 @@ export const RoomAPI = {
       const myRooms = _runtimeRooms.filter((r) =>
         r.hostUserId === userId
       );
-      // 최신순 정렬
       const sorted = [...myRooms].sort(
         (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
       );
-      return ok({ rooms: sorted });
+      return { success: true, data: sorted };
     }
     return apiFetch(`/sessions/my`);
   },

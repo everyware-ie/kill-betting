@@ -9,13 +9,38 @@ import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
 import Navbar from '@/components/layout/Navbar';
 
+function RoleBadge({ role }) {
+  const map = {
+    HOST:        { label: '방장',   color: 'var(--kn-accent)' },
+    LEADER:      { label: '리더',   color: 'var(--kn-warning)' },
+    PARTICIPANT: { label: '참여자', color: 'var(--kn-text-muted)' },
+  };
+  const r = map[role] || map.PARTICIPANT;
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center',
+      height: 22, padding: '0 8px',
+      borderRadius: 'var(--kn-r-sm)',
+      border: `1px solid color-mix(in oklab, ${r.color} 25%, transparent)`,
+      background: `color-mix(in oklab, ${r.color} 12%, transparent)`,
+      color: r.color,
+      fontSize: 11, fontWeight: 500, lineHeight: 1,
+    }}>
+      {r.label}
+    </span>
+  );
+}
+
 function StatusBadge({ status }) {
   const map = {
-    WAITING: { label: '대기 중', color: 'var(--kn-warning)', variant: 'warning' },
-    LIVE:    { label: '진행 중', color: 'var(--kn-success)', variant: 'success', dot: 'live' },
-    DONE:    { label: '종료됨',  color: 'var(--kn-text-dim)', variant: 'neutral' },
+    WAITING:     { label: '대기 중', color: 'var(--kn-warning)', dot: false },
+    IN_PROGRESS: { label: '진행 중', color: 'var(--kn-success)', dot: 'live' },
+    ENDED:       { label: '종료됨',  color: 'var(--kn-text-dim)', dot: false },
+    // 프론트 레거시 호환
+    LIVE:        { label: '진행 중', color: 'var(--kn-success)', dot: 'live' },
+    DONE:        { label: '종료됨',  color: 'var(--kn-text-dim)', dot: false },
   };
-  const s = map[status] || map.DONE;
+  const s = map[status] || map.ENDED;
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 5,
@@ -36,8 +61,6 @@ function StatusBadge({ status }) {
 }
 
 function RoomCard({ room, onClick }) {
-  const totalPlayers = room.teams.reduce((s, t) => s + (t.players?.length || 0), 0);
-  const teamCount = room.teams.length;
   const [hovered, setHovered] = useState(false);
 
   const createdAt = new Date(room.createdAt).toLocaleString('ko', {
@@ -45,7 +68,9 @@ function RoomCard({ room, onClick }) {
     hour: '2-digit', minute: '2-digit',
   });
 
-  const statusIcon = room.status === 'LIVE' ? 'target' : room.status === 'DONE' ? 'trophy' : 'clock';
+  const isLive = room.status === 'LIVE' || room.status === 'IN_PROGRESS';
+  const isDone = room.status === 'DONE' || room.status === 'ENDED';
+  const statusIcon = isLive ? 'target' : isDone ? 'trophy' : 'clock';
 
   return (
     <div
@@ -78,14 +103,14 @@ function RoomCard({ room, onClick }) {
             fontSize: 14, fontWeight: 'var(--kn-w-bold)',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
-            {room.title}
+            {room.name || room.title}
           </div>
           <StatusBadge status={room.status} />
+          {room.myRole && <RoleBadge role={room.myRole} />}
         </div>
         <div style={{ fontSize: 11, color: 'var(--kn-text-muted)', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <span>{room.rule?.gameMode}</span>
-          <span>{teamCount}팀 · {totalPlayers}명</span>
-          <span>목표 {room.rule?.targetKills}킬</span>
+          <span>방장: {room.hostNickname}</span>
+          {room.targetKills && <span>목표 {room.targetKills}킬</span>}
           <span>{createdAt}</span>
         </div>
       </div>
@@ -113,7 +138,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!user) return;
     RoomAPI.list(user.id).then((res) => {
-      if (res.ok) setRooms(res.rooms);
+      if (res.success && res.data) setRooms(res.data);
       setRoomLoading(false);
     });
   }, [user]);
@@ -121,9 +146,9 @@ export default function DashboardPage() {
   if (authLoading || !user) return null;
 
   const handleRoomClick = (room) => {
-    const code = room.code || room.roomCode;
+    const code = room.roomCode || room.code;
     if (room.status === 'WAITING') router.push(`/room/${code}/setup`);
-    else if (room.status === 'LIVE') router.push(`/room/${code}/live`);
+    else if (room.status === 'IN_PROGRESS' || room.status === 'LIVE') router.push(`/room/${code}/live`);
     else router.push(`/room/${code}/result`);
   };
 
