@@ -19,9 +19,9 @@ export default function RoomRedirectPage() {
       }
 
       const status = res.data?.status;
-      if (status === 'LIVE') {
+      if (status === 'LIVE' || status === 'IN_PROGRESS') {
         router.replace(`/room/${roomCode}/live`);
-      } else if (status === 'DONE') {
+      } else if (status === 'DONE' || status === 'ENDED') {
         router.replace(`/room/${roomCode}/result`);
       } else {
         router.replace(`/room/${roomCode}/setup`);

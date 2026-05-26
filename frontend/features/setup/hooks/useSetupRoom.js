@@ -38,6 +38,15 @@ export default function useSetupRoom() {
       if (!res.success) { setError(res.error); setLoading(false); return; }
 
       const session = res.data;
+      const status = session.status;
+      if (status === 'IN_PROGRESS' || status === 'LIVE') {
+        router.replace(`/room/${roomCode}/live`);
+        return;
+      }
+      if (status === 'ENDED' || status === 'DONE') {
+        router.replace(`/room/${roomCode}/result`);
+        return;
+      }
       const teamsRes = await RoomAPI.getTeams(session.id);
       const teams = teamsRes.success ? teamsRes.data : [];
 
