@@ -673,6 +673,10 @@ export default function LivePage() {
       })) : [];
       setRoom({ ...session, rule: mapSessionRule(session), teams });
       setAdjs([]);
+      if (session.startedAt) {
+        const initialElapsed = Math.floor((Date.now() - new Date(session.startedAt).getTime()) / 1000);
+        setElapsed(Math.max(0, initialElapsed));
+      }
       const matchRes = await RoomAPI.getMatches(session.id);
       if (matchRes.success) setMatches(matchRes.data?.matches || []);
       setLoading(false);
