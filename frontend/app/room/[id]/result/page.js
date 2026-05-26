@@ -56,7 +56,7 @@ function RankBadge({ rank }) {
 //  이어하기 알림 모달 (비호스트용)
 // ─────────────────────────────────────────
 
-function RematchModal({ nextRoomCode, nextSessionName, onJoin, onDismiss }) {
+function RematchModal({ nextSessionName, onJoin, onLater }) {
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 1000,
@@ -107,9 +107,9 @@ function RematchModal({ nextRoomCode, nextSessionName, onJoin, onDismiss }) {
           <Button
             variant="secondary"
             style={{ flex: 1 }}
-            onClick={onDismiss}
+            onClick={onLater}
           >
-            나중에
+            다음에 참여하기
           </Button>
           <Button
             variant="primary"
@@ -142,7 +142,8 @@ export default function ResultPage() {
 
   const [renewing,       setRenewing]       = useState(false);
   const [renewError,     setRenewError]     = useState('');
-  const [rematchModal,   setRematchModal]   = useState(null); // { roomCode, name }
+  const [rematchModal,   setRematchModal]   = useState(null); // { roomCode, name } — 모달 표시 중
+  const [nextSession,    setNextSession]    = useState(null); // { roomCode, name } — 모달 닫은 후 유지
 
   const isHost = room && user && room.hostUserId === user.id;
 
@@ -188,8 +189,17 @@ export default function ResultPage() {
       setRenewError(res.error || '새 방 생성에 실패했습니다');
       return;
     }
-    // 호스트는 바로 새 방 설정 화면으로 이동
-    router.push(`/room/${res.data.roomCode}/setup`);
+    // 호스트도 모달로 이동 여부 선택 (즉시 이동 or 나중에)
+    setRematchModal({ roomCode: res.data.roomCode, name: res.data.name });
+  };
+
+  const handleRematchJoin = () => {
+    if (rematchModal) router.push(`/room/${rematchModal.roomCode}/setup`);
+  };
+
+  const handleRematchLater = () => {
+    if (rematchModal) setNextSession(rematchModal); // 모달 닫은 뒤에도 참여 버튼 유지
+    setRematchModal(null);
   };
 
   if (loading) return (
@@ -245,10 +255,9 @@ export default function ResultPage() {
       {/* 이어하기 알림 모달 */}
       {rematchModal && (
         <RematchModal
-          nextRoomCode={rematchModal.roomCode}
           nextSessionName={rematchModal.name}
-          onJoin={() => router.push(`/room/${rematchModal.roomCode}/setup`)}
-          onDismiss={() => setRematchModal(null)}
+          onJoin={handleRematchJoin}
+          onLater={handleRematchLater}
         />
       )}
 
@@ -516,9 +525,38 @@ export default function ResultPage() {
         {/* 하단 버튼 */}
         <div style={{ marginTop: 32, display: 'flex', justifyContent: 'center', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
 
-          {/* 이어하기 버튼 영역 */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-            <div style={{ position: 'relative', display: 'inline-block' }}>
+          {/* 이어서 킬내기 참여 배너 — 모달에서 "다음에 참여하기" 선택 후 활성화 */}
+          {nextSession && (
+            <div style={{
+              width: '100%', maxWidth: 480,
+              background: 'color-mix(in oklab, var(--kn-accent) 8%, transparent)',
+              border: '1px solid color-mix(in oklab, var(--kn-accent) 35%, transparent)',
+              borderRadius: 'var(--kn-r-lg)',
+              padding: '14px 18px',
+              display: 'flex', alignItems: 'center', gap: 14,
+            }}>
+              <Icon name="zap" size={20} color="var(--kn-accent)" style={{ flexShrink: 0 }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12, color: 'var(--kn-text-muted)', marginBottom: 2 }}>다음 킬내기 준비 완료</div>
+                <div style={{ fontSize: 14, fontWeight: 'var(--kn-w-bold)', color: 'var(--kn-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {nextSession.name}
+                </div>
+              </div>
+              <Button
+                variant="primary"
+                size="sm"
+                icon="arrow"
+                onClick={() => router.push(`/room/${nextSession.roomCode}/setup`)}
+                style={{ flexShrink: 0 }}
+              >
+                참여하기
+              </Button>
+            </div>
+          )}
+
+          {/* 이어하기 시작 버튼 — 새 방이 아직 만들어지지 않은 경우에만 표시 */}
+          {!nextSession && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
               <Button
                 variant="primary"
                 size="lg"
@@ -531,22 +569,19 @@ export default function ResultPage() {
               >
                 이어서 킬내기 시작
               </Button>
+              {!isHost && (
+                <div style={{ fontSize: 11, color: 'var(--kn-text-dim)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Icon name="alert" size={12} />
+                  호스트가 다음 킬내기를 생성하면 알림이 표시됩니다
+                </div>
+              )}
+              {renewError && (
+                <div style={{ fontSize: 12, color: 'var(--kn-danger)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Icon name="alert" size={13} /> {renewError}
+                </div>
+              )}
             </div>
-            {!isHost && (
-              <div style={{ fontSize: 11, color: 'var(--kn-text-dim)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <Icon name="alert" size={12} />
-                호스트가 다음 킬내기를 생성하면 알림이 표시됩니다
-              </div>
-            )}
-            {renewError && (
-              <div style={{
-                fontSize: 12, color: 'var(--kn-danger)',
-                display: 'flex', alignItems: 'center', gap: 4,
-              }}>
-                <Icon name="alert" size={13} /> {renewError}
-              </div>
-            )}
-          </div>
+          )}
 
           <Button variant="secondary" size="lg" onClick={() => router.push('/dashboard')} icon="back" style={{ minWidth: 200 }}>
             대시보드로 돌아가기
