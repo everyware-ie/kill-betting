@@ -252,7 +252,7 @@ export default function MyPage() {
           </div>
 
           {/* stats */}
-          <KnSection title="킬내기 전적">
+          <KnSection title="킬내기 전적" style={{ position: 'relative' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
               {[
                 { lbl: '총 게임', v: wld ? played : '...', color: null },
@@ -296,6 +296,19 @@ export default function MyPage() {
                 </div>
               </div>
             )}
+            {/* 준비중 오버레이 */}
+            <div style={{
+              position: 'absolute', inset: 0,
+              borderRadius: 'var(--kn-r-lg)',
+              backdropFilter: 'blur(4px)',
+              background: 'color-mix(in oklab, var(--kn-bg) 60%, transparent)',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              gap: 8, zIndex: 1,
+            }}>
+              <div style={{ fontSize: 20 }}>🔒</div>
+              <div style={{ fontSize: 13, fontWeight: 'var(--kn-w-semi)', color: 'var(--kn-text)' }}>업데이트 예정</div>
+              <div style={{ fontSize: 11, color: 'var(--kn-text-muted)' }}>전적 기능은 곧 오픈될 예정입니다</div>
+            </div>
           </KnSection>
 
           {/* account settings */}
