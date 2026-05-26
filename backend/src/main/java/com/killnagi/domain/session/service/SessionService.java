@@ -27,6 +27,7 @@ import java.util.List;
 public class SessionService {
 
     private static final int MIN_TEAMS_TO_START = 2;
+    private static final String[] DEFAULT_TEAM_NAMES = {"ALPHA", "BRAVO"};
 
     private final SessionRepository sessionRepository;
     private final SessionUserRepository sessionUserRepository;
@@ -67,6 +68,14 @@ public class SessionService {
         }
 
         session.assignCurrentRuleSet(ruleSet);
+
+        for (String teamName : DEFAULT_TEAM_NAMES) {
+            teamRepository.save(Team.builder()
+                    .session(session)
+                    .name(teamName)
+                    .build());
+        }
+
         return SessionResponse.from(session);
     }
 

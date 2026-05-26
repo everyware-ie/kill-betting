@@ -106,6 +106,15 @@ function KnIconButton({ icon, onClick, variant = 'ghost' }) {
   );
 }
 
+const PLACEHOLDER_NAMES = [
+  '금요일 새벽전',
+  '주말 킬내기',
+  '치킨각 한판',
+  '오늘은 내가 에이스',
+  '30킬 먹고 자자',
+];
+const getPlaceholderName = () => PLACEHOLDER_NAMES[Math.floor(Math.random() * PLACEHOLDER_NAMES.length)];
+
 const RULE_LIST = [
   { k: 'chickenBonus', onK: 'chickenBonusOn', label: '치킨 보너스', icon: 'trophy', sign: '+' },
   { k: 'survivalPenalty', onK: 'survivalPenaltyOn', label: '생존 패널티', icon: 'flame', sign: '-' },
@@ -118,6 +127,7 @@ export default function CreateRoomPage() {
   const [saving, setSaving] = useState(false);
   const [errMsg, setErrMsg] = useState('');
 
+  const [placeholderName] = useState(getPlaceholderName);
   const [title, setTitle] = useState('');
   const [rule, setRule] = useState({ ...DEFAULT_RULE });
 
@@ -131,10 +141,10 @@ export default function CreateRoomPage() {
 
   const handleCreate = async () => {
     setErrMsg('');
-    if (!title.trim()) { setErrMsg('방 제목을 입력해주세요'); return; }
+    const finalTitle = title.trim() || placeholderName;
 
     setSaving(true);
-    const res = await RoomAPI.create(title.trim(), { ...rule }, user);
+    const res = await RoomAPI.create(finalTitle, { ...rule }, user);
     setSaving(false);
 
     if (!res.success) {
@@ -175,7 +185,7 @@ export default function CreateRoomPage() {
         <KnSection title="방 정보">
           <Input
             label="방 제목"
-            placeholder="예) 금요일 새벽전 · 6시간 한판"
+            placeholder={placeholderName}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
