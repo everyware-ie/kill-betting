@@ -94,9 +94,9 @@ public class SessionRenewService {
                     .name(originalTeam.getName())
                     .build());
 
-            if (originalTeam.hasLeader()) {
-                newTeam.assignLeader(originalTeam.getLeader());
-            }
+            // 리더 배정은 복사하지 않는다.
+            // 리더는 해당 사용자가 새 세션에 직접 접속(WebSocket 연결)한 후 배정되어야 한다.
+            // 미리 배정하면 접속하지 않은 사용자가 이미 참여 중인 것처럼 표시된다.
 
             originalTeam.getPlayers().forEach(player ->
                     teamPlayerRepository.save(TeamPlayer.builder()

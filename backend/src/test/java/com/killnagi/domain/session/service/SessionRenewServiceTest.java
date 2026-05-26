@@ -132,7 +132,7 @@ class SessionRenewServiceTest {
     }
 
     @Test
-    void 팀과_플레이어가_있으면_새_세션에_복사된다() {
+    void 팀과_플레이어_닉네임이_새_세션에_복사된다() {
         User host = TestFixtures.user(HOST_ID);
         User leader = TestFixtures.user(2L);
         Session original = TestFixtures.endedSession(SESSION_ID, host);
@@ -153,6 +153,30 @@ class SessionRenewServiceTest {
 
         then(teamRepository).should().save(any(Team.class));
         then(teamPlayerRepository).should().save(any(TeamPlayer.class));
+    }
+
+    @Test
+    void 이어하기로_생성된_팀에는_리더가_배정되지_않는다() {
+        User host = TestFixtures.user(HOST_ID);
+        User leader = TestFixtures.user(2L);
+        Session original = TestFixtures.endedSession(SESSION_ID, host);
+        Team originalTeam = TestFixtures.readyTeam(original, leader);
+
+        Session newSession = TestFixtures.session(NEW_SESSION_ID, host);
+        RuleSet newRuleSet = RuleSet.builder().session(newSession).build();
+
+        given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(original));
+        given(sessionCodeGenerator.generate()).willReturn("ABCDEF");
+        given(sessionRepository.save(any(Session.class))).willReturn(newSession);
+        given(ruleSetRepository.save(any(RuleSet.class))).willReturn(newRuleSet);
+        given(teamRepository.findBySessionId(SESSION_ID)).willReturn(List.of(originalTeam));
+        given(teamRepository.save(any(Team.class))).willAnswer(invocation -> {
+            Team saved = invocation.getArgument(0);
+            assertThat(saved.hasLeader()).isFalse();
+            return saved;
+        });
+
+        sessionRenewService.renew(SESSION_ID, HOST_ID);
     }
 
     @Test
