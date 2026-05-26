@@ -3,6 +3,7 @@ package com.killnagi.domain.session.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.times;
@@ -125,7 +126,7 @@ class SessionRenewServiceTest {
         given(sessionCodeGenerator.generate()).willReturn("ABCDEF");
         given(sessionRepository.save(any(Session.class))).willReturn(newSession);
         given(ruleSetRepository.save(any(RuleSet.class))).willReturn(newRuleSet);
-        given(ruleRepository.findByRuleSetIdAndEnabled(any(), any())).willReturn(List.of(originalRule));
+        given(ruleRepository.findByRuleSetIdAndEnabled(any(), anyBoolean())).willReturn(List.of(originalRule));
         given(teamRepository.findBySessionId(SESSION_ID)).willReturn(List.of());
 
         sessionRenewService.renew(SESSION_ID, HOST_ID);
@@ -243,6 +244,7 @@ class SessionRenewServiceTest {
         original.assignRenewedSession(existing);
 
         given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(original));
+        given(sessionRepository.findById(NEW_SESSION_ID)).willReturn(Optional.of(existing));
 
         SessionRenewResponse response = sessionRenewService.renew(SESSION_ID, HOST_ID);
 
@@ -260,6 +262,7 @@ class SessionRenewServiceTest {
         original.assignRenewedSession(existing);
 
         given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(original));
+        given(sessionRepository.findById(NEW_SESSION_ID)).willReturn(Optional.of(existing));
 
         sessionRenewService.renew(SESSION_ID, HOST_ID);
 

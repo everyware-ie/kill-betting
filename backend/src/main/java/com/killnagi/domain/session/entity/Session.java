@@ -52,10 +52,9 @@ public class Session {
     @JoinColumn(name = "winner_team_id")
     private Team winnerTeam;
 
-    // 이어하기로 생성된 다음 세션 (1:1 관계를 FK로 표현)
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "renewed_session_id")
-    private Session renewedSession;
+    // 이어하기로 생성된 다음 세션의 ID (FK 없이 단순 참조)
+    @Column(name = "renewed_session_id")
+    private Long renewedSessionId;
 
     @Column(name = "started_at")
     private LocalDateTime startedAt;
@@ -124,11 +123,15 @@ public class Session {
     }
 
     public boolean hasRenewedSession() {
-        return this.renewedSession != null;
+        return this.renewedSessionId != null;
+    }
+
+    public Long getRenewedSessionId() {
+        return this.renewedSessionId;
     }
 
     public void assignRenewedSession(Session session) {
-        this.renewedSession = session;
+        this.renewedSessionId = session.getId();
     }
 
     public boolean isExpired(LocalDateTime now) {

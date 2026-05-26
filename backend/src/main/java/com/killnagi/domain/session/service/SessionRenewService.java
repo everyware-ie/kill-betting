@@ -49,7 +49,9 @@ public class SessionRenewService {
 
         // 이미 이어하기 세션이 생성된 경우 기존 세션 정보 반환 (중복 생성 방지)
         if (original.hasRenewedSession()) {
-            return SessionRenewResponse.from(original.getRenewedSession());
+            Session renewedSession = sessionRepository.findById(original.getRenewedSessionId())
+                    .orElseThrow(() -> KillnagiException.notFound("세션을 찾을 수 없습니다."));
+            return SessionRenewResponse.from(renewedSession);
         }
 
         Session newSession = sessionRepository.save(Session.builder()
