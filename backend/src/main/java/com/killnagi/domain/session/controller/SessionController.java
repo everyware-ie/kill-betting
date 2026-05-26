@@ -7,10 +7,12 @@ import com.killnagi.domain.session.dto.request.CreateRequest;
 import com.killnagi.domain.session.dto.response.MatchHistoryResponse;
 import com.killnagi.domain.session.dto.response.ScoreboardResponse;
 import com.killnagi.domain.session.dto.response.SessionDetailResponse;
+import com.killnagi.domain.session.dto.response.SessionRenewResponse;
 import com.killnagi.domain.session.dto.response.SessionResponse;
 import com.killnagi.domain.session.service.SessionEndService;
 import com.killnagi.domain.session.service.SessionMatchService;
 import com.killnagi.domain.session.service.SessionQueryService;
+import com.killnagi.domain.session.service.SessionRenewService;
 import com.killnagi.domain.session.service.SessionService;
 import com.killnagi.domain.session.controller.docs.SessionControllerDocs;
 import jakarta.validation.Valid;
@@ -40,6 +42,7 @@ public class SessionController implements SessionControllerDocs {
     private final SessionEndService sessionEndService;
     private final SessionQueryService sessionQueryService;
     private final SessionMatchService sessionMatchService;
+    private final SessionRenewService sessionRenewService;
 
     @PostMapping
     public ResponseEntity<ApiResponse<SessionResponse>> createSession(
@@ -110,6 +113,15 @@ public class SessionController implements SessionControllerDocs {
         Long userId = Long.parseLong(userDetails.getUsername());
         sessionEndService.endByHost(sessionId, userId);
         return ResponseEntity.ok(ApiResponse.ok("세션이 종료되었습니다.", null));
+    }
+
+    @PostMapping("/{sessionId}/renew")
+    public ResponseEntity<ApiResponse<SessionRenewResponse>> renewSession(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long sessionId) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.ok("새 세션이 생성되었습니다.", sessionRenewService.renew(sessionId, userId)));
     }
 
     @PutMapping("/{sessionId}/rules/{ruleId}")

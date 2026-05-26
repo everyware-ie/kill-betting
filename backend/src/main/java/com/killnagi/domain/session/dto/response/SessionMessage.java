@@ -8,6 +8,7 @@ public record SessionMessage(Type type, Object data) {
         SCORE_UPDATED,
         MATCH_RESULT,
         SESSION_ENDED,
-        ADJUSTMENT_APPLIED
+        ADJUSTMENT_APPLIED,
+        SESSION_RENEWED
     }
 }

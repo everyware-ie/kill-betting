@@ -6,10 +6,11 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth }  from '@/lib/auth-context';
 import { RoomAPI }  from '@/lib/room-api';
+import { useWebSocket } from '@/lib/useWebSocket';
 import { mapSessionRule } from '@/features/setup/helpers/mappers';
 import Button       from '@/components/ui/Button';
 import Icon         from '@/components/ui/Icon';
@@ -52,6 +53,79 @@ function RankBadge({ rank }) {
 }
 
 // ─────────────────────────────────────────
+//  이어하기 알림 모달 (비호스트용)
+// ─────────────────────────────────────────
+
+function RematchModal({ nextRoomCode, nextSessionName, onJoin, onDismiss }) {
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 1000,
+      background: 'rgba(0,0,0,0.6)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: 24,
+    }}>
+      <div style={{
+        background: 'var(--kn-surface-1)',
+        border: '1px solid var(--kn-border-strong)',
+        borderRadius: 'var(--kn-r-xl)',
+        padding: '28px 28px 24px',
+        maxWidth: 400, width: '100%',
+        display: 'flex', flexDirection: 'column', gap: 20,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
+            background: 'color-mix(in oklab, var(--kn-accent) 15%, transparent)',
+            border: '1px solid color-mix(in oklab, var(--kn-accent) 40%, transparent)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Icon name="zap" size={20} color="var(--kn-accent)" />
+          </div>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 'var(--kn-w-bold)' }}>
+              다음 킬내기가 생성되었습니다
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--kn-text-muted)', marginTop: 2 }}>
+              참여하시겠습니까?
+            </div>
+          </div>
+        </div>
+
+        {nextSessionName && (
+          <div style={{
+            background: 'var(--kn-surface-2)',
+            border: '1px solid var(--kn-border)',
+            borderRadius: 'var(--kn-r-md)',
+            padding: '10px 14px',
+            fontSize: 13, color: 'var(--kn-text)',
+          }}>
+            {nextSessionName}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 10 }}>
+          <Button
+            variant="secondary"
+            style={{ flex: 1 }}
+            onClick={onDismiss}
+          >
+            나중에
+          </Button>
+          <Button
+            variant="primary"
+            style={{ flex: 1 }}
+            icon="arrow"
+            onClick={onJoin}
+          >
+            바로 참여
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────
 //  메인 페이지
 // ─────────────────────────────────────────
 
@@ -65,6 +139,24 @@ export default function ResultPage() {
   const [matches,    setMatches]    = useState([]);
   const [loading,    setLoading]    = useState(true);
   const [error,      setError]      = useState('');
+
+  const [renewing,       setRenewing]       = useState(false);
+  const [renewError,     setRenewError]     = useState('');
+  const [rematchModal,   setRematchModal]   = useState(null); // { roomCode, name }
+
+  const isHost = room && user && room.hostUserId === user.id;
+
+  // ─ WebSocket: 결과 페이지에 머무르는 동안 기존 세션 토픽 구독
+  const handleWsMessage = useCallback((envelope) => {
+    if (envelope.type === 'SESSION_RENEWED' && envelope.data) {
+      const { roomCode: nextRoomCode, name: nextName } = envelope.data;
+      setRematchModal({ roomCode: nextRoomCode, name: nextName });
+    }
+  }, []);
+
+  // sessionId가 확정된 후에만 WebSocket 연결 (호스트는 자신이 만든 방이므로 구독 불필요)
+  const wsEnabled = !!room?.id && !isHost;
+  useWebSocket(room?.id, handleWsMessage, wsEnabled);
 
   useEffect(() => {
     if (!user) return;
@@ -85,6 +177,21 @@ export default function ResultPage() {
 
   useEffect(() => { if (!user) router.push('/auth/login'); }, [user]);
 
+  const handleRenew = async () => {
+    if (!room?.id) return;
+    setRenewError('');
+    setRenewing(true);
+    const res = await RoomAPI.renew(room.id);
+    setRenewing(false);
+
+    if (!res.success) {
+      setRenewError(res.error || '새 방 생성에 실패했습니다');
+      return;
+    }
+    // 호스트는 바로 새 방 설정 화면으로 이동
+    router.push(`/room/${res.data.roomCode}/setup`);
+  };
+
   if (loading) return (
     <div style={{ minHeight: '100vh', background: 'var(--kn-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--kn-text-muted)' }}>
       <Icon name="spinner" size={20} style={{ animation: 'kn-spin 0.9s linear infinite' }} />
@@ -101,8 +208,6 @@ export default function ResultPage() {
 
   const { rule } = room;
 
-  // scoreboard API 응답 기반으로 팀 점수 구성
-  // TeamScoreResponse: { teamId, teamName, totalKills, ruleScore, adjustmentScore, effectiveKills, members[] }
   const teamScores = scoreboard
     ? [...scoreboard.teams]
         .map((t) => ({
@@ -120,8 +225,6 @@ export default function ResultPage() {
 
   const winner = teamScores[0];
 
-  // MVP: scoreboard members 기반 (누적 킬 기준)
-  // MemberScoreResponse: { playerId, playerNickname, totalKills, bonusKills, penaltyKills, effectiveKills }
   const allPlayerStats = (scoreboard?.teams || []).flatMap((t) =>
     (t.members || []).map((m) => ({
       nick:     m.playerNickname,
@@ -138,6 +241,16 @@ export default function ResultPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--kn-bg)', color: 'var(--kn-text)', display: 'flex', flexDirection: 'column' }}>
+
+      {/* 이어하기 알림 모달 */}
+      {rematchModal && (
+        <RematchModal
+          nextRoomCode={rematchModal.roomCode}
+          nextSessionName={rematchModal.name}
+          onJoin={() => router.push(`/room/${rematchModal.roomCode}/setup`)}
+          onDismiss={() => setRematchModal(null)}
+        />
+      )}
 
       {/* 헤더 */}
       <div style={{
@@ -401,8 +514,41 @@ export default function ResultPage() {
         </div>
 
         {/* 하단 버튼 */}
-        <div style={{ marginTop: 32, display: 'flex', justifyContent: 'center' }}>
-          <Button variant="primary" size="lg" onClick={() => router.push('/dashboard')} icon="back" style={{ minWidth: 200 }}>
+        <div style={{ marginTop: 32, display: 'flex', justifyContent: 'center', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+
+          {/* 이어하기 버튼 영역 */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+            <div style={{ position: 'relative', display: 'inline-block' }}>
+              <Button
+                variant="primary"
+                size="lg"
+                icon="zap"
+                style={{ minWidth: 220 }}
+                onClick={isHost ? handleRenew : undefined}
+                loading={renewing}
+                disabled={!isHost || renewing}
+                title={isHost ? undefined : '호스트만 다음 킬내기를 시작할 수 있습니다'}
+              >
+                이어서 킬내기 시작
+              </Button>
+            </div>
+            {!isHost && (
+              <div style={{ fontSize: 11, color: 'var(--kn-text-dim)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <Icon name="alert" size={12} />
+                호스트가 다음 킬내기를 생성하면 알림이 표시됩니다
+              </div>
+            )}
+            {renewError && (
+              <div style={{
+                fontSize: 12, color: 'var(--kn-danger)',
+                display: 'flex', alignItems: 'center', gap: 4,
+              }}>
+                <Icon name="alert" size={13} /> {renewError}
+              </div>
+            )}
+          </div>
+
+          <Button variant="secondary" size="lg" onClick={() => router.push('/dashboard')} icon="back" style={{ minWidth: 200 }}>
             대시보드로 돌아가기
           </Button>
         </div>

@@ -55,6 +55,27 @@ public class TestFixtures {
         return s;
     }
 
+    public static Session endedSession(Long id, User host) {
+        Session s = session(id, host);
+        s.start();
+        s.end(null);
+        return s;
+    }
+
+    public static Session endedSession(Long id, User host, String name) {
+        Session s = Session.builder()
+                .name(name)
+                .roomCode(java.util.UUID.randomUUID().toString().substring(0, 6).toUpperCase())
+                .host(host)
+                .targetKills(50)
+                .timeLimitMinutes(60)
+                .build();
+        ReflectionTestUtils.setField(s, "id", id);
+        s.start();
+        s.end(null);
+        return s;
+    }
+
     public static Team team(Session session) {
         return Team.builder()
                 .session(session)
