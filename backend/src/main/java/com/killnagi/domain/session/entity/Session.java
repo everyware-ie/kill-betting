@@ -52,6 +52,11 @@ public class Session {
     @JoinColumn(name = "winner_team_id")
     private Team winnerTeam;
 
+    // 이어하기로 생성된 다음 세션 (1:1 관계를 FK로 표현)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "renewed_session_id")
+    private Session renewedSession;
+
     @Column(name = "started_at")
     private LocalDateTime startedAt;
 
@@ -116,6 +121,14 @@ public class Session {
 
     public boolean isEnded() {
         return this.status == SessionStatus.ENDED;
+    }
+
+    public boolean hasRenewedSession() {
+        return this.renewedSession != null;
+    }
+
+    public void assignRenewedSession(Session session) {
+        this.renewedSession = session;
     }
 
     public boolean isExpired(LocalDateTime now) {

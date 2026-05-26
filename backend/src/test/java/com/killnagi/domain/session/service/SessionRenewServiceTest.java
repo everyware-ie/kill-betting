@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.times;
 
 import java.util.List;
 import java.util.Optional;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.killnagi.common.exception.KillnagiException;
 import com.killnagi.domain.rule.entity.Operator;
@@ -229,5 +231,38 @@ class SessionRenewServiceTest {
         assertThatThrownBy(() -> sessionRenewService.renew(SESSION_ID, HOST_ID))
                 .isInstanceOf(KillnagiException.class)
                 .hasMessage("세션을 찾을 수 없습니다.");
+    }
+
+    @Test
+    void 이미_이어하기_세션이_있으면_새로_생성하지_않고_기존_세션_정보를_반환한다() {
+        User host = TestFixtures.user(HOST_ID);
+        Session original = TestFixtures.endedSession(SESSION_ID, host);
+        Session existing = TestFixtures.session(NEW_SESSION_ID, host);
+        ReflectionTestUtils.setField(existing, "roomCode", "EXIST1");
+        ReflectionTestUtils.setField(existing, "name", "금요일 새벽전 2라운드");
+        original.assignRenewedSession(existing);
+
+        given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(original));
+
+        SessionRenewResponse response = sessionRenewService.renew(SESSION_ID, HOST_ID);
+
+        assertThat(response.roomCode()).isEqualTo("EXIST1");
+        assertThat(response.name()).isEqualTo("금요일 새벽전 2라운드");
+        then(sessionRepository).should(times(1)).findById(SESSION_ID); // save 호출 없음
+        then(sessionBroadcaster).shouldHaveNoInteractions();
+    }
+
+    @Test
+    void 이미_이어하기_세션이_있으면_WebSocket_브로드캐스트를_하지_않는다() {
+        User host = TestFixtures.user(HOST_ID);
+        Session original = TestFixtures.endedSession(SESSION_ID, host);
+        Session existing = TestFixtures.session(NEW_SESSION_ID, host);
+        original.assignRenewedSession(existing);
+
+        given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(original));
+
+        sessionRenewService.renew(SESSION_ID, HOST_ID);
+
+        then(sessionBroadcaster).shouldHaveNoInteractions();
     }
 }
