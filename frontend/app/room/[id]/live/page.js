@@ -120,6 +120,17 @@ function TeamResultModal({ room, teamId, matchNumber, sessionId, onConfirmed, on
 
   const handleDrop = (e) => { e.preventDefault(); const file = e.dataTransfer.files[0]; if (file) handleFileChange(file); };
 
+  useEffect(() => {
+    const handlePaste = (e) => {
+      const file = Array.from(e.clipboardData?.items || [])
+        .find((item) => item.type.startsWith('image/'))
+        ?.getAsFile();
+      if (file) handleFileChange(file);
+    };
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, []);
+
   const handleOcr = async () => {
     if (!ocrFile) return;
     setOcrLoading(true); setOcrError(''); setOcrProgress(0);
@@ -246,7 +257,7 @@ function TeamResultModal({ room, teamId, matchNumber, sessionId, onConfirmed, on
                 ) : (
                   <div>
                     <div style={{ fontSize: 12, color: 'var(--kn-text-muted)' }}>클릭하거나 파일을 여기에 드래그하세요</div>
-                    <div style={{ fontSize: 11, color: 'var(--kn-text-dim)', marginTop: 2 }}>jpg, png 등 이미지 파일</div>
+                    <div style={{ fontSize: 11, color: 'var(--kn-text-dim)', marginTop: 2 }}>jpg, png 등 이미지 파일 · Ctrl+V로 붙여넣기 가능</div>
                   </div>
                 )}
               </div>
