@@ -55,6 +55,18 @@ naver:
     url: ${NAVER_OCR_URL:}
     secret-key: ${NAVER_OCR_SECRET_KEY:}
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus
+  endpoint:
+    prometheus:
+      enabled: true
+  metrics:
+    tags:
+      application: killnagi-backend
+
 logging:
   level:
     com.killnagi: DEBUG

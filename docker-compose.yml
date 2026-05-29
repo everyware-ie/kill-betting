@@ -42,8 +42,45 @@ services:
     depends_on:
       - backend
 
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: killnagi-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - killnagi-net
+    restart: on-failure
+
+  loki:
+    image: grafana/loki:latest
+    container_name: killnagi-loki
+    ports:
+      - "3100:3100"
+    networks:
+      - killnagi-net
+    restart: on-failure
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: killnagi-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+    volumes:
+      - grafana-data:/var/lib/grafana
+    networks:
+      - killnagi-net
+    depends_on:
+      - prometheus
+      - loki
+    restart: on-failure
+
 volumes:
   upload-data:
+  grafana-data:
 
 networks:
   killnagi-net:

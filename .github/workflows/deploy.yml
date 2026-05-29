@@ -109,13 +109,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Copy docker-compose.yml to EC2
+      - name: Copy configs to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: docker-compose.yml
+          source: "docker-compose.yml,monitoring/"
           target: /home/ubuntu/kill-betting/
 
       - name: Deploy via SSH
@@ -144,13 +144,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Copy docker-compose.yml to EC2
+      - name: Copy configs to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: docker-compose.yml
+          source: "docker-compose.yml,monitoring/"
           target: /home/ubuntu/kill-betting/
 
       - name: Deploy via SSH

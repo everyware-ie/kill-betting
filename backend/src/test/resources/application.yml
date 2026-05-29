@@ -31,3 +31,9 @@ naver:
   ocr:
     url: http://test-ocr-url
     secret-key: test-secret-key
+
+management:
+  metrics:
+    export:
+      prometheus:
+        enabled: false
