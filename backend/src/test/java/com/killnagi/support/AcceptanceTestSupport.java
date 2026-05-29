@@ -109,6 +109,11 @@ public abstract class AcceptanceTestSupport {
         return teamService.createTeam(sessionId, userId, new CreateTeamRequest(teamName)).id();
     }
 
+    protected long 자동생성된_팀_ID를_조회한다(long sessionId, String token, int index) {
+        return parseBody(get("/api/sessions/" + sessionId + "/participants", token))
+                .at("/data/teams/" + index + "/teamId").asLong();
+    }
+
     protected void 플레이어를_추가한다(long sessionId, long teamId, String nickname, String token) {
         Long userId = 사용자_ID를_조회한다(token);
         teamConfigureService.addPlayer(sessionId, teamId, userId, nickname);

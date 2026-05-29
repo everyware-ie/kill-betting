@@ -25,10 +25,6 @@ class TeamAcceptanceTest extends AcceptanceTestSupport {
 
     @Test
     void 세션에_생성된_팀_목록을_조회할_수_있다() {
-        // Given
-        팀을_생성한다(sessionId, "팀A", hostToken);
-        팀을_생성한다(sessionId, "팀B", hostToken);
-
         // When
         ResponseEntity<String> response = get("/api/sessions/" + sessionId + "/teams", hostToken);
 
@@ -40,7 +36,7 @@ class TeamAcceptanceTest extends AcceptanceTestSupport {
     @Test
     void 호스트가_팀에_플레이어를_추가하면_구성_상태에_반영된다() {
         // Given
-        long teamId = 팀을_생성한다(sessionId, "팀A", hostToken);
+        long teamId = 자동생성된_팀_ID를_조회한다(sessionId, hostToken, 0);
 
         // When
         플레이어를_추가한다(sessionId, teamId, "PlayerOne", hostToken);
@@ -53,7 +49,7 @@ class TeamAcceptanceTest extends AcceptanceTestSupport {
     @Test
     void 호스트가_플레이어_닉네임을_수정하면_구성_상태에_반영된다() {
         // Given
-        long teamId = 팀을_생성한다(sessionId, "팀A", hostToken);
+        long teamId = 자동생성된_팀_ID를_조회한다(sessionId, hostToken, 0);
         플레이어를_추가한다(sessionId, teamId, "PlayerOne", hostToken);
         long playerId = parseBody(get("/api/sessions/" + sessionId + "/participants", hostToken))
                 .at("/data/teams/0/players/0/playerId").asLong();
@@ -69,7 +65,7 @@ class TeamAcceptanceTest extends AcceptanceTestSupport {
     @Test
     void 호스트가_팀에서_플레이어를_제거하면_구성_상태에_반영된다() {
         // Given
-        long teamId = 팀을_생성한다(sessionId, "팀A", hostToken);
+        long teamId = 자동생성된_팀_ID를_조회한다(sessionId, hostToken, 0);
         플레이어를_추가한다(sessionId, teamId, "PlayerOne", hostToken);
         long playerId = parseBody(get("/api/sessions/" + sessionId + "/participants", hostToken))
                 .at("/data/teams/0/players/0/playerId").asLong();
@@ -85,7 +81,7 @@ class TeamAcceptanceTest extends AcceptanceTestSupport {
     @Test
     void 호스트가_대기석_참가자를_팀_리더로_배정하면_구성_상태에_반영된다() {
         // Given
-        long teamId = 팀을_생성한다(sessionId, "팀A", hostToken);
+        long teamId = 자동생성된_팀_ID를_조회한다(sessionId, hostToken, 0);
         String participantToken = 회원가입하고_토큰을_반환한다("player1", "player1@test.com");
         long participantId = 사용자_ID를_조회한다(participantToken);
         세션에_참가한다(sessionId, participantToken);
@@ -102,7 +98,7 @@ class TeamAcceptanceTest extends AcceptanceTestSupport {
     @Test
     void 호스트가_팀_리더를_해제하면_대기석으로_돌아간다() {
         // Given
-        long teamId = 팀을_생성한다(sessionId, "팀A", hostToken);
+        long teamId = 자동생성된_팀_ID를_조회한다(sessionId, hostToken, 0);
         String participantToken = 회원가입하고_토큰을_반환한다("player1", "player1@test.com");
         long participantId = 사용자_ID를_조회한다(participantToken);
         세션에_참가한다(sessionId, participantToken);
@@ -120,7 +116,7 @@ class TeamAcceptanceTest extends AcceptanceTestSupport {
     @Test
     void 팀_상태는_리더와_플레이어가_모두_있으면_READY다() {
         // Given
-        long teamId = 팀을_생성한다(sessionId, "팀A", hostToken);
+        long teamId = 자동생성된_팀_ID를_조회한다(sessionId, hostToken, 0);
         String participantToken = 회원가입하고_토큰을_반환한다("player1", "player1@test.com");
         long participantId = 사용자_ID를_조회한다(participantToken);
         세션에_참가한다(sessionId, participantToken);
