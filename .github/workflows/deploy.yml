@@ -138,7 +138,7 @@ jobs:
 
             docker pull ghcr.io/everyware-ie/kill-betting-backend:${{ github.sha }}
 
-            IMAGE_TAG=${{ github.sha }} docker compose up -d --no-build backend prometheus loki grafana
+            IMAGE_TAG=${{ github.sha }} docker compose up -d --no-build backend
 
             docker image prune -f
 
@@ -175,7 +175,7 @@ jobs:
 
             docker pull ghcr.io/everyware-ie/kill-betting-frontend:${{ github.sha }}
 
-            IMAGE_TAG=${{ github.sha }} docker compose up -d --no-build frontend prometheus loki grafana
+            IMAGE_TAG=${{ github.sha }} docker compose up -d --no-build frontend
 
             docker image prune -f
 
