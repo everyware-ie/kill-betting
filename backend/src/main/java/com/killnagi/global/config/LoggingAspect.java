@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class LoggingAspect {
 
-    @Around("execution(* com.killnagi..*(..))")
+    @Around("execution(* com.killnagi.domain..*(..)) || execution(* com.killnagi.infra..*(..))")
     public Object logMethodExecution(ProceedingJoinPoint joinPoint) throws Throwable {
         String className = joinPoint.getTarget().getClass().getSimpleName();
         String methodName = joinPoint.getSignature().getName();
