@@ -4,23 +4,8 @@ services:
       context: ./backend
     image: ghcr.io/everyware-ie/kill-betting-backend:${IMAGE_TAG:-latest}
     container_name: killnagi-backend
-    environment:
-      DB_HOST: killnagi-mysql
-      DB_PORT: 3306
-      DB_NAME: ${DB_NAME:-killnagi}
-      DB_USERNAME: ${DB_USERNAME:-root}
-      DB_PASSWORD: ${DB_PASSWORD}
-      JWT_SECRET: ${JWT_SECRET}
-      NAVER_OCR_URL: ${NAVER_OCR_URL:-}
-      NAVER_OCR_SECRET_KEY: ${NAVER_OCR_SECRET_KEY:-}
-      FILE_UPLOAD_DIR: ${FILE_UPLOAD_DIR:-uploads}
-      FILE_BASE_URL: ${FILE_BASE_URL:-http://localhost:8080/files}
-      STORAGE_TYPE: ${STORAGE_TYPE:-local}
-      AWS_S3_BUCKET_NAME: ${AWS_S3_BUCKET_NAME:-}
-      AWS_S3_REGION: ${AWS_S3_REGION:-}
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+    env_file:
+      - .env
     ports:
       - "8080:8080"
     networks:
@@ -28,7 +13,7 @@ services:
       - killnagi-net
     volumes:
       - upload-data:/app/uploads
-    restart: on-failure
+    restart: on-failure:3
 
   frontend:
     build:
@@ -51,7 +36,7 @@ services:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
     networks:
       - killnagi-net
-    restart: on-failure
+    restart: on-failure:3
 
   loki:
     image: grafana/loki:latest
@@ -60,7 +45,7 @@ services:
       - "3100:3100"
     networks:
       - killnagi-net
-    restart: on-failure
+    restart: on-failure:3
 
   grafana:
     image: grafana/grafana:latest
@@ -76,7 +61,7 @@ services:
     depends_on:
       - prometheus
       - loki
-    restart: on-failure
+    restart: on-failure:3
 
 volumes:
   upload-data:
