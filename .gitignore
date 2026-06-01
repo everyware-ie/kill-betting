@@ -26,8 +26,6 @@ frontend/.env.local
 
 # Spring Boot
 backend/src/main/resources/application-local.yml
-backend/src/main/resources/application-prod.yml
-backend/src/main/resources/application-secret.yml
 
 # Logs
 *.log

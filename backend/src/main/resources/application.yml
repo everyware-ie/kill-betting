@@ -59,7 +59,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health, info, prometheus
+        include: health, info, prometheus, loggers
   endpoint:
     prometheus:
       enabled: true
@@ -73,8 +73,3 @@ logging:
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: trace
 
----
-spring:
-  config:
-    activate:
-      on-profile: local

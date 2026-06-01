@@ -1,0 +1,18 @@
+# 이 파일을 복사해서 application-local.yml로 사용하세요.
+# application-local.yml은 .gitignore에 포함되어 있습니다.
+#
+# 실행 방법:
+#   IDE: Active Profiles = local
+#   CLI: ./gradlew bootRun --args='--spring.profiles.active=local'
+
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+logging:
+  level:
+    com.killnagi: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: trace
