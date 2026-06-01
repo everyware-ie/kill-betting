@@ -13,7 +13,7 @@ services:
       - killnagi-net
     volumes:
       - upload-data:/app/uploads
-    restart: on-failure:3
+    restart: on-failure:3:3
 
   frontend:
     build:
@@ -36,7 +36,7 @@ services:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
     networks:
       - killnagi-net
-    restart: on-failure
+    restart: on-failure:3
 
   loki:
     image: grafana/loki:latest
@@ -45,7 +45,7 @@ services:
       - "3100:3100"
     networks:
       - killnagi-net
-    restart: on-failure
+    restart: on-failure:3
 
   grafana:
     image: grafana/grafana:latest
@@ -61,7 +61,7 @@ services:
     depends_on:
       - prometheus
       - loki
-    restart: on-failure
+    restart: on-failure:3
 
 volumes:
   upload-data:
