@@ -47,6 +47,13 @@ public class SessionRenewService {
             throw KillnagiException.forbidden("세션 호스트만 이어하기를 시작할 수 있습니다.");
         }
 
+        // 이미 이어하기 세션이 생성된 경우 기존 세션 정보 반환 (중복 생성 방지)
+        if (original.hasRenewedSession()) {
+            Session renewedSession = sessionRepository.findById(original.getRenewedSessionId())
+                    .orElseThrow(() -> KillnagiException.notFound("세션을 찾을 수 없습니다."));
+            return SessionRenewResponse.from(renewedSession);
+        }
+
         Session newSession = sessionRepository.save(Session.builder()
                 .name(nextRoundName(original.getName()))
                 .roomCode(sessionCodeGenerator.generate())
@@ -57,6 +64,8 @@ public class SessionRenewService {
 
         copyRules(original, newSession);
         copyTeams(original, newSession);
+
+        original.assignRenewedSession(newSession);
 
         SessionRenewResponse response = SessionRenewResponse.from(newSession);
         sessionBroadcaster.broadcastSessionRenewed(originalSessionId, response);
