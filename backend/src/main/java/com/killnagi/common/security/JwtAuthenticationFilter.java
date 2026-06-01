@@ -10,6 +10,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -31,11 +32,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = extractToken(request);
 
         if (StringUtils.hasText(token) && jwtTokenProvider.validateToken(token)) {
-            Long userId = jwtTokenProvider.getUserIdFromToken(token);
-            UserDetails userDetails = userDetailsService.loadUserByUsername(String.valueOf(userId));
-            UsernamePasswordAuthenticationToken auth =
-                    new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-            SecurityContextHolder.getContext().setAuthentication(auth);
+            try {
+                Long userId = jwtTokenProvider.getUserIdFromToken(token);
+                UserDetails userDetails = userDetailsService.loadUserByUsername(String.valueOf(userId));
+                UsernamePasswordAuthenticationToken auth =
+                        new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                SecurityContextHolder.getContext().setAuthentication(auth);
+            } catch (UsernameNotFoundException e) {
+                // 토큰은 유효하지만 해당 사용자가 DB에 없는 경우 (DB 초기화 등)
+                // 인증 없이 계속 진행 — permitAll 엔드포인트는 정상 동작하고 인증 필요 엔드포인트는 401 반환
+                log.warn("Token valid but user not found: {}", e.getMessage());
+            }
         }
 
         filterChain.doFilter(request, response);

@@ -7,6 +7,7 @@ import java.util.List;
 public record TeamScoreResponse(
         Long teamId,
         String teamName,
+        Long leaderUserId,
         int totalKills,
         int ruleScore,
         int adjustmentScore,
@@ -20,6 +21,7 @@ public record TeamScoreResponse(
         return new TeamScoreResponse(
                 team.getId(),
                 team.getName(),
+                team.getLeaderUserId(),
                 team.getTotalKills(),
                 team.getRuleScore(),
                 team.getAdjustmentScore(),
