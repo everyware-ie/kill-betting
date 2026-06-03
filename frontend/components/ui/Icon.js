@@ -43,8 +43,9 @@ const ICON_PATHS = {
   image:   'M3 5h18v14H3z M3 16l5 -5 5 5 3 -3 5 5 M9 10a1.5 1.5 0 1 0 0 -3 1.5 1.5 0 0 0 0 3Z',
   link:    'M10 13a5 5 0 0 0 7.54 .54l3 -3a5 5 0 0 0 -7.07 -7.07l-1.72 1.71 M14 11a5 5 0 0 0 -7.54 -.54l-3 3a5 5 0 0 0 7.07 7.07l1.71 -1.71',
   'arrow-right': 'M5 12h14 M13 6l6 6 -6 6',
-  coffee: 'M17 8h1a4 4 0 0 1 0 8h-1 M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8z M6 2v2 M10 2v2 M14 2v2',
-  x:      'M18 6L6 18 M6 6l12 12',
+  coffee:  'M17 8h1a4 4 0 0 1 0 8h-1 M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8z M6 2v2 M10 2v2 M14 2v2',
+  x:       'M18 6L6 18 M6 6l12 12',
+  message: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z',
 };
 
 export default function Icon({ name, size = 16, strokeWidth = 1.6, color = 'currentColor', style }) {
