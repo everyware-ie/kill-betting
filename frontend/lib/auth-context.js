@@ -40,8 +40,8 @@ export function AuthProvider({ children }) {
    * 로그인
    * @returns {{ ok: boolean, error?: string }}
    */
-  const login = async (email, password) => {
-    const res = await AuthAPI.login(email, password);
+  const login = async (email, password, remember = false) => {
+    const res = await AuthAPI.login(email, password, remember);
     if (res.success) setUser({ id: res.data.userId, nickname: res.data.nickname });
     return res;
   };

@@ -68,16 +68,32 @@ async function apiFetch(path, options = {}) {
   return res.json().catch(() => ({}));
 }
 
+const TOKEN_KEY = 'auth_token';
+
+// 자동로그인 체크 시 localStorage(영구), 아니면 sessionStorage(탭 종료 시 만료)
 const getStoredToken = () => {
-  try { return sessionStorage.getItem('auth_token'); } catch { return null; }
+  try {
+    return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY) || null;
+  } catch { return null; }
 };
 
-const storeToken = (token) => {
-  try { sessionStorage.setItem('auth_token', token); } catch {}
+const storeToken = (token, remember = false) => {
+  try {
+    if (remember) {
+      localStorage.setItem(TOKEN_KEY, token);
+      sessionStorage.removeItem(TOKEN_KEY);
+    } else {
+      sessionStorage.setItem(TOKEN_KEY, token);
+      localStorage.removeItem(TOKEN_KEY);
+    }
+  } catch {}
 };
 
 const clearStoredToken = () => {
-  try { sessionStorage.removeItem('auth_token'); } catch {}
+  try {
+    localStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(TOKEN_KEY);
+  } catch {}
 };
 
 const ok    = (data = {}) => ({ success: true, data });
@@ -127,7 +143,7 @@ export const AuthAPI = {
    *
    * [Mock 계정] test / 1234
    */
-  login: async (email, password) => {
+  login: async (email, password, remember = false) => {
     if (USE_MOCK) {
       await delay(400);
       const user = _runtimeUsers.find((u) => u.email === email);
@@ -135,7 +151,7 @@ export const AuthAPI = {
       if (user.password !== password) return err('비밀번호가 올바르지 않습니다');
       const tokenResponse = { accessToken: `mock-token-${user.id}`, tokenType: 'Bearer', userId: user.id, nickname: user.nickname };
       storeUser({ id: user.id, nickname: user.nickname });
-      storeToken(tokenResponse.accessToken);
+      storeToken(tokenResponse.accessToken, remember);
       return ok(tokenResponse);
     }
     const res = await apiFetch('/auth/login', {
@@ -143,7 +159,7 @@ export const AuthAPI = {
       body: JSON.stringify({ email, password }),
     });
     if (res.success && res.data?.accessToken) {
-      storeToken(res.data.accessToken);
+      storeToken(res.data.accessToken, remember);
     }
     return res;
   },
