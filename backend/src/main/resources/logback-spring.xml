@@ -1,7 +1,7 @@
 <configuration>
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%d{HH:mm:ss} [%thread] %-5level %logger - %msg%n</pattern>
+            <pattern>%d{HH:mm:ss} [%X{traceId:-}] [userId=%X{userId:-}] [%thread] %-5level %logger - %msg%n</pattern>
         </encoder>
     </appender>
 
@@ -14,7 +14,7 @@
                 <pattern>app=killnagi-backend,level=%level,host=${HOSTNAME}</pattern>
             </label>
             <message>
-                <pattern>%d{HH:mm:ss} [%thread] %-5level %logger - %msg%n</pattern>
+                <pattern>%d{HH:mm:ss} [%X{traceId:-}] [userId=%X{userId:-}] [%thread] %-5level %logger - %msg%n</pattern>
             </message>
         </format>
     </appender>
