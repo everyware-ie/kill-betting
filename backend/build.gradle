@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.3.0'
     id 'io.spring.dependency-management' version '1.1.5'
+    id 'jacoco'
 }
 
 group = 'com.killnagi'
@@ -69,4 +70,24 @@ tasks.named('test') {
     environment "AWS_SECRET_ACCESS_KEY", System.getenv("AWS_SECRET_ACCESS_KEY") ?: ""
     environment "AWS_S3_BUCKET_NAME", System.getenv("AWS_S3_BUCKET_NAME") ?: ""
     environment "AWS_S3_REGION", System.getenv("AWS_S3_REGION") ?: ""
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+    reports {
+        xml.required = true
+        html.required = true
+    }
+    // Lombok, 설정 클래스, 엔티티 등 커버리지 측정 제외
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                '**/*Application*',
+                '**/global/config/**',
+                '**/global/response/**',
+                '**/*Request*',
+                '**/*Response*',
+            ])
+        }))
+    }
 }
