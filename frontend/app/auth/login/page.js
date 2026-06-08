@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import AuthLayout from '@/components/layout/AuthLayout';
@@ -11,22 +11,35 @@ import { useAuth } from '@/lib/auth-context';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, user, loading } = useAuth();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPw, setShowPw] = useState(false);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  // 이미 로그인된 경우 (자동로그인 등) 대시보드로 이동
+  useEffect(() => {
+    if (!loading && user) router.replace('/dashboard');
+  }, [user, loading]);
+
+  const [email,      setEmail]      = useState('');
+  const [password,   setPassword]   = useState('');
+  const [showPw,     setShowPw]     = useState(false);
+  const [rememberMe, setRememberMe] = useState(() => {
+    try { return localStorage.getItem('remember_me') === 'true'; } catch { return false; }
+  });
+  const [error,      setError]      = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleRememberChange = (checked) => {
+    setRememberMe(checked);
+    try { localStorage.setItem('remember_me', String(checked)); } catch {}
+  };
 
   const handleSubmit = async () => {
     setError('');
     if (!email.trim()) { setError('아이디를 입력해주세요'); return; }
     if (!password) { setError('비밀번호를 입력해주세요'); return; }
 
-    setLoading(true);
-    const res = await login(email.trim(), password);
-    setLoading(false);
+    setSubmitting(true);
+    const res = await login(email.trim(), password, rememberMe);
+    setSubmitting(false);
 
     if (!res.success) {
       setError(res.error || '로그인에 실패했습니다');
@@ -81,6 +94,24 @@ export default function LoginPage() {
         />
       </div>
 
+      {/* 자동로그인 체크박스 */}
+      <label style={{
+        display: 'flex', alignItems: 'center', gap: 8,
+        cursor: 'pointer', userSelect: 'none',
+        fontSize: 13, color: 'var(--kn-text-muted)',
+      }}>
+        <input
+          type="checkbox"
+          checked={rememberMe}
+          onChange={(e) => handleRememberChange(e.target.checked)}
+          style={{
+            width: 16, height: 16, cursor: 'pointer',
+            accentColor: 'var(--kn-accent)',
+          }}
+        />
+        자동로그인
+      </label>
+
       {/* error */}
       {error && (
         <div style={{
@@ -97,7 +128,7 @@ export default function LoginPage() {
 
       {/* actions */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <Button variant="primary" size="lg" fullWidth onClick={handleSubmit} loading={loading}>
+        <Button variant="primary" size="lg" fullWidth onClick={handleSubmit} loading={submitting}>
           로그인
         </Button>
         <Link href="/auth/signup" style={{ textDecoration: 'none' }}>
