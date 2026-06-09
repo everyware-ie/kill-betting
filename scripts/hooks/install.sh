@@ -5,7 +5,7 @@
 HOOKS_DIR="$(git rev-parse --show-toplevel)/.git/hooks"
 SCRIPT_DIR="$(git rev-parse --show-toplevel)/scripts/hooks"
 
-for hook in pre-commit commit-msg; do
+for hook in pre-commit commit-msg pre-push; do
     src="$SCRIPT_DIR/$hook"
     dest="$HOOKS_DIR/$hook"
 
