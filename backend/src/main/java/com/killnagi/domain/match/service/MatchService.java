@@ -32,10 +32,10 @@ public class MatchService {
         String url;
         try {
             url = fileStorageService.store(file, SCREENSHOT_DIR);
-            sample.stop(Timer.builder("storage.upload.duration").tag("result", "success").register(meterRegistry));
+            sample.stop(Timer.builder("storage.upload.duration").tag("result", "success").publishPercentileHistogram(true).register(meterRegistry));
             meterRegistry.counter("storage.upload", "result", "success").increment();
         } catch (Exception e) {
-            sample.stop(Timer.builder("storage.upload.duration").tag("result", "failure").register(meterRegistry));
+            sample.stop(Timer.builder("storage.upload.duration").tag("result", "failure").publishPercentileHistogram(true).register(meterRegistry));
             meterRegistry.counter("storage.upload", "result", "failure").increment();
             throw e;
         }

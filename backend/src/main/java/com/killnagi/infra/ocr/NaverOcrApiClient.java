@@ -45,12 +45,12 @@ public class NaverOcrApiClient implements OcrClient {
             ObjectMapper mapper = new ObjectMapper();
             String response = callOcrApi(file, imageFormat, mapper);
             MatchOcrResult result = parseOcrResponse(response, mapper);
-            sample.stop(Timer.builder("ocr.request.duration").tag("result", "success").register(meterRegistry));
+            sample.stop(Timer.builder("ocr.request.duration").tag("result", "success").publishPercentileHistogram(true).register(meterRegistry));
             meterRegistry.counter("ocr.request", "result", "success").increment();
             return result;
         } catch (Exception e) {
             log.error("OCR API 호출 실패", e);
-            sample.stop(Timer.builder("ocr.request.duration").tag("result", "failure").register(meterRegistry));
+            sample.stop(Timer.builder("ocr.request.duration").tag("result", "failure").publishPercentileHistogram(true).register(meterRegistry));
             meterRegistry.counter("ocr.request", "result", "failure").increment();
             return null;
         }
