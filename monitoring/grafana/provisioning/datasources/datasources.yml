@@ -1,0 +1,25 @@
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    uid: prometheus
+    url: http://killnagi-prometheus:9090
+    access: proxy
+    isDefault: true
+    jsonData:
+      timeInterval: "15s"
+
+  - name: Loki
+    type: loki
+    uid: loki
+    url: http://killnagi-loki:3100
+    access: proxy
+    jsonData:
+      derivedFields:
+        - matcherRegex: "\\[([0-9a-f]{16,32})\\]"
+          name: TraceID
+          urlDisplayLabel: "Trace 로그 전체 보기"
+          internalLink: true
+          datasourceUid: loki
+          url: '{app="killnagi-backend"} |= "${__value.raw}"'
