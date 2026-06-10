@@ -7,6 +7,7 @@ import com.killnagi.domain.session.event.SessionEndReason;
 import com.killnagi.domain.session.repository.SessionRepository;
 import com.killnagi.domain.team.entity.Team;
 import com.killnagi.domain.team.repository.TeamRepository;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,7 @@ public class SessionEndService {
     private final SessionRepository sessionRepository;
     private final TeamRepository teamRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final MeterRegistry meterRegistry;
 
     @Transactional
     public void endByKillLimit(Session session, Team winner) {
@@ -29,6 +31,7 @@ public class SessionEndService {
             return;
         }
         session.end(winner);
+        meterRegistry.counter("session.ended", "reason", "kill_limit").increment();
         eventPublisher.publishEvent(toEvent(session.getId(), winner, SessionEndReason.KILL_LIMIT_REACHED));
     }
 
@@ -58,7 +61,16 @@ public class SessionEndService {
     private void endWithWinnerDetermination(Session session, SessionEndReason reason) {
         Optional<Team> winner = determineWinner(session.getId());
         session.end(winner.orElse(null));
+        meterRegistry.counter("session.ended", "reason", toReasonTag(reason)).increment();
         eventPublisher.publishEvent(toEvent(session.getId(), winner.orElse(null), reason));
+    }
+
+    private String toReasonTag(SessionEndReason reason) {
+        return switch (reason) {
+            case TIME_EXPIRED -> "time_expiry";
+            case HOST_TERMINATED -> "host";
+            default -> reason.name().toLowerCase();
+        };
     }
 
     private Optional<Team> determineWinner(Long sessionId) {

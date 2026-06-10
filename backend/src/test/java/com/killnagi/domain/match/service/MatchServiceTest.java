@@ -7,11 +7,14 @@ import static org.mockito.BDDMockito.given;
 
 import java.util.List;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 
@@ -32,6 +35,7 @@ class MatchServiceTest {
     @Mock private MatchRepository matchRepository;
     @Mock private FileStorageService fileStorageService;
     @Mock private OcrClient ocrClient;
+    @Spy MeterRegistry meterRegistry = new SimpleMeterRegistry();
     @InjectMocks private MatchService matchService;
 
     @Test

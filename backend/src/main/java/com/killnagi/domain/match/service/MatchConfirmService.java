@@ -19,6 +19,7 @@ import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.session.service.SessionEndService;
 import com.killnagi.domain.team.repository.TeamPlayerRepository;
 import com.killnagi.domain.team.repository.TeamRepository;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -39,6 +40,7 @@ public class MatchConfirmService {
     private final TeamRepository teamRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final SessionEndService sessionEndService;
+    private final MeterRegistry meterRegistry;
 
     @Transactional
     public ConfirmResponse confirm(Long matchId, Long requesterId, ConfirmRequest request) {
@@ -52,6 +54,7 @@ public class MatchConfirmService {
                 request.isChicken(), request.mapName(), request.placement(), request.playTime());
         match.confirm(results, rules, confirmData);
 
+        meterRegistry.counter("match.confirmed").increment();
         eventPublisher.publishEvent(buildEvent(match, results));
         checkKillLimit(match);
         return new ConfirmResponse(matchId, match.getStatus().name());

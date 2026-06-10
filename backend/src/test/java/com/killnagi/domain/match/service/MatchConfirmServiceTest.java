@@ -8,12 +8,15 @@ import static org.mockito.BDDMockito.given;
 import java.util.List;
 import java.util.Optional;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -46,6 +49,7 @@ class MatchConfirmServiceTest {
     @Mock private RuleRepository ruleRepository;
     @Mock private TeamRepository teamRepository;
     @Mock private ApplicationEventPublisher eventPublisher;
+    @Spy MeterRegistry meterRegistry = new SimpleMeterRegistry();
     @InjectMocks private MatchConfirmService matchConfirmService;
 
     private static final Long MATCH_ID = 1L;

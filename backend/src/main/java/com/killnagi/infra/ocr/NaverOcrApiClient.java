@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -29,15 +31,27 @@ public class NaverOcrApiClient implements OcrClient {
     @Value("${naver.ocr.secret-key}")
     private String secretKey;
 
+    private final MeterRegistry meterRegistry;
+
+    public NaverOcrApiClient(MeterRegistry meterRegistry) {
+        this.meterRegistry = meterRegistry;
+    }
+
     @Override
     public MatchOcrResult parseMatchScreenshot(MultipartFile file, String imageFormat) {
         log.info("OCR 호출 시작");
+        Timer.Sample sample = Timer.start(meterRegistry);
         try {
             ObjectMapper mapper = new ObjectMapper();
             String response = callOcrApi(file, imageFormat, mapper);
-            return parseOcrResponse(response, mapper);
+            MatchOcrResult result = parseOcrResponse(response, mapper);
+            sample.stop(Timer.builder("ocr.request.duration").tag("result", "success").register(meterRegistry));
+            meterRegistry.counter("ocr.request", "result", "success").increment();
+            return result;
         } catch (Exception e) {
             log.error("OCR API 호출 실패", e);
+            sample.stop(Timer.builder("ocr.request.duration").tag("result", "failure").register(meterRegistry));
+            meterRegistry.counter("ocr.request", "result", "failure").increment();
             return null;
         }
     }

@@ -15,6 +15,7 @@ import com.killnagi.domain.team.entity.Team;
 import com.killnagi.domain.team.repository.TeamRepository;
 import com.killnagi.domain.user.entity.User;
 import com.killnagi.domain.user.repository.UserRepository;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +40,7 @@ public class SessionService {
     private final SessionTimerService sessionTimerService;
     private final SessionCodeGenerator sessionCodeGenerator;
     private final SessionBroadcaster sessionBroadcaster;
+    private final MeterRegistry meterRegistry;
 
     @Transactional
     public SessionResponse createSession(Long hostUserId, CreateRequest request) {
@@ -76,6 +78,7 @@ public class SessionService {
                     .build());
         }
 
+        meterRegistry.counter("session.created").increment();
         return SessionResponse.from(session);
     }
 
@@ -108,6 +111,7 @@ public class SessionService {
                         .build()));
 
         session.start();
+        meterRegistry.counter("session.started").increment();
         sessionBroadcaster.broadcastSessionStarted(sessionId);
 
         if (session.hasTimeLimit()) {

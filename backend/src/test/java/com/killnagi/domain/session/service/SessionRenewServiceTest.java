@@ -11,11 +11,14 @@ import static org.mockito.Mockito.times;
 import java.util.List;
 import java.util.Optional;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -47,6 +50,7 @@ class SessionRenewServiceTest {
     @Mock private TeamPlayerRepository teamPlayerRepository;
     @Mock private SessionCodeGenerator sessionCodeGenerator;
     @Mock private SessionBroadcaster sessionBroadcaster;
+    @Spy MeterRegistry meterRegistry = new SimpleMeterRegistry();
     @InjectMocks private SessionRenewService sessionRenewService;
 
     private static final Long HOST_ID = 1L;
