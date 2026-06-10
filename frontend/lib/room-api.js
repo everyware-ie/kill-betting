@@ -386,6 +386,7 @@ export const RoomAPI = {
       const emptyTeam = room.teams.find((t) => t.players.length === 0);
       if (emptyTeam) return err(`${emptyTeam.name}에 플레이어를 추가해주세요`);
       room.status = 'LIVE';
+      room.startedAt = new Date().toISOString();
       return ok({ room });
     }
     return apiFetch(`/sessions/${roomId}/start`, { method: 'POST' });

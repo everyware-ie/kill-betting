@@ -16,7 +16,8 @@ public record SessionDetailResponse(
         Integer targetKills,
         Integer timeLimitMinutes,
         List<RuleResponse> rules,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        LocalDateTime startedAt
 ) {
     public static SessionDetailResponse from(Session session, List<RuleResponse> rules) {
         return new SessionDetailResponse(
@@ -29,7 +30,8 @@ public record SessionDetailResponse(
                 session.getTargetKills(),
                 session.getTimeLimitMinutes(),
                 rules,
-                session.getCreatedAt()
+                session.getCreatedAt(),
+                session.getStartedAt()
         );
     }
 }
