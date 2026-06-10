@@ -95,7 +95,8 @@ public class Match {
 
         accumulateKills(matchResults);
         computeMatchStats(matchResults, data);
-        applyRules(rules);
+        boolean anyTop10 = matchResults.stream().anyMatch(MatchResult::isTop10);
+        applyRules(rules, anyTop10);
         this.status = MatchStatus.CONFIRMED;
     }
 
@@ -113,9 +114,9 @@ public class Match {
         this.failedTop10Count = matchResults.stream().filter(r -> !r.isTop10()).count();
     }
 
-    private void applyRules(List<Rule> rules) {
+    private void applyRules(List<Rule> rules, boolean anyTop10) {
         rules.forEach(rule -> {
-            int score = rule.calculateScore(this.isChicken, this.failedTop10Count);
+            int score = rule.calculateScore(this.isChicken, this.failedTop10Count, anyTop10);
             this.team.addRuleScore(score);
             if (score > 0) {
                 this.matchBonusScore += score;

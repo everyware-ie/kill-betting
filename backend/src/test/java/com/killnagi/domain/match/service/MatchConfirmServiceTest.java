@@ -197,6 +197,40 @@ class MatchConfirmServiceTest {
         assertThat(pendingMatch.isConfirmed()).isTrue();
     }
 
+    @Test
+    void 전원_TOP10_실패시_SQUAD_WIPE_PENALTY_규칙이_팀_패널티에_적용된다() {
+        User user = TestFixtures.user(USER_ID);
+        Session session = TestFixtures.session(SESSION_ID, user);
+        Rule squadWipePenalty = TestFixtures.rule(session, RuleType.SQUAD_WIPE_PENALTY, 3);
+
+        given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
+        given(teamRepository.existsBySessionIdAndLeader_Id(SESSION_ID, USER_ID)).willReturn(true);
+        given(teamPlayerRepository.findByTeam_Id(TEAM_ID)).willReturn(List.of(player));
+        given(matchResultRepository.saveAll(any())).willAnswer(inv -> inv.getArgument(0));
+        given(ruleRepository.findByRuleSetSessionIdAndEnabled(SESSION_ID, true)).willReturn(List.of(squadWipePenalty));
+
+        matchConfirmService.confirm(MATCH_ID, USER_ID, confirmRequest("PlayerOne", 0, 20, false));
+
+        assertThat(team.getRuleScore()).isEqualTo(-3);
+    }
+
+    @Test
+    void 한명이라도_TOP10_진입시_SQUAD_WIPE_PENALTY_규칙이_적용되지_않는다() {
+        User user = TestFixtures.user(USER_ID);
+        Session session = TestFixtures.session(SESSION_ID, user);
+        Rule squadWipePenalty = TestFixtures.rule(session, RuleType.SQUAD_WIPE_PENALTY, 3);
+
+        given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
+        given(teamRepository.existsBySessionIdAndLeader_Id(SESSION_ID, USER_ID)).willReturn(true);
+        given(teamPlayerRepository.findByTeam_Id(TEAM_ID)).willReturn(List.of(player));
+        given(matchResultRepository.saveAll(any())).willAnswer(inv -> inv.getArgument(0));
+        given(ruleRepository.findByRuleSetSessionIdAndEnabled(SESSION_ID, true)).willReturn(List.of(squadWipePenalty));
+
+        matchConfirmService.confirm(MATCH_ID, USER_ID, confirmRequest("PlayerOne", 0, 8, true));
+
+        assertThat(team.getRuleScore()).isEqualTo(0);
+    }
+
     private ConfirmRequest confirmRequest(String nickname, int kills, int placement, boolean isTop10) {
         return new ConfirmRequest("에란겔", placement, "25:30",
                 List.of(new PlayerResult(nickname, kills, 100, 0, isTop10)), false);
