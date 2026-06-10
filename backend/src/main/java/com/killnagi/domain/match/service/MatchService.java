@@ -8,6 +8,8 @@ import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.team.entity.Team;
 import com.killnagi.infra.ocr.MatchOcrResult;
 import com.killnagi.infra.ocr.OcrClient;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,10 +24,22 @@ public class MatchService {
     private final MatchRepository matchRepository;
     private final FileStorageService fileStorageService;
     private final OcrClient ocrClient;
+    private final MeterRegistry meterRegistry;
 
     @Transactional
     public ScreenshotUploadResponse uploadScreenshot(Session session, Team team, MultipartFile file) {
-        String url = fileStorageService.store(file, SCREENSHOT_DIR);
+        Timer.Sample sample = Timer.start(meterRegistry);
+        String url;
+        try {
+            url = fileStorageService.store(file, SCREENSHOT_DIR);
+            sample.stop(Timer.builder("storage.upload.duration").tag("result", "success").register(meterRegistry));
+            meterRegistry.counter("storage.upload", "result", "success").increment();
+        } catch (Exception e) {
+            sample.stop(Timer.builder("storage.upload.duration").tag("result", "failure").register(meterRegistry));
+            meterRegistry.counter("storage.upload", "result", "failure").increment();
+            throw e;
+        }
+
         int matchNumber = matchRepository.countBySessionId(session.getId()) + 1;
 
         Match match = Match.builder()
@@ -35,6 +49,8 @@ public class MatchService {
                 .screenshotUrl(url)
                 .build();
         matchRepository.save(match);
+
+        meterRegistry.counter("match.screenshot.uploaded").increment();
 
         String imageFormat = getImageFormat(file);
         MatchOcrResult ocrResult = ocrClient.parseMatchScreenshot(file, imageFormat);

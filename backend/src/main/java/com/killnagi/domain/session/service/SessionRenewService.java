@@ -12,6 +12,7 @@ import com.killnagi.domain.team.entity.Team;
 import com.killnagi.domain.team.entity.TeamPlayer;
 import com.killnagi.domain.team.repository.TeamPlayerRepository;
 import com.killnagi.domain.team.repository.TeamRepository;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +34,7 @@ public class SessionRenewService {
     private final TeamPlayerRepository teamPlayerRepository;
     private final SessionCodeGenerator sessionCodeGenerator;
     private final SessionBroadcaster sessionBroadcaster;
+    private final MeterRegistry meterRegistry;
 
     @Transactional
     public SessionRenewResponse renew(Long originalSessionId, Long hostUserId) {
@@ -67,6 +69,7 @@ public class SessionRenewService {
 
         original.assignRenewedSession(newSession);
 
+        meterRegistry.counter("session.renewed").increment();
         SessionRenewResponse response = SessionRenewResponse.from(newSession);
         sessionBroadcaster.broadcastSessionRenewed(originalSessionId, response);
         return response;
