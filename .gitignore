@@ -14,6 +14,7 @@
 backend/.gradle/
 backend/build/
 backend/out/
+backend/bin/
 
 # Node / Next.js
 frontend/node_modules/
