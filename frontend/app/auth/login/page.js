@@ -138,6 +138,24 @@ export default function LoginPage() {
         </Link>
       </div>
 
+      {/* 가이드 링크 — 서비스가 처음이신 분들을 위해 */}
+      <div style={{
+        marginTop: 4, textAlign: 'center',
+        fontSize: 12, color: 'var(--kn-text-muted)',
+      }}>
+        Killnagi가 처음이신가요?{' '}
+        <Link
+          href="/landing"
+          style={{
+            color: 'var(--kn-accent)',
+            fontWeight: 'var(--kn-w-semi)',
+            textDecoration: 'none',
+          }}
+        >
+          서비스 가이드 보기 →
+        </Link>
+      </div>
+
       {/* mock info */}
       {process.env.NODE_ENV !== 'production' && (
         <div style={{
