@@ -1,75 +1,71 @@
 ---
 name: to-prd
-description: Turn the current conversation into a PRD and publish it to the project issue tracker — no interview, just synthesis of what you've already discussed.
+description: 현재 대화 내용을 PRD로 정리해 프로젝트 이슈 트래커에 게시한다 — 인터뷰 없이, 이미 논의된 내용을 종합한다.
 disable-model-invocation: true
 ---
 
-This skill takes the current conversation context and codebase understanding and produces a PRD. Do NOT interview the user — just synthesize what you already know.
+현재 대화 컨텍스트와 코드베이스 이해를 바탕으로 PRD를 작성한다. 사용자에게 인터뷰하지 않는다 — 이미 알고 있는 내용을 종합하는 것이다.
 
-The issue tracker and triage label vocabulary should have been provided to you — run `/setup-matt-pocock-skills` if not.
+이슈 트래커와 트리아지 레이블 어휘가 제공되어 있어야 한다 — 없다면 `/setup-matt-pocock-skills`를 실행한다.
 
-## Process
+## 진행 순서
 
-1. Explore the repo to understand the current state of the codebase, if you haven't already. Use the project's domain glossary vocabulary throughout the PRD, and respect any ADRs in the area you're touching.
+1. 코드베이스를 아직 탐색하지 않았다면 현재 상태를 파악한다. PRD 전반에 걸쳐 프로젝트의 도메인 용어집 어휘를 사용하고, 수정하는 영역의 ADR을 존중한다.
 
-2. Sketch out the seams at which you're going to test the feature. Existing seams should be preferred to new ones. Use the highest seam possible. If new seams are needed, propose them at the highest point you can. The fewer seams across the codebase, the better - the ideal number is one.
+2. 기능을 테스트할 seam을 스케치한다. 기존 seam을 새로운 것보다 우선한다. 가능한 한 높은 seam을 사용한다. 새 seam이 필요하다면 가능한 한 높은 지점에 제안한다. 코드베이스 전체의 seam 수는 적을수록 좋다 — 이상적으로는 하나.
 
-Check with the user that these seams match their expectations.
+   이 seam이 사용자의 기대와 일치하는지 확인한다.
 
-3. Write the PRD using the template below, then publish it to the project issue tracker. Apply the `ready-for-agent` triage label - no need for additional triage.
+3. 아래 템플릿으로 PRD를 작성한 후 프로젝트 이슈 트래커에 게시한다. `ready-for-agent` 트리아지 레이블을 적용한다.
 
 <prd-template>
 
-## Problem Statement
+## 문제 정의
 
-The problem that the user is facing, from the user's perspective.
+사용자 관점에서 사용자가 겪고 있는 문제.
 
-## Solution
+## 해결책
 
-The solution to the problem, from the user's perspective.
+사용자 관점에서 문제에 대한 해결책.
 
-## User Stories
+## 사용자 스토리
 
-A LONG, numbered list of user stories. Each user story should be in the format of:
+사용자 스토리의 길고 번호가 매겨진 목록. 각 사용자 스토리는 아래 형식으로:
 
-1. As an <actor>, I want a <feature>, so that <benefit>
+1. [액터]로서, 나는 [기능]을 원한다, 그래야 [혜택]을 얻을 수 있기 때문이다.
 
-<user-story-example>
-1. As a mobile bank customer, I want to see balance on my accounts, so that I can make better informed decisions about my spending
-</user-story-example>
+이 목록은 기능의 모든 측면을 포괄할 만큼 매우 상세해야 한다.
 
-This list of user stories should be extremely extensive and cover all aspects of the feature.
+## 구현 결정사항
 
-## Implementation Decisions
+내려진 구현 결정사항 목록. 다음을 포함할 수 있다:
 
-A list of implementation decisions that were made. This can include:
+- 구축/수정할 모듈
+- 수정될 해당 모듈의 인터페이스
+- 개발자의 기술적 명확화
+- 아키텍처 결정
+- 스키마 변경
+- API 계약
+- 특정 인터랙션
 
-- The modules that will be built/modified
-- The interfaces of those modules that will be modified
-- Technical clarifications from the developer
-- Architectural decisions
-- Schema changes
-- API contracts
-- Specific interactions
+특정 파일 경로나 코드 스니펫은 포함하지 않는다. 금방 구식이 된다.
 
-Do NOT include specific file paths or code snippets. They may end up being outdated very quickly.
+예외: 프로토타입이 산문보다 더 정확하게 결정을 인코딩하는 스니펫(상태 머신, 리듀서, 스키마, 타입 형태)을 생산했다면, 관련 결정 안에 인라인으로 포함하고 프로토타입에서 나온 것임을 간략히 표기한다. 결정이 풍부한 부분만 남기고 정리한다.
 
-Exception: if a prototype produced a snippet that encodes a decision more precisely than prose can (state machine, reducer, schema, type shape), inline it within the relevant decision and note briefly that it came from a prototype. Trim to the decision-rich parts — not a working demo, just the important bits.
+## 테스트 결정사항
 
-## Testing Decisions
+내려진 테스트 결정사항 목록. 다음을 포함한다:
 
-A list of testing decisions that were made. Include:
+- 좋은 테스트란 무엇인지 설명 (구현 세부사항이 아닌 외부 동작만 테스트)
+- 테스트할 모듈
+- 테스트 선례 (코드베이스의 유사한 테스트)
 
-- A description of what makes a good test (only test external behavior, not implementation details)
-- Which modules will be tested
-- Prior art for the tests (i.e. similar types of tests in the codebase)
+## 범위 외
 
-## Out of Scope
+이 PRD의 범위 밖인 항목 설명.
 
-A description of the things that are out of scope for this PRD.
+## 추가 참고사항
 
-## Further Notes
-
-Any further notes about the feature.
+기능에 대한 추가 참고사항.
 
 </prd-template>

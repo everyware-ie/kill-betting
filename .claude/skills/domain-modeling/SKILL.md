@@ -1,15 +1,15 @@
 ---
 name: domain-modeling
-description: Build and sharpen a project's domain model. Use when the user wants to pin down domain terminology or a ubiquitous language, record an architectural decision, or when another skill needs to maintain the domain model.
+description: 프로젝트의 도메인 모델을 구축하고 정제한다. 도메인 용어나 공통 언어를 확정하거나, 아키텍처 결정을 기록하거나, 다른 스킬이 도메인 모델 관리를 필요로 할 때 호출.
 ---
 
-# Domain Modeling
+# 도메인 모델링
 
-Actively build and sharpen the project's domain model as you design. This is the *active* discipline — challenging terms, inventing edge-case scenarios, and writing the glossary and decisions down the moment they crystallise. (Merely *reading* `CONTEXT.md` for vocabulary is not this skill — that's a one-line habit any skill can do. This skill is for when you're changing the model, not just consuming it.)
+설계하면서 프로젝트의 도메인 모델을 적극적으로 구축하고 정제한다. 이것은 *능동적인* 작업이다 — 용어를 검증하고, 엣지 케이스 시나리오를 발명하고, 용어와 결정이 확정되는 순간 바로 문서화한다. (단순히 어휘 참조를 위해 `CONTEXT.md`를 읽는 것은 이 스킬이 아니다 — 그건 어떤 스킬이든 할 수 있는 단순한 습관이다. 이 스킬은 모델을 소비하는 것이 아니라 *변경*할 때 사용한다.)
 
-## File structure
+## 파일 구조
 
-Most repos have a single context:
+대부분의 레포는 단일 컨텍스트를 가진다:
 
 ```
 /
@@ -21,54 +21,54 @@ Most repos have a single context:
 └── src/
 ```
 
-If a `CONTEXT-MAP.md` exists at the root, the repo has multiple contexts. The map points to where each one lives:
+루트에 `CONTEXT-MAP.md`가 있으면 멀티 컨텍스트 레포다. 맵은 각 컨텍스트의 위치를 가리킨다:
 
 ```
 /
 ├── CONTEXT-MAP.md
 ├── docs/
-│   └── adr/                          ← system-wide decisions
+│   └── adr/                          ← 시스템 전체 결정
 ├── src/
 │   ├── ordering/
 │   │   ├── CONTEXT.md
-│   │   └── docs/adr/                 ← context-specific decisions
+│   │   └── docs/adr/                 ← 컨텍스트별 결정
 │   └── billing/
 │       ├── CONTEXT.md
 │       └── docs/adr/
 ```
 
-Create files lazily — only when you have something to write. If no `CONTEXT.md` exists, create one when the first term is resolved. If no `docs/adr/` exists, create it when the first ADR is needed.
+파일은 게으르게 생성한다 — 실제로 쓸 내용이 생겼을 때만 만든다. `CONTEXT.md`가 없으면 첫 번째 용어가 확정될 때 생성한다. `docs/adr/`가 없으면 첫 번째 ADR이 필요할 때 생성한다.
 
-## During the session
+## 세션 중 할 일
 
-### Challenge against the glossary
+### 용어집과 대조하여 검증
 
-When the user uses a term that conflicts with the existing language in `CONTEXT.md`, call it out immediately. "Your glossary defines 'cancellation' as X, but you seem to mean Y — which is it?"
+사용자가 `CONTEXT.md`의 기존 언어와 충돌하는 용어를 쓰면 즉시 지적한다. "용어집에는 'cancellation'이 X로 정의되어 있는데, 지금 Y를 의미하는 것 같습니다 — 어느 쪽인가요?"
 
-### Sharpen fuzzy language
+### 모호한 언어 정제
 
-When the user uses vague or overloaded terms, propose a precise canonical term. "You're saying 'account' — do you mean the Customer or the User? Those are different things."
+사용자가 모호하거나 중의적인 용어를 쓰면 정확한 표준 용어를 제안한다. "'account'라고 하셨는데 — Customer를 말하는 건가요, User를 말하는 건가요? 둘은 다른 개념입니다."
 
-### Discuss concrete scenarios
+### 구체적인 시나리오로 검증
 
-When domain relationships are being discussed, stress-test them with specific scenarios. Invent scenarios that probe edge cases and force the user to be precise about the boundaries between concepts.
+도메인 관계를 논의할 때, 구체적인 시나리오로 검증한다. 엣지 케이스를 탐색하고 개념 간 경계를 명확히 할 수 있는 시나리오를 만들어낸다.
 
-### Cross-reference with code
+### 코드와 교차 검증
 
-When the user states how something works, check whether the code agrees. If you find a contradiction, surface it: "Your code cancels entire Orders, but you just said partial cancellation is possible — which is right?"
+사용자가 어떤 동작을 설명할 때, 코드가 그것과 일치하는지 확인한다. 모순이 발견되면 표면화한다: "코드는 Order 전체를 취소하는데, 방금 부분 취소가 가능하다고 하셨습니다 — 어느 쪽이 맞나요?"
 
-### Update CONTEXT.md inline
+### CONTEXT.md 즉시 업데이트
 
-When a term is resolved, update `CONTEXT.md` right there. Don't batch these up — capture them as they happen. Use the format in [CONTEXT-FORMAT.md](./CONTEXT-FORMAT.md).
+용어가 확정되면 그 자리에서 바로 `CONTEXT.md`를 업데이트한다. 나중에 일괄 처리하지 말고, 발생하는 즉시 기록한다. [CONTEXT-FORMAT.md](./CONTEXT-FORMAT.md)의 형식을 따른다.
 
-`CONTEXT.md` should be totally devoid of implementation details. Do not treat `CONTEXT.md` as a spec, a scratch pad, or a repository for implementation decisions. It is a glossary and nothing else.
+`CONTEXT.md`는 구현 세부 사항이 완전히 없어야 한다. `CONTEXT.md`를 스펙, 메모장, 구현 결정 저장소로 쓰지 않는다. 용어집 그 이상도 이하도 아니다.
 
-### Offer ADRs sparingly
+### ADR은 신중하게 제안
 
-Only offer to create an ADR when all three are true:
+아래 세 가지가 모두 참일 때만 ADR 작성을 제안한다:
 
-1. **Hard to reverse** — the cost of changing your mind later is meaningful
-2. **Surprising without context** — a future reader will wonder "why did they do it this way?"
-3. **The result of a real trade-off** — there were genuine alternatives and you picked one for specific reasons
+1. **되돌리기 어렵다** — 나중에 마음을 바꾸는 비용이 크다
+2. **맥락 없이는 놀랍다** — 미래의 독자가 "왜 이렇게 했을까?" 의아해할 것이다
+3. **진짜 트레이드오프의 결과다** — 실질적인 대안이 있었고, 특정 이유로 하나를 선택했다
 
-If any of the three is missing, skip the ADR. Use the format in [ADR-FORMAT.md](./ADR-FORMAT.md).
+셋 중 하나라도 빠지면 ADR을 건너뛴다. [ADR-FORMAT.md](./ADR-FORMAT.md)의 형식을 따른다.

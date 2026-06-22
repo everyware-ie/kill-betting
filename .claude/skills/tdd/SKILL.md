@@ -1,108 +1,108 @@
 ---
 name: tdd
-description: Test-driven development. Use when the user wants to build features or fix bugs test-first, mentions "red-green-refactor", or wants integration tests.
+description: 테스트 주도 개발. 사용자가 테스트 우선으로 기능을 구현하거나 버그를 수정하고 싶을 때, "red-green-refactor"를 언급하거나, 통합 테스트를 원할 때 호출.
 ---
 
-# Test-Driven Development
+# 테스트 주도 개발 (TDD)
 
-## Philosophy
+## 철학
 
-**Core principle**: Tests should verify behavior through public interfaces, not implementation details. Code can change entirely; tests shouldn't.
+**핵심 원칙**: 테스트는 구현 세부사항이 아닌 공개 인터페이스를 통해 동작을 검증해야 한다. 코드는 완전히 바뀔 수 있지만, 테스트는 바뀌지 않아야 한다.
 
-**Good tests** are integration-style: they exercise real code paths through public APIs. They describe _what_ the system does, not _how_ it does it. A good test reads like a specification - "user can checkout with valid cart" tells you exactly what capability exists. These tests survive refactors because they don't care about internal structure.
+**좋은 테스트**는 통합 스타일이다: 공개 API를 통해 실제 코드 경로를 실행한다. 시스템이 *어떻게* 동작하는지가 아니라 *무엇을* 하는지를 설명한다. 좋은 테스트는 명세처럼 읽힌다 — "유효한 장바구니로 결제할 수 있다"는 어떤 기능이 있는지 정확히 알려준다. 이런 테스트는 내부 구조를 신경 쓰지 않기 때문에 리팩터링에도 살아남는다.
 
-**Bad tests** are coupled to implementation. They mock internal collaborators, test private methods, or verify through external means (like querying a database directly instead of using the interface). The warning sign: your test breaks when you refactor, but behavior hasn't changed. If you rename an internal function and tests fail, those tests were testing implementation, not behavior.
+**나쁜 테스트**는 구현에 결합되어 있다. 내부 협력자를 목킹하거나, 비공개 메서드를 테스트하거나, 외부 수단(인터페이스 대신 데이터베이스 직접 쿼리 등)으로 검증한다. 경고 신호: 리팩터링 시 동작이 바뀌지 않았는데 테스트가 깨진다면, 그 테스트는 동작이 아닌 구현을 테스트하고 있는 것이다.
 
-See [tests.md](tests.md) for examples and [mocking.md](mocking.md) for mocking guidelines.
+예시는 [tests.md](tests.md), 목킹 가이드는 [mocking.md](mocking.md) 참고.
 
-## Anti-Pattern: Horizontal Slices
+## 안티패턴: 수평 슬라이스
 
-**DO NOT write all tests first, then all implementation.** This is "horizontal slicing" - treating RED as "write all tests" and GREEN as "write all code."
+**테스트를 모두 먼저 작성하고, 구현을 나중에 하지 않는다.** 이것은 "수평 슬라이스"다 — RED를 "모든 테스트 작성", GREEN을 "모든 코드 작성"으로 취급하는 방식이다.
 
-This produces **crap tests**:
+이 방식은 **나쁜 테스트**를 만든다:
 
-- Tests written in bulk test _imagined_ behavior, not _actual_ behavior
-- You end up testing the _shape_ of things (data structures, function signatures) rather than user-facing behavior
-- Tests become insensitive to real changes - they pass when behavior breaks, fail when behavior is fine
-- You outrun your headlights, committing to test structure before understanding the implementation
+- 대량으로 작성된 테스트는 *실제* 동작이 아닌 *상상된* 동작을 테스트한다
+- 사용자 대면 동작이 아닌 것들의 *형태*(데이터 구조, 함수 시그니처)를 테스트하게 된다
+- 테스트가 실제 변경에 둔감해진다 — 동작이 깨지면 통과하고, 동작이 정상이면 실패한다
+- 구현을 이해하기 전에 테스트 구조에 먼저 헌신하게 된다
 
-**Correct approach**: Vertical slices via tracer bullets. One test → one implementation → repeat. Each test responds to what you learned from the previous cycle. Because you just wrote the code, you know exactly what behavior matters and how to verify it.
+**올바른 접근**: tracer bullet을 통한 수직 슬라이스. 테스트 하나 → 구현 하나 → 반복. 각 테스트는 이전 사이클에서 배운 것을 반영한다. 방금 코드를 작성했기 때문에 어떤 동작이 중요한지, 어떻게 검증할지 정확히 안다.
 
 ```
-WRONG (horizontal):
+틀린 방식 (수평):
   RED:   test1, test2, test3, test4, test5
   GREEN: impl1, impl2, impl3, impl4, impl5
 
-RIGHT (vertical):
+올바른 방식 (수직):
   RED→GREEN: test1→impl1
   RED→GREEN: test2→impl2
   RED→GREEN: test3→impl3
   ...
 ```
 
-## Workflow
+## 워크플로우
 
-### 1. Planning
+### 1. 계획
 
-When exploring the codebase, read `CONTEXT.md` (if it exists) so that test names and interface vocabulary match the project's domain language, and respect ADRs in the area you're touching.
+코드베이스를 탐색할 때, `CONTEXT.md`가 있다면 읽어서 테스트 이름과 인터페이스 어휘가 프로젝트의 도메인 언어와 일치하도록 한다. 수정하는 영역의 ADR을 존중한다.
 
-Before writing any code:
+코드 작성 전:
 
-- [ ] Confirm with user what interface changes are needed
-- [ ] Confirm with user which behaviors to test (prioritize)
-- [ ] Identify opportunities for deep modules (small interface, deep implementation) — run the `/codebase-design` skill for the vocabulary and the testability checks
-- [ ] List the behaviors to test (not implementation steps)
-- [ ] Get user approval on the plan
+- [ ] 어떤 인터페이스 변경이 필요한지 사용자와 확인
+- [ ] 어떤 동작을 테스트할지 사용자와 확인 (우선순위)
+- [ ] 깊은 모듈 기회 파악 (작은 인터페이스, 깊은 구현) — 어휘와 테스트 가능성 확인을 위해 `/codebase-design` 스킬 실행
+- [ ] 테스트할 동작 목록 작성 (구현 단계가 아닌)
+- [ ] 사용자 승인 받기
 
-Ask: "What should the public interface look like? Which behaviors are most important to test?"
+물어본다: "공개 인터페이스는 어떤 모습이어야 하나요? 가장 중요한 동작은 무엇인가요?"
 
-**You can't test everything.** Confirm with the user exactly which behaviors matter most. Focus testing effort on critical paths and complex logic, not every possible edge case.
+**모든 것을 테스트할 수 없다.** 어떤 동작이 가장 중요한지 사용자와 정확히 확인한다. 모든 엣지 케이스가 아닌 중요한 경로와 복잡한 로직에 테스트 노력을 집중한다.
 
 ### 2. Tracer Bullet
 
-Write ONE test that confirms ONE thing about the system:
+시스템에 대해 **한 가지**를 확인하는 **하나의** 테스트를 작성한다:
 
 ```
-RED:   Write test for first behavior → test fails
-GREEN: Write minimal code to pass → test passes
+RED:   첫 번째 동작에 대한 테스트 작성 → 테스트 실패
+GREEN: 통과할 최소한의 코드 작성 → 테스트 통과
 ```
 
-This is your tracer bullet - proves the path works end-to-end.
+이것이 tracer bullet이다 — 경로가 end-to-end로 작동함을 증명한다.
 
-### 3. Incremental Loop
+### 3. 점진적 루프
 
-For each remaining behavior:
-
-```
-RED:   Write next test → fails
-GREEN: Minimal code to pass → passes
-```
-
-Rules:
-
-- One test at a time
-- Only enough code to pass current test
-- Don't anticipate future tests
-- Keep tests focused on observable behavior
-
-### 4. Refactor
-
-After all tests pass, look for [refactor candidates](refactoring.md):
-
-- [ ] Extract duplication
-- [ ] Deepen modules (move complexity behind simple interfaces)
-- [ ] Apply SOLID principles where natural
-- [ ] Consider what new code reveals about existing code
-- [ ] Run tests after each refactor step
-
-**Never refactor while RED.** Get to GREEN first.
-
-## Checklist Per Cycle
+나머지 각 동작에 대해:
 
 ```
-[ ] Test describes behavior, not implementation
-[ ] Test uses public interface only
-[ ] Test would survive internal refactor
-[ ] Code is minimal for this test
-[ ] No speculative features added
+RED:   다음 테스트 작성 → 실패
+GREEN: 통과할 최소한의 코드 → 통과
+```
+
+규칙:
+
+- 한 번에 테스트 하나
+- 현재 테스트를 통과할 만큼만 코드 작성
+- 미래 테스트를 미리 예상하지 않는다
+- 관찰 가능한 동작에 집중한 테스트 유지
+
+### 4. 리팩터링
+
+모든 테스트가 통과한 후, [리팩터링 후보](refactoring.md)를 찾는다:
+
+- [ ] 중복 추출
+- [ ] 모듈 심화 (복잡성을 단순한 인터페이스 뒤로 이동)
+- [ ] 자연스러운 곳에 SOLID 원칙 적용
+- [ ] 새 코드가 기존 코드에 대해 드러내는 것 고려
+- [ ] 각 리팩터링 단계 후 테스트 실행
+
+**RED 상태에서 리팩터링하지 않는다.** GREEN에 도달한 후 리팩터링한다.
+
+## 사이클별 체크리스트
+
+```
+[ ] 테스트가 구현이 아닌 동작을 설명한다
+[ ] 테스트가 공개 인터페이스만 사용한다
+[ ] 테스트가 내부 리팩터링에도 살아남는다
+[ ] 코드가 이 테스트에 필요한 최소한이다
+[ ] 추측성 기능이 추가되지 않았다
 ```

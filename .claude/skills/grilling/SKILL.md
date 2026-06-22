@@ -1,10 +1,10 @@
 ---
 name: grilling
-description: Interview the user relentlessly about a plan or design. Use when the user wants to stress-test a plan before building, or uses any 'grill' trigger phrases.
+description: 계획이나 설계에 대해 집요하게 인터뷰한다. 사용자가 구현 전 계획을 검증하고 싶거나 '그릴링' 관련 표현을 사용할 때 호출.
 ---
 
-Interview me relentlessly about every aspect of this plan until we reach a shared understanding. Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
+모든 결정 분기가 해소되어 공통 이해에 도달할 때까지 이 계획의 모든 측면을 집요하게 인터뷰한다. 설계 트리의 각 분기를 따라가며 의존 관계를 하나씩 해소한다. 각 질문에 대해 추천 답변을 함께 제시한다.
 
-Ask the questions one at a time, waiting for feedback on each question before continuing. Asking multiple questions at once is bewildering.
+질문은 한 번에 하나씩만 한다. 답변을 받은 후 다음 질문으로 넘어간다. 여러 질문을 한꺼번에 던지면 혼란스럽다.
 
-If a question can be answered by exploring the codebase, explore the codebase instead.
+질문에 대한 답이 코드베이스 탐색으로 확인 가능하다면, 직접 탐색해서 답을 찾는다.

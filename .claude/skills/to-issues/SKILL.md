@@ -1,84 +1,84 @@
 ---
 name: to-issues
-description: Break a plan, spec, or PRD into independently-grabbable issues on the project issue tracker using tracer-bullet vertical slices.
+description: 계획, 스펙, PRD를 tracer bullet 수직 슬라이스를 사용해 이슈 트래커의 독립적으로 작업 가능한 이슈로 분해한다.
 disable-model-invocation: true
 ---
 
-# To Issues
+# 이슈 분해
 
-Break a plan into independently-grabbable issues using vertical slices (tracer bullets).
+수직 슬라이스(tracer bullet)를 사용해 계획을 독립적으로 작업 가능한 이슈로 분해한다.
 
-The issue tracker and triage label vocabulary should have been provided to you — run `/setup-matt-pocock-skills` if not.
+이슈 트래커와 트리아지 레이블 어휘가 제공되어 있어야 한다 — 없다면 `/setup-matt-pocock-skills`를 실행한다.
 
-## Process
+## 진행 순서
 
-### 1. Gather context
+### 1. 컨텍스트 수집
 
-Work from whatever is already in the conversation context. If the user passes an issue reference (issue number, URL, or path) as an argument, fetch it from the issue tracker and read its full body and comments.
+이미 대화 컨텍스트에 있는 내용을 활용한다. 사용자가 이슈 참조(번호, URL, 경로)를 인수로 전달하면 이슈 트래커에서 가져와 전체 본문과 댓글을 읽는다.
 
-### 2. Explore the codebase (optional)
+### 2. 코드베이스 탐색 (선택)
 
-If you have not already explored the codebase, do so to understand the current state of the code. Issue titles and descriptions should use the project's domain glossary vocabulary, and respect ADRs in the area you're touching.
+아직 탐색하지 않았다면 코드의 현재 상태를 파악한다. 이슈 제목과 설명은 프로젝트의 도메인 용어집 어휘를 사용하고, 수정하는 영역의 ADR을 존중한다.
 
-Look for opportunities to prefactor the code to make the implementation easier. "Make the change easy, then make the easy change."
+구현을 더 쉽게 만들 prefactor 기회를 찾는다. "변경을 쉽게 만들고, 그다음 쉬운 변경을 한다."
 
-### 3. Draft vertical slices
+### 3. 수직 슬라이스 초안
 
-Break the plan into **tracer bullet** issues. Each issue is a thin vertical slice that cuts through ALL integration layers end-to-end, NOT a horizontal slice of one layer.
+계획을 **tracer bullet** 이슈로 분해한다. 각 이슈는 하나의 레이어만 다루는 수평 슬라이스가 아니라, 모든 통합 레이어를 end-to-end로 관통하는 얇은 수직 슬라이스다.
 
 <vertical-slice-rules>
 
-- Each slice delivers a narrow but COMPLETE path through every layer (schema, API, UI, tests)
-- A completed slice is demoable or verifiable on its own
-- Any prefactoring should be done first
+- 각 슬라이스는 모든 레이어(스키마, API, UI, 테스트)를 관통하는 좁지만 완전한 경로를 제공한다
+- 완료된 슬라이스는 그 자체로 데모하거나 검증 가능하다
+- prefactor가 필요하면 먼저 처리한다
 
 </vertical-slice-rules>
 
-### 4. Quiz the user
+### 4. 사용자 검토
 
-Present the proposed breakdown as a numbered list. For each slice, show:
+제안된 분해를 번호가 매겨진 목록으로 제시한다. 각 슬라이스에 대해:
 
-- **Title**: short descriptive name
-- **Blocked by**: which other slices (if any) must complete first
-- **User stories covered**: which user stories this addresses (if the source material has them)
+- **제목**: 짧은 설명적 이름
+- **의존**: 먼저 완료되어야 하는 다른 슬라이스 (있다면)
+- **커버하는 사용자 스토리**: 이것이 다루는 사용자 스토리 (원본에 있다면)
 
-Ask the user:
+사용자에게 묻는다:
 
-- Does the granularity feel right? (too coarse / too fine)
-- Are the dependency relationships correct?
-- Should any slices be merged or split further?
+- 세분화가 적절한가? (너무 굵은가 / 너무 잘게 쪼갰는가)
+- 의존 관계가 올바른가?
+- 합치거나 더 나눠야 할 슬라이스가 있는가?
 
-Iterate until the user approves the breakdown.
+사용자가 승인할 때까지 반복한다.
 
-### 5. Publish the issues to the issue tracker
+### 5. 이슈 트래커에 게시
 
-For each approved slice, publish a new issue to the issue tracker. Use the issue body template below. These issues are considered ready for AFK agents, so publish them with the correct triage label unless instructed otherwise.
+승인된 각 슬라이스에 대해 이슈 트래커에 새 이슈를 게시한다. 아래 이슈 본문 템플릿을 사용한다. 이 이슈들은 AFK 에이전트가 바로 작업할 수 있는 상태로 간주되므로, 별도 지시가 없으면 올바른 트리아지 레이블을 적용한다.
 
-Publish issues in dependency order (blockers first) so you can reference real issue identifiers in the "Blocked by" field.
+"Blocked by" 필드에 실제 이슈 번호를 참조할 수 있도록 의존 순서대로(블로커 먼저) 게시한다.
 
 <issue-template>
-## Parent
+## 상위 이슈
 
-A reference to the parent issue on the issue tracker (if the source was an existing issue, otherwise omit this section).
+이슈 트래커의 상위 이슈 참조 (원본이 기존 이슈인 경우; 아니면 이 섹션 생략).
 
-## What to build
+## 구현 내용
 
-A concise description of this vertical slice. Describe the end-to-end behavior, not layer-by-layer implementation.
+이 수직 슬라이스에 대한 간결한 설명. 레이어별 구현이 아닌 end-to-end 동작을 설명한다.
 
-Avoid specific file paths or code snippets — they go stale fast. Exception: if a prototype produced a snippet that encodes a decision more precisely than prose can (state machine, reducer, schema, type shape), inline it here and note briefly that it came from a prototype. Trim to the decision-rich parts — not a working demo, just the important bits.
+특정 파일 경로나 코드 스니펫은 피한다 — 금방 구식이 된다. 예외: 프로토타입이 산문보다 더 정확하게 결정을 인코딩하는 스니펫을 생산했다면, 여기에 인라인으로 포함하고 프로토타입에서 나온 것임을 간략히 표기한다.
 
-## Acceptance criteria
+## 완료 기준
 
-- [ ] Criterion 1
-- [ ] Criterion 2
-- [ ] Criterion 3
+- [ ] 기준 1
+- [ ] 기준 2
+- [ ] 기준 3
 
-## Blocked by
+## 의존
 
-- A reference to the blocking ticket (if any)
+- 블로킹 티켓 참조 (있다면)
 
-Or "None - can start immediately" if no blockers.
+블로커가 없으면 "없음 - 즉시 시작 가능"
 
 </issue-template>
 
-Do NOT close or modify any parent issue.
+상위 이슈를 닫거나 수정하지 않는다.

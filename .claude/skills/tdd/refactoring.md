@@ -1,10 +1,10 @@
-# Refactor Candidates
+# 리팩터링 후보
 
-After TDD cycle, look for:
+TDD 사이클 후 확인할 것:
 
-- **Duplication** → Extract function/class
-- **Long methods** → Break into private helpers (keep tests on public interface)
-- **Shallow modules** → Combine or deepen
-- **Feature envy** → Move logic to where data lives
-- **Primitive obsession** → Introduce value objects
-- **Existing code** the new code reveals as problematic
+- **중복** → 함수/클래스 추출
+- **긴 메서드** → 비공개 헬퍼로 분리 (테스트는 공개 인터페이스에 유지)
+- **얕은 모듈** → 합치거나 심화
+- **Feature Envy** → 로직을 데이터가 있는 곳으로 이동
+- **Primitive Obsession** → 값 객체 도입
+- 새 코드가 **문제 있음을 드러내는 기존 코드**

@@ -1,44 +1,44 @@
-# Design It Twice
+# 두 번 설계하기 (Design It Twice)
 
-When the user wants to explore alternative interfaces for a chosen deepening candidate, use this parallel sub-agent pattern. Based on "Design It Twice" (Ousterhout) — your first idea is unlikely to be the best.
+사용자가 선택한 심화 후보에 대한 대안 인터페이스를 탐색하고 싶을 때, 이 병렬 서브에이전트 패턴을 사용한다. Ousterhout의 "Design It Twice"에 기반 — 첫 번째 아이디어가 최선인 경우는 드물다.
 
-Uses the vocabulary in [SKILL.md](SKILL.md) — **module**, **interface**, **seam**, **adapter**, **leverage**.
+[SKILL.md](SKILL.md)의 어휘 — **module**, **interface**, **seam**, **adapter**, **leverage** — 를 사용한다.
 
-## Process
+## 진행 순서
 
-### 1. Frame the problem space
+### 1. 문제 공간 정의
 
-Before spawning sub-agents, write a user-facing explanation of the problem space for the chosen candidate:
+서브에이전트를 띄우기 전에, 선택한 후보에 대한 문제 공간을 사용자에게 설명한다:
 
-- The constraints any new interface would need to satisfy
-- The dependencies it would rely on, and which category they fall into (see [DEEPENING.md](DEEPENING.md))
-- A rough illustrative code sketch to ground the constraints — not a proposal, just a way to make the constraints concrete
+- 새 인터페이스가 충족해야 할 제약
+- 의존할 의존성과 각각의 범주 ([DEEPENING.md](DEEPENING.md) 참고)
+- 제약을 구체화하기 위한 간략한 예시 코드 스케치 — 제안이 아니라 제약을 명확히 하기 위한 것
 
-Show this to the user, then immediately proceed to Step 2. The user reads and thinks while the sub-agents work in parallel.
+이것을 사용자에게 보여준 후 즉시 2단계로 넘어간다. 서브에이전트가 병렬로 작업하는 동안 사용자가 읽고 생각한다.
 
-### 2. Spawn sub-agents
+### 2. 서브에이전트 생성
 
-Spawn 3+ sub-agents in parallel using the Agent tool. Each must produce a **radically different** interface for the deepened module.
+Agent 도구를 사용해 3개 이상의 서브에이전트를 병렬로 생성한다. 각각은 심화 모듈에 대해 **완전히 다른** 인터페이스를 만들어야 한다.
 
-Prompt each sub-agent with a separate technical brief (file paths, coupling details, dependency category from [DEEPENING.md](DEEPENING.md), what sits behind the seam). The brief is independent of the user-facing problem-space explanation in Step 1. Give each agent a different design constraint:
+각 서브에이전트에 별도의 기술 브리프(파일 경로, 결합 세부사항, [DEEPENING.md](DEEPENING.md)의 의존성 범주, seam 뒤에 있는 것)를 제공한다. 브리프는 1단계의 사용자 대면 문제 공간 설명과 독립적이다. 각 에이전트에 서로 다른 설계 제약을 준다:
 
-- Agent 1: "Minimize the interface — aim for 1–3 entry points max. Maximise leverage per entry point."
-- Agent 2: "Maximise flexibility — support many use cases and extension."
-- Agent 3: "Optimise for the most common caller — make the default case trivial."
-- Agent 4 (if applicable): "Design around ports & adapters for cross-seam dependencies."
+- 에이전트 1: "인터페이스를 최소화하라 — 최대 1-3개의 진입점. 진입점당 레버리지를 극대화하라."
+- 에이전트 2: "유연성을 극대화하라 — 많은 사용 사례와 확장을 지원하라."
+- 에이전트 3: "가장 흔한 호출자에 최적화하라 — 기본 케이스를 매우 간단하게 만들어라."
+- 에이전트 4 (해당되는 경우): "크로스-seam 의존성을 위한 ports & adapters로 설계하라."
 
-Include both [SKILL.md](SKILL.md) vocabulary and CONTEXT.md vocabulary in the brief so each sub-agent names things consistently with the architecture language and the project's domain language.
+각 서브에이전트의 브리프에 [SKILL.md](SKILL.md) 어휘와 CONTEXT.md 어휘를 모두 포함하여 아키텍처 언어와 프로젝트의 도메인 언어로 일관되게 명명하도록 한다.
 
-Each sub-agent outputs:
+각 서브에이전트는 다음을 출력한다:
 
-1. Interface (types, methods, params — plus invariants, ordering, error modes)
-2. Usage example showing how callers use it
-3. What the implementation hides behind the seam
-4. Dependency strategy and adapters (see [DEEPENING.md](DEEPENING.md))
-5. Trade-offs — where leverage is high, where it's thin
+1. 인터페이스 (타입, 메서드, 파라미터 — 불변식, 순서, 오류 모드 포함)
+2. 호출자가 어떻게 사용하는지 보여주는 사용 예시
+3. seam 뒤에 구현이 숨기는 것
+4. 의존성 전략과 어댑터 ([DEEPENING.md](DEEPENING.md) 참고)
+5. 트레이드오프 — 레버리지가 높은 곳, 낮은 곳
 
-### 3. Present and compare
+### 3. 제시 및 비교
 
-Present designs sequentially so the user can absorb each one, then compare them in prose. Contrast by **depth** (leverage at the interface), **locality** (where change concentrates), and **seam placement**.
+사용자가 각각을 흡수할 수 있도록 설계안을 순서대로 제시한 후, 산문으로 비교한다. **depth**(인터페이스에서의 레버리지), **locality**(변경이 집중되는 곳), **seam 배치**로 대조한다.
 
-After comparing, give your own recommendation: which design you think is strongest and why. If elements from different designs would combine well, propose a hybrid. Be opinionated — the user wants a strong read, not a menu.
+비교 후 자신의 추천을 제시한다: 어떤 설계가 가장 강하다고 생각하는지, 그 이유를 설명한다. 서로 다른 설계의 요소들을 결합하면 좋을 것 같으면 하이브리드를 제안한다. 의견을 가진다 — 사용자는 메뉴가 아닌 강한 판단을 원한다.

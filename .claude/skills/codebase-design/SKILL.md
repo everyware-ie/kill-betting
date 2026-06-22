@@ -1,114 +1,108 @@
 ---
 name: codebase-design
-description: Shared vocabulary for designing deep modules. Use when the user wants to design or improve a module's interface, find deepening opportunities, decide where a seam goes, make code more testable or AI-navigable, or when another skill needs the deep-module vocabulary.
+description: 깊은 모듈 설계를 위한 공통 어휘. 사용자가 모듈 인터페이스를 설계하거나 개선하고 싶을 때, 심화 기회를 찾을 때, seam 위치를 결정하거나, 코드를 더 테스트 가능하게 만들거나, 다른 스킬이 깊은 모듈 어휘를 필요로 할 때 호출.
 ---
 
-# Codebase Design
+# 코드베이스 설계
 
-Design **deep modules**: a lot of behaviour behind a small interface, placed at a clean seam, testable through that interface. Use this language and these principles wherever code is being designed or restructured. The aim is leverage for callers, locality for maintainers, and testability for everyone.
+**깊은 모듈**을 설계한다: 작은 인터페이스 뒤에 많은 동작, 명확한 seam에 위치, 그 인터페이스를 통해 테스트 가능. 코드를 설계하거나 재구조화하는 모든 곳에 이 언어와 원칙을 사용한다. 목표는 호출자를 위한 레버리지, 유지보수자를 위한 로컬리티, 모두를 위한 테스트 가능성이다.
 
-## Glossary
+## 용어집
 
-Use these terms exactly — don't substitute "component," "service," "API," or "boundary." Consistent language is the whole point.
+이 용어들을 정확히 사용한다 — "component," "service," "API," "boundary"로 대체하지 않는다. 일관된 언어가 핵심이다.
 
-**Module** — anything with an interface and an implementation. Deliberately scale-agnostic: a function, class, package, or tier-spanning slice. _Avoid_: unit, component, service.
+**Module** — 인터페이스와 구현이 있는 모든 것. 의도적으로 규모에 무관: 함수, 클래스, 패키지, 또는 티어를 아우르는 슬라이스. _Avoid_: unit, component, service.
 
-**Interface** — everything a caller must know to use the module correctly: the type signature, but also invariants, ordering constraints, error modes, required configuration, and performance characteristics. _Avoid_: API, signature (too narrow — they refer only to the type-level surface).
+**Interface** — 호출자가 모듈을 올바르게 사용하기 위해 알아야 하는 모든 것: 타입 시그니처뿐 아니라 불변식, 순서 제약, 오류 모드, 필요한 설정, 성능 특성. _Avoid_: API, signature (타입 수준 표면만을 지칭하기에 너무 좁다).
 
-**Implementation** — what's inside a module, its body of code. Distinct from **Adapter**: a thing can be a small adapter with a large implementation (a Postgres repo) or a large adapter with a small implementation (an in-memory fake). Reach for "adapter" when the seam is the topic; "implementation" otherwise.
+**Implementation** — 모듈 내부, 코드 본문. **Adapter**와 구별: 작은 어댑터가 큰 구현을 가질 수도 있고(Postgres 레포), 큰 어댑터가 작은 구현을 가질 수도 있다(인메모리 페이크). seam이 주제일 때는 "adapter"를, 아니면 "implementation"을 사용한다.
 
-**Depth** — leverage at the interface: the amount of behaviour a caller (or test) can exercise per unit of interface they have to learn. A module is **deep** when a large amount of behaviour sits behind a small interface, **shallow** when the interface is nearly as complex as the implementation.
+**Depth** — 인터페이스에서의 레버리지: 호출자(또는 테스트)가 학습해야 하는 인터페이스 단위당 실행할 수 있는 동작의 양. 모듈은 많은 동작이 작은 인터페이스 뒤에 있을 때 **deep**, 인터페이스가 구현만큼 복잡할 때 **shallow**하다.
 
-**Seam** _(Michael Feathers)_ — a place where you can alter behaviour without editing in that place; the *location* at which a module's interface lives. Where to put the seam is its own design decision, distinct from what goes behind it. _Avoid_: boundary (overloaded with DDD's bounded context).
+**Seam** _(Michael Feathers)_ — 그 자리를 편집하지 않고도 동작을 바꿀 수 있는 곳; 모듈의 인터페이스가 위치하는 *장소*. seam을 어디에 놓을지는 그 뒤에 무엇을 두는지와 별개의 설계 결정이다. _Avoid_: boundary (DDD의 bounded context와 혼용됨).
 
-**Adapter** — a concrete thing that satisfies an interface at a seam. Describes *role* (what slot it fills), not substance (what's inside).
+**Adapter** — seam에서 인터페이스를 충족하는 구체적인 것. *역할*(어떤 슬롯을 채우는지)을 설명하며, 실체(내부에 무엇이 있는지)가 아니다.
 
-**Leverage** — what callers get from depth: more capability per unit of interface they learn. One implementation pays back across N call sites and M tests.
+**Leverage** — 깊이에서 호출자가 얻는 것: 학습해야 하는 인터페이스 단위당 더 많은 기능. 하나의 구현이 N개의 호출 사이트와 M개의 테스트에 걸쳐 가치를 돌려준다.
 
-**Locality** — what maintainers get from depth: change, bugs, knowledge, and verification concentrate in one place rather than spreading across callers. Fix once, fixed everywhere.
+**Locality** — 깊이에서 유지보수자가 얻는 것: 변경, 버그, 지식, 검증이 호출자 전체에 퍼지지 않고 한 곳에 집중된다. 한 번 수정하면 모든 곳이 수정된다.
 
-## Deep vs shallow
+## Deep vs Shallow
 
-**Deep module** = small interface + lots of implementation:
+**Deep module** = 작은 인터페이스 + 많은 구현:
 
 ```
 ┌─────────────────────┐
-│   Small Interface   │  ← Few methods, simple params
+│   작은 인터페이스    │  ← 적은 메서드, 단순한 파라미터
 ├─────────────────────┤
 │                     │
-│  Deep Implementation│  ← Complex logic hidden
+│  깊은 구현           │  ← 복잡한 로직이 숨겨짐
 │                     │
 └─────────────────────┘
 ```
 
-**Shallow module** = large interface + little implementation (avoid):
+**Shallow module** = 큰 인터페이스 + 적은 구현 (피할 것):
 
 ```
 ┌─────────────────────────────────┐
-│       Large Interface           │  ← Many methods, complex params
+│       큰 인터페이스              │  ← 많은 메서드, 복잡한 파라미터
 ├─────────────────────────────────┤
-│  Thin Implementation            │  ← Just passes through
+│  얇은 구현                       │  ← 그냥 통과
 └─────────────────────────────────┘
 ```
 
-When designing an interface, ask:
+인터페이스를 설계할 때 물어본다:
 
-- Can I reduce the number of methods?
-- Can I simplify the parameters?
-- Can I hide more complexity inside?
+- 메서드 수를 줄일 수 있나?
+- 파라미터를 단순화할 수 있나?
+- 더 많은 복잡성을 내부에 숨길 수 있나?
 
-## Principles
+## 원칙
 
-- **Depth is a property of the interface, not the implementation.** A deep module can be internally composed of small, mockable, swappable parts — they just aren't part of the interface. A module can have **internal seams** (private to its implementation, used by its own tests) as well as the **external seam** at its interface.
-- **The deletion test.** Imagine deleting the module. If complexity vanishes, it was a pass-through. If complexity reappears across N callers, it was earning its keep.
-- **The interface is the test surface.** Callers and tests cross the same seam. If you want to test *past* the interface, the module is probably the wrong shape.
-- **One adapter means a hypothetical seam. Two adapters means a real one.** Don't introduce a seam unless something actually varies across it.
+- **깊이는 구현이 아닌 인터페이스의 속성이다.** 깊은 모듈은 내부적으로 작고, 목킹 가능하고, 교체 가능한 부분들로 구성될 수 있다 — 그것들은 단지 인터페이스의 일부가 아닐 뿐이다. 모듈은 외부 seam과 더불어 **내부 seam**(구현 내부에만 있고 자체 테스트에서 사용되는)을 가질 수 있다.
+- **삭제 테스트.** 모듈을 삭제한다고 상상한다. 복잡성이 사라지면 통과였다. 복잡성이 N개의 호출자에 다시 나타나면 그것은 제값을 하고 있었던 것이다.
+- **인터페이스가 테스트 표면이다.** 호출자와 테스트는 같은 seam을 건넌다. 인터페이스를 *지나쳐* 테스트하고 싶다면 모듈의 형태가 잘못된 것이다.
+- **어댑터 하나는 가상적인 seam이다. 어댑터 둘은 실제 seam이다.** 그것을 가로질러 실제로 변하는 것이 없다면 seam을 도입하지 않는다.
 
-## Designing for testability
+## 테스트 가능성을 위한 설계
 
-Good interfaces make testing natural:
+좋은 인터페이스는 테스트를 자연스럽게 만든다:
 
-1. **Accept dependencies, don't create them.**
+1. **의존성을 만들지 말고 받아들인다.**
 
    ```typescript
-   // Testable
+   // 테스트 가능
    function processOrder(order, paymentGateway) {}
 
-   // Hard to test
+   // 테스트하기 어려움
    function processOrder(order) {
      const gateway = new StripeGateway();
    }
    ```
 
-2. **Return results, don't produce side effects.**
+2. **사이드이펙트를 만들지 말고 결과를 반환한다.**
 
    ```typescript
-   // Testable
+   // 테스트 가능
    function calculateDiscount(cart): Discount {}
 
-   // Hard to test
+   // 테스트하기 어려움
    function applyDiscount(cart): void {
      cart.total -= discount;
    }
    ```
 
-3. **Small surface area.** Fewer methods = fewer tests needed. Fewer params = simpler test setup.
+3. **작은 표면적.** 메서드가 적을수록 테스트도 적게 필요하다. 파라미터가 적을수록 테스트 설정이 단순하다.
 
-## Relationships
+## 관계
 
-- A **Module** has exactly one **Interface** (the surface it presents to callers and tests).
-- **Depth** is a property of a **Module**, measured against its **Interface**.
-- A **Seam** is where a **Module**'s **Interface** lives.
-- An **Adapter** sits at a **Seam** and satisfies the **Interface**.
-- **Depth** produces **Leverage** for callers and **Locality** for maintainers.
+- **Module**은 정확히 하나의 **Interface**(호출자와 테스트에 제시하는 표면)를 가진다.
+- **Depth**는 **Interface**를 기준으로 측정되는 **Module**의 속성이다.
+- **Seam**은 **Module**의 **Interface**가 위치하는 곳이다.
+- **Adapter**는 **Seam**에 위치하며 **Interface**를 충족한다.
+- **Depth**는 호출자를 위한 **Leverage**와 유지보수자를 위한 **Locality**를 만들어낸다.
 
-## Rejected framings
+## 더 깊이 알아보기
 
-- **Depth as ratio of implementation-lines to interface-lines** (Ousterhout): rewards padding the implementation. We use depth-as-leverage instead.
-- **"Interface" as the TypeScript `interface` keyword or a class's public methods**: too narrow — interface here includes every fact a caller must know.
-- **"Boundary"**: overloaded with DDD's bounded context. Say **seam** or **interface**.
-
-## Going deeper
-
-- **Deepening a cluster given its dependencies** — see [DEEPENING.md](DEEPENING.md): dependency categories, seam discipline, and replace-don't-layer testing.
-- **Exploring alternative interfaces** — see [DESIGN-IT-TWICE.md](DESIGN-IT-TWICE.md): spin up parallel sub-agents to design the interface several radically different ways, then compare on depth, locality, and seam placement.
+- **의존성을 고려한 클러스터 심화** — [DEEPENING.md](DEEPENING.md): 의존성 범주, seam 규율, 테스트의 교체-레이어링 금지.
+- **대안 인터페이스 탐색** — [DESIGN-IT-TWICE.md](DESIGN-IT-TWICE.md): 병렬 서브에이전트를 띄워 여러 가지 다른 방식으로 인터페이스를 설계한 후 깊이, 로컬리티, seam 배치로 비교.

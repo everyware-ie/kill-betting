@@ -1,60 +1,60 @@
-# CONTEXT.md Format
+# CONTEXT.md 형식
 
-## Structure
+## 구조
 
 ```md
-# {Context Name}
+# {컨텍스트 이름}
 
-{One or two sentence description of what this context is and why it exists.}
+{이 컨텍스트가 무엇이고 왜 존재하는지 1-2문장 설명.}
 
 ## Language
 
 **Order**:
-{A one or two sentence description of the term}
+{용어에 대한 1-2문장 설명}
 _Avoid_: Purchase, transaction
 
 **Invoice**:
-A request for payment sent to a customer after delivery.
+배송 후 고객에게 발송하는 결제 요청.
 _Avoid_: Bill, payment request
 
 **Customer**:
-A person or organization that places orders.
+주문을 하는 사람 또는 조직.
 _Avoid_: Client, buyer, account
 ```
 
-## Rules
+## 규칙
 
-- **Be opinionated.** When multiple words exist for the same concept, pick the best one and list the others under `_Avoid_`.
-- **Keep definitions tight.** One or two sentences max. Define what it IS, not what it does.
-- **Only include terms specific to this project's context.** General programming concepts (timeouts, error types, utility patterns) don't belong even if the project uses them extensively. Before adding a term, ask: is this a concept unique to this context, or a general programming concept? Only the former belongs.
-- **Group terms under subheadings** when natural clusters emerge. If all terms belong to a single cohesive area, a flat list is fine.
+- **의견을 가질 것.** 같은 개념에 여러 단어가 있으면 가장 좋은 것을 하나 선택하고 나머지는 `_Avoid_`에 나열한다.
+- **정의를 간결하게.** 최대 1-2문장. 무엇을 *하는지*가 아니라 무엇*인지*를 정의한다.
+- **이 프로젝트 컨텍스트에 고유한 용어만 포함.** 일반적인 프로그래밍 개념(타임아웃, 에러 타입, 유틸리티 패턴)은 프로젝트에서 많이 쓰더라도 포함하지 않는다. 용어 추가 전에 "이것이 이 컨텍스트 고유의 개념인가, 아니면 일반적인 프로그래밍 개념인가?"를 자문한다. 전자만 포함한다.
+- **자연스러운 클러스터가 생기면 소제목으로 그룹화.** 모든 용어가 하나의 영역에 속한다면 평탄한 목록도 괜찮다.
 
-## Single vs multi-context repos
+## 단일 컨텍스트 vs 멀티 컨텍스트 레포
 
-**Single context (most repos):** One `CONTEXT.md` at the repo root.
+**단일 컨텍스트 (대부분의 레포):** 레포 루트에 `CONTEXT.md` 하나.
 
-**Multiple contexts:** A `CONTEXT-MAP.md` at the repo root lists the contexts, where they live, and how they relate to each other:
+**멀티 컨텍스트:** 루트의 `CONTEXT-MAP.md`가 각 컨텍스트와 그 위치, 상호 관계를 나열한다:
 
 ```md
 # Context Map
 
 ## Contexts
 
-- [Ordering](./src/ordering/CONTEXT.md) — receives and tracks customer orders
-- [Billing](./src/billing/CONTEXT.md) — generates invoices and processes payments
-- [Fulfillment](./src/fulfillment/CONTEXT.md) — manages warehouse picking and shipping
+- [Ordering](./src/ordering/CONTEXT.md) — 고객 주문을 수신하고 추적
+- [Billing](./src/billing/CONTEXT.md) — 인보이스 생성 및 결제 처리
+- [Fulfillment](./src/fulfillment/CONTEXT.md) — 창고 피킹 및 배송 관리
 
 ## Relationships
 
-- **Ordering → Fulfillment**: Ordering emits `OrderPlaced` events; Fulfillment consumes them to start picking
-- **Fulfillment → Billing**: Fulfillment emits `ShipmentDispatched` events; Billing consumes them to generate invoices
-- **Ordering ↔ Billing**: Shared types for `CustomerId` and `Money`
+- **Ordering → Fulfillment**: Ordering이 `OrderPlaced` 이벤트를 발행; Fulfillment가 소비하여 피킹 시작
+- **Fulfillment → Billing**: Fulfillment가 `ShipmentDispatched` 이벤트를 발행; Billing이 소비하여 인보이스 생성
+- **Ordering ↔ Billing**: `CustomerId`와 `Money`에 대한 공유 타입
 ```
 
-The skill infers which structure applies:
+스킬은 어떤 구조인지 스스로 추론한다:
 
-- If `CONTEXT-MAP.md` exists, read it to find contexts
-- If only a root `CONTEXT.md` exists, single context
-- If neither exists, create a root `CONTEXT.md` lazily when the first term is resolved
+- `CONTEXT-MAP.md`가 있으면 읽어서 컨텍스트를 찾는다
+- 루트 `CONTEXT.md`만 있으면 단일 컨텍스트
+- 둘 다 없으면 첫 번째 용어가 확정될 때 루트 `CONTEXT.md`를 게으르게 생성한다
 
-When multiple contexts exist, infer which one the current topic relates to. If unclear, ask.
+멀티 컨텍스트인 경우, 현재 주제가 어느 컨텍스트에 해당하는지 추론한다. 불명확하면 질문한다.
