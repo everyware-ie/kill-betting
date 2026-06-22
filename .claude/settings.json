@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"systemMessage\":\"[킬내기] 새 기능을 시작하나요? 반드시 /feature-start → /to-prd → /to-issues 순서로 진행하세요. PRD 없이 구현 시작 금지.\"}'",
+            "statusMessage": "워크플로우 가이드 로드 중..."
+          }
+        ]
+      }
+    ]
+  }
+}
