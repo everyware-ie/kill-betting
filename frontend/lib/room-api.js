@@ -44,7 +44,9 @@ async function apiFetch(path, options = {}) {
 }
 
 const getStoredToken = () => {
-  try { return sessionStorage.getItem('auth_token'); } catch { return null; }
+  try {
+    return localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token') || null;
+  } catch { return null; }
 };
 
 const ok    = (data = {}) => ({ success: true, data });
@@ -333,7 +335,7 @@ export const RoomAPI = {
       );
       return { success: true, data: sorted };
     }
-    return apiFetch(`/sessions/my`);
+    return apiFetch(`/api/sessions/my`);
   },
 
   /**
