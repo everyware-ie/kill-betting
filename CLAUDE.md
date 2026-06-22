@@ -15,11 +15,19 @@
 /
 ├── backend/
 ├── frontend/
+├── docs/
+│   ├── architecture/
+│   │   ├── erd/           # ERD (current.mermaid, v1.mermaid)
+│   │   └── adr/           # 아키텍처 결정 기록
+│   ├── product/
+│   │   └── features/      # 기능 명세 (FRD)
+│   ├── team/
+│   │   └── workflow.md    # 개발 워크플로우
+│   └── common/
+│       └── retrospect/    # 스프린트 회고
 ├── .claude/
 │   ├── conventions/
 │   │   ├── backend.md     # Spring Boot 컨벤션
-│   │   │   └── docs/              # 백엔드 개발을 위한 기능 명세 (FRD)
-│   │   └── frd-match-image-upload.md
 │   │   ├── frontend.md    # Next.js 컨벤션
 │   │   └── git.md         # Git 브랜치/커밋 규칙
 │   ├── domain/
@@ -55,4 +63,51 @@
 | 프론트엔드 코드 작성 / 리뷰 | @.claude/conventions/frontend.md        |
 | 도메인 용어가 불명확할 때 | @.claude/domain/glossary.md             |
 | 현재 개발 상태 파악 | @.claude/status.md                      |
-| 매치 이미지 업로드 기능 작업 시 | @.claude/docs/FRD/match-image-upload.md |
+| 기능 명세 확인 (FRD) | @docs/product/features/                 |
+| 현재 ERD 확인 | @docs/architecture/erd/current.mermaid  |
+| 기술 부채 / PR 변경 이력 확인 | @docs/common/tech-debt.md          |
+| 코드 리팩토링 / 구조 개선 | `/improve-codebase-architecture` 실행 |
+
+---
+
+## AI 팀 컨벤션
+
+### 팀 구성
+
+| 팀원 | 역할 |
+|------|------|
+| (팀원1) | 풀스택 (기능 단위 전담) |
+| (팀원2) | 풀스택 (기능 단위 전담) |
+| (팀원3) | 풀스택 (기능 단위 전담) |
+
+기능은 한 사람이 기획·백엔드·프론트엔드를 모두 구현한다.
+작업 시작 전 GitHub 이슈에 본인을 assign한다 — AI 작업도 동일하게 적용.
+
+### 도메인 언어
+
+작업 전 반드시 `.claude/domain/glossary.md`를 읽는다.
+코드·커밋·PRD 전반에서 용어집의 표현을 그대로 사용한다.
+새 용어가 생기면 팀 합의 후 glossary.md에 추가한다.
+
+### 기능 시작 워크플로우
+
+기능 구현 전 아래 순서를 따른다:
+
+1. `/feature-start` — 요구사항 그릴링 + 설계 (한 세션)
+2. `/to-prd` — 세션 내용을 PRD로 정리
+3. `/to-issues` — PRD를 독립 이슈로 분해 후 GitHub에 등록
+4. `tdd` — 이슈 단위로 구현
+
+**PRD 없이 구현 시작 금지.**
+PRD는 `docs/product/features/`에 저장한다.
+
+### AI 구현 가이드
+
+코드 작성 전:
+- 해당 기능의 PRD 확인 (`docs/product/features/`)
+- `.claude/domain/glossary.md`에서 도메인 용어 확인
+- `docs/architecture/adr/`에서 관련 아키텍처 결정 확인
+
+구현 후:
+- PRD 사용자 스토리를 하나씩 검토하며 구현이 일치하는지 확인
+- PRD와 다르게 구현했다면 이슈 또는 새 ADR에 이유를 기록
