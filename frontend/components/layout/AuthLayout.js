@@ -1,6 +1,7 @@
 'use client';
 
 import Icon from '../ui/Icon';
+import Navbar from './Navbar';
 
 function KnBrand({ size = 28 }) {
   return (
@@ -31,34 +32,41 @@ export default function AuthLayout({ children }) {
       minHeight: '100vh',
       background: 'var(--kn-bg)',
       display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: 24,
-      position: 'relative',
-      overflow: 'hidden',
+      flexDirection: 'column',
     }}>
-      {/* subtle background dot grid */}
-      <div style={{
-        position: 'absolute', inset: 0, opacity: 0.4,
-        backgroundImage: 'radial-gradient(circle at 1px 1px, var(--kn-border-strong) 1px, transparent 0)',
-        backgroundSize: '24px 24px',
-        maskImage: 'radial-gradient(circle at center, black 30%, transparent 70%)',
-        WebkitMaskImage: 'radial-gradient(circle at center, black 30%, transparent 70%)',
-        pointerEvents: 'none',
-      }} />
+      <Navbar />
 
       <div style={{
+        flex: 1,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 24,
         position: 'relative',
-        width: '100%', maxWidth: 400,
-        background: 'var(--kn-surface-1)',
-        border: '1px solid var(--kn-border)',
-        borderRadius: 'var(--kn-r-xl)',
-        padding: 32,
-        display: 'flex', flexDirection: 'column', gap: 18,
-        animation: 'kn-fade-in .25s ease-out',
+        overflow: 'hidden',
       }}>
-        <KnBrand size={32} />
-        {children}
+        {/* subtle background dot grid */}
+        <div style={{
+          position: 'absolute', inset: 0, opacity: 0.4,
+          backgroundImage: 'radial-gradient(circle at 1px 1px, var(--kn-border-strong) 1px, transparent 0)',
+          backgroundSize: '24px 24px',
+          maskImage: 'radial-gradient(circle at center, black 30%, transparent 70%)',
+          WebkitMaskImage: 'radial-gradient(circle at center, black 30%, transparent 70%)',
+          pointerEvents: 'none',
+        }} />
+
+        <div style={{
+          position: 'relative',
+          width: '100%', maxWidth: 400,
+          background: 'var(--kn-surface-1)',
+          border: '1px solid var(--kn-border)',
+          borderRadius: 'var(--kn-r-xl)',
+          padding: 32,
+          display: 'flex', flexDirection: 'column', gap: 18,
+          animation: 'kn-fade-in .25s ease-out',
+        }}>
+          {children}
+        </div>
       </div>
     </div>
   );

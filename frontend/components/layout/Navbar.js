@@ -25,22 +25,52 @@ export default function Navbar() {
       top: 0,
       zIndex: 100,
     }}>
-      {/* 로고 — 클릭 시 대시보드로 이동 */}
-      <div
-        onClick={() => router.push('/dashboard')}
-        style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
-      >
-        <div style={{
-          width: 28, height: 28,
-          background: 'var(--kn-accent)',
-          display: 'grid', placeItems: 'center',
-          borderRadius: 'var(--kn-r-sm)',
-        }}>
-          <Icon name="target" size={17} color="var(--kn-bg)" strokeWidth={2} />
+      {/* 좌측 — 로고 + 가이드 메뉴 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        {/* 로고 — 클릭 시 대시보드로 이동 */}
+        <div
+          onClick={() => router.push('/dashboard')}
+          style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
+        >
+          <div style={{
+            width: 28, height: 28,
+            background: 'var(--kn-accent)',
+            display: 'grid', placeItems: 'center',
+            borderRadius: 'var(--kn-r-sm)',
+          }}>
+            <Icon name="target" size={17} color="var(--kn-bg)" strokeWidth={2} />
+          </div>
+          <span style={{ fontSize: 15, fontWeight: 'var(--kn-w-bold)', letterSpacing: '-0.02em' }}>
+            Killnagi
+          </span>
         </div>
-        <span style={{ fontSize: 15, fontWeight: 'var(--kn-w-bold)', letterSpacing: '-0.02em' }}>
-          Killnagi
-        </span>
+
+        {/* 가이드 — 랜딩/사용법 페이지로 이동 */}
+        <button
+          onClick={() => router.push('/landing')}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 5,
+            padding: '5px 10px',
+            borderRadius: 'var(--kn-r-sm)',
+            border: '1px solid transparent',
+            background: 'transparent',
+            color: 'var(--kn-text-muted)',
+            fontSize: 13, fontWeight: 500,
+            cursor: 'pointer',
+            transition: 'background .15s, color .15s',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'var(--kn-surface-2)';
+            e.currentTarget.style.color = 'var(--kn-text)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.color = 'var(--kn-text-muted)';
+          }}
+        >
+          <Icon name="info" size={14} />
+          가이드
+        </button>
       </div>
 
       {/* 우측 액션 영역 */}
