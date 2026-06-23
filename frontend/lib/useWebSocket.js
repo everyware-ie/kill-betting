@@ -5,7 +5,7 @@ import SockJS from 'sockjs-client';
 const WS_BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:8080';
 
 const getStoredToken = () => {
-  try { return sessionStorage.getItem('auth_token'); } catch { return null; }
+  try { return localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token') || null; } catch { return null; }
 };
 
 /**
