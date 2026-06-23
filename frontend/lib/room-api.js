@@ -335,7 +335,7 @@ export const RoomAPI = {
       );
       return { success: true, data: sorted };
     }
-    return apiFetch(`/api/sessions/my`);
+    return apiFetch(`/sessions/my`);
   },
 
   /**
