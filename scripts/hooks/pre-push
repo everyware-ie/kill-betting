@@ -1,0 +1,44 @@
+#!/bin/sh
+# 브랜치 네이밍 규칙 검사
+# 형식: 작업자/(feature|fix|chore|refactor|docs|test)/기능
+# 작업자는 반드시 GitHub 닉네임과 일치해야 함
+
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+# main, develop은 검사 제외
+if echo "$BRANCH" | grep -qE "^(main|develop)$"; then
+    exit 0
+fi
+
+# 허용된 GitHub 닉네임 목록
+ALLOWED_AUTHORS="jminkkk JiEung2 phs00"
+
+AUTHOR=$(echo "$BRANCH" | cut -d'/' -f1)
+TYPE=$(echo "$BRANCH" | cut -d'/' -f2)
+
+# 닉네임 검사
+AUTHOR_VALID=0
+for allowed in $ALLOWED_AUTHORS; do
+    if [ "$AUTHOR" = "$allowed" ]; then
+        AUTHOR_VALID=1
+        break
+    fi
+done
+
+if [ "$AUTHOR_VALID" -eq 0 ]; then
+    echo "[pre-push] 브랜치 작업자 닉네임 오류: '$AUTHOR'"
+    echo "  허용된 닉네임: $ALLOWED_AUTHORS"
+    echo "  반드시 본인의 GitHub 닉네임을 사용하세요."
+    exit 1
+fi
+
+# 타입 검사
+if ! echo "$TYPE" | grep -qE "^(feature|fix|chore|refactor|docs|test)$"; then
+    echo "[pre-push] 브랜치 타입 오류: '$TYPE'"
+    echo "  허용 타입: feature, fix, chore, refactor, docs, test"
+    echo "  주의: 'feat' 는 허용되지 않습니다. 'feature' 를 사용하세요."
+    echo "  예시: jminkkk/feature/score-calculation"
+    exit 1
+fi
+
+exit 0
