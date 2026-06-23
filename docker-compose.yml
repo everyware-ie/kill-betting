@@ -2,7 +2,7 @@ services:
   backend:
     build:
       context: ./backend
-    image: ghcr.io/everyware-ie/kill-betting-backend:${IMAGE_TAG:-latest}
+    image: ghcr.io/everyware-ie/kill-betting-backend:${BACKEND_IMAGE_TAG:-latest}
     container_name: killnagi-backend
     env_file:
       - .env
@@ -20,7 +20,7 @@ services:
       context: ./frontend
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080/api}
-    image: ghcr.io/everyware-ie/kill-betting-frontend:${IMAGE_TAG:-latest}
+    image: ghcr.io/everyware-ie/kill-betting-frontend:${FRONTEND_IMAGE_TAG:-latest}
     container_name: killnagi-frontend
     ports:
       - "3000:3000"
