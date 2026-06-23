@@ -28,6 +28,11 @@ export function AuthProvider({ children }) {
 
   // 앱 시작 시 기존 세션 확인
   useEffect(() => {
+    const token = (() => {
+      try { return localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token'); } catch { return null; }
+    })();
+    if (!token) { setLoading(false); return; }
+
     AuthAPI.me()
       .then((res) => {
         if (res.success) setUser(res.data);
