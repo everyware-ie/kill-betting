@@ -17,22 +17,29 @@
 ├── frontend/
 ├── docs/
 │   ├── architecture/
-│   │   ├── erd/           # ERD (current.mermaid, v1.mermaid)
-│   │   └── adr/           # 아키텍처 결정 기록
+│   │   ├── erd/              # ERD (current.mermaid, v1.mermaid)
+│   │   └── adr/              # 아키텍처 결정 기록
+│   ├── backend/
+│   │   ├── conventions.md    # 백엔드 코딩 컨벤션
+│   │   ├── architecture.md   # 아키텍처 규칙 + 예외 처리
+│   │   ├── layers.md         # 레이어별 지침
+│   │   └── tests.md          # 테스트 전략
+│   ├── frontend/
+│   │   └── conventions.md    # 프론트엔드 코딩 컨벤션
 │   ├── product/
-│   │   └── features/      # 기능 명세 (FRD)
+│   │   └── features/         # 기능 명세 (FRD)
 │   ├── team/
-│   │   └── workflow.md    # 개발 워크플로우
+│   │   └── workflow.md       # 개발 워크플로우
 │   └── common/
-│       └── retrospect/    # 스프린트 회고
+│       ├── docs-convention.md # 문서화 트리거 가이드
+│       ├── tech-debt.md       # 기술 부채 & PR 변경 이력
+│       └── retrospect/        # 스프린트 회고
 ├── .claude/
 │   ├── conventions/
-│   │   ├── backend.md     # Spring Boot 컨벤션
-│   │   ├── frontend.md    # Next.js 컨벤션
-│   │   └── git.md         # Git 브랜치/커밋 규칙
+│   │   └── git.md            # Git 브랜치/커밋 규칙
 │   ├── domain/
-│   │   └── glossary.md    # 도메인 용어 사전
-│   └── status.md          # 현재 개발 진행 상태
+│   │   └── glossary.md       # 도메인 용어 사전
+│   └── status.md             # 현재 개발 진행 상태
 └── CLAUDE.md
 ```
 
@@ -58,15 +65,19 @@
 
 | 작업 상황 | 읽어야 할 파일                                |
 |-----------|-----------------------------------------|
-| Git 브랜치 생성 / 커밋 / PR | @.claude/conventions/git.md             |
-| 백엔드 코드 작성 / 리뷰 | @docs/backend/conventions.md            |
-| 프론트엔드 코드 작성 / 리뷰 | @docs/frontend/conventions.md           |
-| 도메인 용어가 불명확할 때 | @.claude/domain/glossary.md             |
-| 현재 개발 상태 파악 | @.claude/status.md                      |
-| 기능 명세 확인 (FRD) | @docs/product/features/                 |
-| 현재 ERD 확인 | @docs/architecture/erd/current.mermaid  |
-| 기술 부채 / PR 변경 이력 확인 | @docs/common/tech-debt.md          |
-| 코드 리팩토링 / 구조 개선 | `/improve-codebase-architecture` 실행 |
+| Git 브랜치 생성 / 커밋 / PR | @.claude/conventions/git.md              |
+| 백엔드 코드 작성 / 리뷰 | @docs/backend/conventions.md             |
+| 백엔드 레이어 구현 (Controller / Service 등) | @docs/backend/layers.md    |
+| 테스트 작성 | @docs/backend/tests.md                           |
+| 아키텍처 규칙 / 예외 처리 확인 | @docs/backend/architecture.md        |
+| 프론트엔드 코드 작성 / 리뷰 | @docs/frontend/conventions.md            |
+| 도메인 용어가 불명확할 때 | @.claude/domain/glossary.md              |
+| 현재 개발 상태 파악 | @.claude/status.md                       |
+| 기능 명세 확인 (FRD) | @docs/product/features/                  |
+| 현재 ERD 확인 | @docs/architecture/erd/current.mermaid   |
+| 기술 부채 / PR 변경 이력 확인 | @docs/common/tech-debt.md           |
+| 문서 업데이트 기준 확인 | @docs/common/docs-convention.md      |
+| 코드 리팩토링 / 구조 개선 | `/improve-codebase-architecture` 실행  |
 
 ---
 

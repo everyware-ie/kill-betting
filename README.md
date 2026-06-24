@@ -9,7 +9,7 @@
 ```
 killnagi/
 ├── backend/          # Spring Boot (Java 21)
-└── frontend/         # React (TypeScript)
+└── frontend/         # React (JavaScript)
 ```
 
 ---
@@ -99,7 +99,7 @@ npm start
 User (사용자)
 Session (킬내기 세션)
   ├── Team (팀)
-  │   └── TeamMember (팀원)
+  │   └── TeamPlayer (플레이어 슬롯)
   ├── Match (매치)
   │   └── MatchResult (매치 결과)
   └── Rule (규칙)
@@ -117,8 +117,6 @@ Session (킬내기 세션)
 - MySQL 8
 
 ### 프론트엔드
-- React 18 (TypeScript)
-- React Query (TanStack Query v5)
-- Zustand (상태 관리)
-- React Router v6
-- Axios
+- React 18 (JavaScript)
+- Next.js (App Router)
+- Context API (전역 상태)
