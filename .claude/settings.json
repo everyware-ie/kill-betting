@@ -10,6 +10,18 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash scripts/hooks/post-pr-stats.sh",
+            "statusMessage": "PR AI 메타데이터 확인 중..."
+          }
+        ]
+      }
     ]
   }
 }
