@@ -59,8 +59,8 @@
 | 작업 상황 | 읽어야 할 파일                                |
 |-----------|-----------------------------------------|
 | Git 브랜치 생성 / 커밋 / PR | @.claude/conventions/git.md             |
-| 백엔드 코드 작성 / 리뷰 | @.claude/conventions/backend.md         |
-| 프론트엔드 코드 작성 / 리뷰 | @.claude/conventions/frontend.md        |
+| 백엔드 코드 작성 / 리뷰 | @docs/backend/conventions.md            |
+| 프론트엔드 코드 작성 / 리뷰 | @docs/frontend/conventions.md           |
 | 도메인 용어가 불명확할 때 | @.claude/domain/glossary.md             |
 | 현재 개발 상태 파악 | @.claude/status.md                      |
 | 기능 명세 확인 (FRD) | @docs/product/features/                 |
