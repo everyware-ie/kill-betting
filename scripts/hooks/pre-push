@@ -1,7 +1,27 @@
 #!/bin/sh
-# 브랜치 네이밍 규칙 검사
+# 브랜치 네이밍 규칙 + 민감 파일 push 차단
 # 형식: 작업자/(feature|fix|chore|refactor|docs|test)/기능
-# 작업자는 반드시 GitHub 닉네임과 일치해야 함
+
+SENSITIVE_PATTERNS='\.env$|\.pem$|\.key$|application-local\.yml$|application-secret\.yml$'
+
+# push 대상 커밋 범위에서 민감 파일 검사 (--no-verify 우회 대응)
+while read local_ref local_sha remote_ref remote_sha; do
+    if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
+        range="$local_sha"
+    else
+        range="$remote_sha..$local_sha"
+    fi
+
+    found=$(git diff-tree --no-commit-id -r --name-only "$range" 2>/dev/null \
+        | grep -E "$SENSITIVE_PATTERNS")
+
+    if [ -n "$found" ]; then
+        echo "[pre-push] 민감 파일이 커밋에 포함되어 있습니다:"
+        echo "$found" | sed 's/^/  /'
+        echo "  push를 중단합니다. 해당 파일을 커밋 히스토리에서 제거하세요."
+        exit 1
+    fi
+done
 
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
