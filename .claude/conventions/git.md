@@ -50,4 +50,25 @@ test(match): MatchResultParser 단위 테스트 추가
 - PR 제목은 커밋 메시지 형식과 동일
 - `feature/*` → `develop` 머지는 PR 필수
 - `develop` → `main` 머지는 PR 필수 + approval 후 머지
-- PR 본문에 **변경 이유**와 **테스트 방법** 포함
+
+### PR 본문 형식
+
+`.github/pull_request_template.md`를 그대로 사용한다.
+
+### AI 메타데이터 (AI와 함께 작업한 경우 필수)
+
+```markdown
+## AI 메타데이터
+
+| 항목 | 값 |
+|------|-----|
+| 모델 | claude-sonnet-4-6 |
+| 워크플로우 | /feature-start ✅ \| /to-prd ❌ (docs 타입 — 이번 세션에서 예외 조항 신설) \| /to-issues (인라인 참조) |
+| 세션 시간 | 2026-06-24 07:47 → 09:39 (약 1시간 52분) |
+| 턴 수 | 188회 |
+| 생성 토큰 | 120,349 |
+| 컨텍스트 누적 읽기 | 16,040,827 (캐시 히트) |
+| 신규 컨텍스트 추가 | 218,533 |
+| 비고 | 다른 프로젝트 내용 잔재 발견(com.kakaoinsurancequiz.kjm) 수정, 범위를 점진적으로 확장하며 진행 |
+
+```
