@@ -22,7 +22,7 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Bash(git commit*)",
+        "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
@@ -45,7 +45,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Bash(gh pr create*)",
+        "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
