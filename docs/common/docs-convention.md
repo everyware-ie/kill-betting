@@ -24,3 +24,4 @@
 | `lib/[domain]-api.js` 에 신규 API 함수 추가 | Mock 분기 함께 작성 (코드가 곧 문서) |
 | 세션 상태값 추가 / 변경 | `docs/frontend/conventions.md` 세션 상태값 섹션 |
 | CSS 변수 추가 | `docs/frontend/conventions.md` CSS 변수 테이블 |
+| 테스트 전략 / 도구 변경 | `docs/frontend/tests.md` |
