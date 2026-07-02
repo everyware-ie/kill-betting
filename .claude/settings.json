@@ -1,5 +1,17 @@
 {
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash scripts/hooks/claude-git-convention-check.sh",
+            "statusMessage": "git.md 컨벤션 확인 중..."
+          }
+        ]
+      }
+    ],
     "SessionStart": [
       {
         "hooks": [
@@ -7,6 +19,18 @@
             "type": "command",
             "command": "echo '{\"systemMessage\":\"[킬내기] 새 기능을 시작하나요? 반드시 /feature-start → /to-prd → /to-issues 순서로 진행하세요. PRD 없이 구현 시작 금지.\"}'",
             "statusMessage": "워크플로우 가이드 로드 중..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash scripts/hooks/post-pr-stats.sh",
+            "statusMessage": "PR AI 메타데이터 확인 중..."
           }
         ]
       }
