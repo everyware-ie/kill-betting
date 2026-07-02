@@ -55,6 +55,10 @@ test(match): MatchResultParser 단위 테스트 추가
 
 `.github/pull_request_template.md`를 그대로 사용한다.
 
+### PR 라벨
+
+커밋 타입과 동일한 라벨을 필수로 붙인다.
+
 ### AI 메타데이터 (AI와 함께 작업한 경우 필수)
 
 ```markdown
