@@ -1,0 +1,98 @@
+erDiagram
+ROOM {
+bigint id PK
+varchar title
+varchar room_code
+varchar status "WAITING|PLAYING|FINISHED"
+varchar mode "SOLO|TEAM"
+int target_kill
+int time_limit_minutes "NULL=제한없음"
+bigint created_by FK
+bigint current_rule_set_id FK
+datetime started_at
+datetime finished_at
+}
+
+ROOM_RULE_SET {
+bigint id PK
+bigint room_id FK
+datetime created_at
+}
+
+ROOM_RULE {
+bigint id PK
+bigint rule_set_id FK
+varchar rule_type "TOP10_MISS_PENALTY|CHICKEN_BONUS|DAMAGE_BONUS|DAMAGE_PENALTY"
+varchar operator "ADD|SUBTRACT|MULTIPLY"
+decimal value
+}
+
+TEAM {
+bigint id PK
+bigint room_id FK
+varchar name
+}
+
+PLAYER {
+bigint id PK
+bigint room_id FK
+bigint team_id FK
+bigint user_id FK "NULL=비로그인"
+varchar nickname
+}
+
+MATCH {
+bigint id PK
+bigint room_id FK
+bigint rule_set_id FK
+int match_number
+varchar screenshot_url
+json ocr_raw_result
+datetime played_at
+}
+
+MATCH_PLAYER_RESULT {
+bigint id PK
+bigint match_id FK
+bigint player_id FK
+int kills
+decimal damage
+int rank
+boolean is_chicken
+boolean is_top10_checked
+decimal base_score
+decimal penalty_score
+decimal bonus_score
+decimal final_score
+}
+
+SCORE_ADJUSTMENT {
+bigint id PK
+bigint room_id FK
+bigint team_id FK
+int delta "양수=추가|음수=감점"
+varchar reason
+bigint adjusted_by FK
+datetime created_at
+}
+
+EVENT_LOG {
+bigint id PK
+bigint room_id FK
+varchar type "MATCH_RESULT|RULE_CHANGED|SCORE_ADJUSTED|ROOM_FINISHED"
+json payload
+bigint created_by FK
+datetime created_at
+}
+
+ROOM ||--o{ ROOM_RULE_SET : "has"
+ROOM_RULE_SET ||--o{ ROOM_RULE : "contains"
+ROOM_RULE_SET ||--o{ MATCH : "applied to"
+ROOM ||--o{ TEAM : "has"
+ROOM ||--o{ PLAYER : "has"
+TEAM ||--o{ PLAYER : "belongs to"
+ROOM ||--o{ MATCH : "has"
+MATCH ||--o{ MATCH_PLAYER_RESULT : "has"
+PLAYER ||--o{ MATCH_PLAYER_RESULT : "plays in"
+ROOM ||--o{ SCORE_ADJUSTMENT : "has"
+ROOM ||--o{ EVENT_LOG : "logs"

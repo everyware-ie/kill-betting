@@ -1,0 +1,71 @@
+erDiagram
+
+USERS {
+    bigint id PK
+    varchar email
+    varchar nickname
+}
+
+SESSIONS {
+    bigint id PK
+    bigint host_user_id FK
+    varchar name
+    varchar status "WAITING|IN_PROGRESS|ENDED"
+    int target_kills "nullable"
+    int time_limit_minutes "nullable"
+    bigint winner_team_id FK "nullable"
+    datetime started_at "nullable"
+    datetime ended_at "nullable"
+    datetime created_at
+    datetime updated_at
+}
+
+TEAMS {
+    bigint id PK
+    bigint session_id FK
+    varchar name
+    int total_kills
+    int bonus_kills
+    int penalty_kills
+}
+
+TEAM_MEMBERS {
+    bigint id PK
+    bigint team_id FK
+    bigint user_id FK "NOT NULL - 서비스 회원만 가능"
+    boolean is_uploader "Operator 여부"
+    int total_kills
+}
+
+MATCHES {
+    bigint id PK
+    bigint session_id FK
+    varchar status "PENDING|CONFIRMED"
+    varchar screenshot_url "nullable"
+}
+
+MATCH_RESULTS {
+    bigint id PK
+    bigint match_id FK
+    bigint team_member_id FK
+    int kills
+    int placement
+}
+
+RULES {
+    bigint id PK
+    bigint session_id FK
+    varchar rule_type "CHICKEN_BONUS|SURVIVAL_PENALTY|PLACEMENT_BONUS|CONSECUTIVE_DEATH_PENALTY"
+    int kill_value
+    boolean enabled
+}
+
+USERS ||--o{ SESSIONS : "hosts"
+USERS ||--o{ TEAM_MEMBERS : "participates as"
+SESSIONS ||--o{ TEAMS : "has"
+SESSIONS ||--o{ MATCHES : "has"
+SESSIONS ||--o{ RULES : "has"
+SESSIONS }o--o| TEAMS : "winner_team"
+TEAMS ||--o{ TEAM_MEMBERS : "has"
+MATCHES ||--o{ MATCH_RESULTS : "has"
+TEAM_MEMBERS ||--o{ MATCH_RESULTS : "has"
