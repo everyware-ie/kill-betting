@@ -14,9 +14,10 @@ frontend/
 ├── components/ui/         # Button, Input 등 순수 UI
 ├── features/              # 기능 단위 모듈
 │   └── [domain]/
-│       ├── components/
-│       ├── hooks/
-│       └── helpers/
+│       ├── components/        # ComponentName.js + ComponentName.test.js
+│       ├── hooks/             # useFeature.js + useFeature.test.js
+│       └── helpers/           # helper.js + helper.test.js
+├── e2e/                   # Playwright E2E 테스트
 ├── lib/
 │   ├── api.js             # AuthAPI
 │   ├── room-api.js        # RoomAPI

@@ -68,7 +68,8 @@
 | Git 브랜치 생성 / 커밋 / PR | @.claude/conventions/git.md              |
 | 백엔드 코드 작성 / 리뷰 | @docs/backend/conventions.md             |
 | 백엔드 레이어 구현 (Controller / Service 등) | @docs/backend/layers.md    |
-| 테스트 작성 | @docs/backend/tests.md                           |
+| 백엔드 테스트 작성 | @docs/backend/tests.md                      |
+| 프론트엔드 테스트 작성 | @docs/frontend/tests.md                   |
 | 아키텍처 규칙 / 예외 처리 확인 | @docs/backend/architecture.md        |
 | 프론트엔드 코드 작성 / 리뷰 | @docs/frontend/conventions.md            |
 | 도메인 용어가 불명확할 때 | @.claude/domain/glossary.md              |
