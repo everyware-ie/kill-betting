@@ -26,6 +26,7 @@
         "hooks": [
           {
             "type": "command",
+            "if": "Bash(git commit*)",
             "command": "bash scripts/hooks/claude-git-convention-check.sh",
             "statusMessage": "git.md 컨벤션 확인 중..."
           }
@@ -49,6 +50,7 @@
         "hooks": [
           {
             "type": "command",
+            "if": "Bash(gh pr create*)",
             "command": "bash scripts/hooks/post-pr-stats.sh",
             "statusMessage": "PR AI 메타데이터 확인 중..."
           }
