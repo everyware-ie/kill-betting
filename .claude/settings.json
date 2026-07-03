@@ -1,4 +1,24 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "deny": [
+      "Read(.env*)",
+      "Read(**/.env*)",
+      "Read(**/secrets/**)",
+      "Read(**/application-prod*.yml)",
+      "Read(**/application-prod*.properties)",
+      "Write(.env*)",
+      "Write(**/.env*)",
+      "Write(**/secrets/**)",
+      "Edit(.env*)",
+      "Edit(**/.env*)",
+      "Edit(**/secrets/**)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git push origin main*)",
+      "Bash(git clean -f*)"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {
@@ -6,8 +26,15 @@
         "hooks": [
           {
             "type": "command",
+            "if": "Bash(git commit*)",
             "command": "bash scripts/hooks/claude-git-convention-check.sh",
             "statusMessage": "git.md 컨벤션 확인 중..."
+          },
+          {
+            "type": "command",
+            "if": "Bash(gh pr create*)",
+            "command": "bash scripts/hooks/pre-pr-checklist.sh",
+            "statusMessage": "PR 체크리스트 확인 중..."
           }
         ]
       }
@@ -29,6 +56,7 @@
         "hooks": [
           {
             "type": "command",
+            "if": "Bash(gh pr create*)",
             "command": "bash scripts/hooks/post-pr-stats.sh",
             "statusMessage": "PR AI 메타데이터 확인 중..."
           }
