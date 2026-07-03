@@ -29,6 +29,12 @@
             "if": "Bash(git commit*)",
             "command": "bash scripts/hooks/claude-git-convention-check.sh",
             "statusMessage": "git.md 컨벤션 확인 중..."
+          },
+          {
+            "type": "command",
+            "if": "Bash(gh pr create*)",
+            "command": "bash scripts/hooks/pre-pr-checklist.sh",
+            "statusMessage": "PR 체크리스트 확인 중..."
           }
         ]
       }
