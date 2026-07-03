@@ -1,127 +1,127 @@
 ---
 name: setup-matt-pocock-skills
-description: Configure this repo for the engineering skills — set up its issue tracker, triage label vocabulary, and domain doc layout. Run once before first use of the other engineering skills.
+description: 엔지니어링 스킬을 위해 레포를 설정한다 — 이슈 트래커, 트리아지 레이블 어휘, 도메인 문서 구조를 구성한다. 다른 엔지니어링 스킬을 처음 사용하기 전 한 번 실행한다.
 disable-model-invocation: true
 ---
 
-# Setup Matt Pocock's Skills
+# 엔지니어링 스킬 초기 설정
 
-Scaffold the per-repo configuration that the engineering skills assume:
+엔지니어링 스킬이 필요로 하는 레포별 설정을 구성한다:
 
-- **Issue tracker** — where issues live (GitHub by default; local markdown is also supported out of the box)
-- **Triage labels** — the strings used for the five canonical triage roles
-- **Domain docs** — where `CONTEXT.md` and ADRs live, and the consumer rules for reading them
+- **이슈 트래커** — 이슈가 어디에 있는지 (기본값: GitHub; 로컬 마크다운도 지원)
+- **트리아지 레이블** — 다섯 가지 표준 트리아지 역할에 사용하는 문자열
+- **도메인 문서** — `CONTEXT.md`와 ADR의 위치, 그리고 읽는 규칙
 
-This is a prompt-driven skill, not a deterministic script. Explore, present what you found, confirm with the user, then write.
+이 스킬은 결정론적 스크립트가 아닌 프롬프트 기반 스킬이다. 탐색 → 발견 내용 제시 → 사용자 확인 → 파일 작성 순서로 진행한다.
 
-## Process
+## 진행 순서
 
-### 1. Explore
+### 1. 탐색
 
-Look at the current repo to understand its starting state. Read whatever exists; don't assume:
+현재 레포의 상태를 파악한다. 가정하지 말고 존재하는 것을 읽는다:
 
-- `git remote -v` and `.git/config` — is this a GitHub repo? Which one?
-- `AGENTS.md` and `CLAUDE.md` at the repo root — does either exist? Is there already an `## Agent skills` section in either?
-- `CONTEXT.md` and `CONTEXT-MAP.md` at the repo root
-- `docs/adr/` and any `src/*/docs/adr/` directories
-- `docs/agents/` — does this skill's prior output already exist?
-- `.scratch/` — sign that a local-markdown issue tracker convention is already in use
+- `git remote -v` 및 `.git/config` — GitHub 레포인가? 어느 레포인가?
+- 레포 루트의 `AGENTS.md`와 `CLAUDE.md` — 존재하는가? `## Agent skills` 섹션이 이미 있는가?
+- 레포 루트의 `CONTEXT.md`와 `CONTEXT-MAP.md`
+- `docs/adr/` 및 `src/*/docs/adr/` 디렉토리
+- `docs/agents/` — 이 스킬의 이전 출력이 이미 존재하는가?
+- `.scratch/` — 로컬 마크다운 이슈 트래커 컨벤션이 이미 사용 중인 신호
 
-### 2. Present findings and ask
+### 2. 발견 내용 제시 및 질문
 
-Summarise what's present and what's missing. Then walk the user through the three decisions **one at a time** — present a section, get the user's answer, then move to the next. Don't dump all three at once.
+현재 있는 것과 없는 것을 요약한다. 그 다음 세 가지 결정을 **한 번에 하나씩** 안내한다 — 섹션을 제시하고, 사용자의 답변을 받고, 다음으로 넘어간다. 세 가지를 한꺼번에 던지지 않는다.
 
-Assume the user does not know what these terms mean. Each section starts with a short explainer (what it is, why these skills need it, what changes if they pick differently). Then show the choices and the default.
+사용자가 이 용어들을 모른다고 가정한다. 각 섹션은 짧은 설명(무엇인지, 스킬이 왜 필요한지, 다르게 선택하면 무엇이 달라지는지)으로 시작한다. 그 다음 선택지와 기본값을 보여준다.
 
-**Section A — Issue tracker.**
+**섹션 A — 이슈 트래커**
 
-> Explainer: The "issue tracker" is where issues live for this repo. Skills like `to-issues`, `triage`, `to-prd`, and `qa` read from and write to it — they need to know whether to call `gh issue create`, write a markdown file under `.scratch/`, or follow some other workflow you describe. Pick the place you actually track work for this repo.
+> 설명: "이슈 트래커"는 이 레포의 이슈가 어디에 있는지를 말한다. `to-issues`, `triage`, `to-prd`, `qa` 같은 스킬이 읽고 쓰는 곳이다 — `gh issue create`를 호출할지, `.scratch/` 아래에 마크다운 파일을 쓸지, 또는 다른 워크플로우를 따를지 알아야 한다. 이 레포에서 실제로 작업을 추적하는 곳을 선택한다.
 
-Default posture: these skills were designed for GitHub. If a `git remote` points at GitHub, propose that. If a `git remote` points at GitLab (`gitlab.com` or a self-hosted host), propose GitLab. Otherwise (or if the user prefers), offer:
+기본 방향: 이 스킬들은 GitHub용으로 설계됐다. `git remote`가 GitHub을 가리키면 GitHub을 제안한다. GitLab(`gitlab.com` 또는 자체 호스팅)을 가리키면 GitLab을 제안한다. 그 외의 경우(또는 사용자가 원하는 경우) 다음 선택지를 제시한다:
 
-- **GitHub** — issues live in the repo's GitHub Issues (uses the `gh` CLI)
-- **GitLab** — issues live in the repo's GitLab Issues (uses the [`glab`](https://gitlab.com/gitlab-org/cli) CLI)
-- **Local markdown** — issues live as files under `.scratch/<feature>/` in this repo (good for solo projects or repos without a remote)
-- **Other** (Jira, Linear, etc.) — ask the user to describe the workflow in one paragraph; the skill will record it as freeform prose
+- **GitHub** — 이슈가 레포의 GitHub Issues에 있음 (`gh` CLI 사용)
+- **GitLab** — 이슈가 레포의 GitLab Issues에 있음 ([`glab`](https://gitlab.com/gitlab-org/cli) CLI 사용)
+- **로컬 마크다운** — 이슈가 이 레포의 `.scratch/<feature>/` 아래 파일로 있음 (원격 없는 솔로 프로젝트에 적합)
+- **기타** (Jira, Linear 등) — 사용자에게 워크플로우를 한 단락으로 설명하도록 요청하고, 자유 형식 텍스트로 기록
 
-If — and only if — the user picked **GitHub** or **GitLab**, ask one follow-up:
+**GitHub** 또는 **GitLab**을 선택한 경우에만 추가 질문:
 
-> Explainer: Open-source repos often receive feature requests as pull requests, not just issues — a PR is an issue with attached code. If you turn this on, `/triage` pulls *external* PRs into the same queue and runs them through the same labels and states as issues (collaborators' in-flight PRs are left alone). Leave it off if PRs aren't a request surface for you.
+> 설명: 오픈소스 레포는 이슈뿐만 아니라 PR로도 기능 요청을 받는다 — PR은 코드가 첨부된 이슈다. 이를 활성화하면 `/triage`가 외부 PR을 이슈와 동일한 큐에 넣고 동일한 레이블·상태를 적용한다(협업자의 진행 중인 PR은 그대로 둔다). PR이 요청 창구가 아니라면 비활성화한다.
 
-- **PRs as a request surface** — yes / no (default: no). Record the answer in `docs/agents/issue-tracker.md`. For local-markdown and other trackers, skip this question — there are no PRs.
+- **PR을 요청 대상으로 처리** — yes / no (기본값: no). `docs/agents/issue-tracker.md`에 기록. 로컬 마크다운과 기타 트래커는 PR이 없으므로 이 질문 생략.
 
-**Section B — Triage label vocabulary.**
+**섹션 B — 트리아지 레이블 어휘**
 
-> Explainer: When the `triage` skill processes an incoming issue, it moves it through a state machine — needs evaluation, waiting on reporter, ready for an AFK agent to pick up, ready for a human, or won't fix. To do that, it needs to apply labels (or the equivalent in your issue tracker) that match strings *you've actually configured*. If your repo already uses different label names (e.g. `bug:triage` instead of `needs-triage`), map them here so the skill applies the right ones instead of creating duplicates.
+> 설명: `triage` 스킬이 이슈를 처리할 때 상태 머신을 통해 이동시킨다 — 평가 필요, 리포터 대기, AFK 에이전트 준비, 사람 준비, 처리 안 함. 이를 위해 실제로 설정된 문자열과 일치하는 레이블을 적용해야 한다. 레포에서 이미 다른 레이블 이름을 사용한다면 (예: `needs-triage` 대신 `bug:triage`) 여기에 매핑해서 스킬이 중복 생성하는 대신 올바른 것을 적용하도록 한다.
 
-The five canonical roles:
+다섯 가지 표준 역할:
 
-- `needs-triage` — maintainer needs to evaluate
-- `needs-info` — waiting on reporter
-- `ready-for-agent` — fully specified, AFK-ready (an agent can pick it up with no human context)
-- `ready-for-human` — needs human implementation
-- `wontfix` — will not be actioned
+- `needs-triage` — 메인테이너가 평가해야 함
+- `needs-info` — 리포터 추가 정보 대기
+- `ready-for-agent` — 완전히 명세됨, AFK 준비 (사람 컨텍스트 없이 에이전트가 처리 가능)
+- `ready-for-human` — 사람이 구현해야 함
+- `wontfix` — 처리하지 않을 것
 
-Default: each role's string equals its name. Ask the user if they want to override any. If their issue tracker has no existing labels, the defaults are fine.
+기본값: 각 역할의 문자열은 역할 이름과 동일하다. 사용자에게 재정의할 것이 있는지 확인한다. 이슈 트래커에 기존 레이블이 없다면 기본값을 사용하면 된다.
 
-**Section C — Domain docs.**
+**섹션 C — 도메인 문서**
 
-> Explainer: Some skills (`improve-codebase-architecture`, `diagnosing-bugs`, `tdd`) read a `CONTEXT.md` file to learn the project's domain language, and `docs/adr/` for past architectural decisions. They need to know whether the repo has one global context or multiple (e.g. a monorepo with separate frontend/backend contexts) so they look in the right place.
+> 설명: 일부 스킬(`improve-codebase-architecture`, `diagnosing-bugs`, `tdd`)은 `CONTEXT.md` 파일로 프로젝트의 도메인 언어를 파악하고, `docs/adr/`로 과거 아키텍처 결정을 확인한다. 레포에 전역 컨텍스트가 하나인지, 여러 개인지(예: 프론트엔드/백엔드가 별도인 모노레포)를 알아야 올바른 곳을 참조할 수 있다.
 
-Confirm the layout:
+구조 확인:
 
-- **Single-context** — one `CONTEXT.md` + `docs/adr/` at the repo root. Most repos are this.
-- **Multi-context** — `CONTEXT-MAP.md` at the root pointing to per-context `CONTEXT.md` files (typically a monorepo).
+- **단일 컨텍스트** — 레포 루트에 하나의 `CONTEXT.md` + `docs/adr/`. 대부분의 레포가 이에 해당.
+- **멀티 컨텍스트** — 루트의 `CONTEXT-MAP.md`가 컨텍스트별 `CONTEXT.md` 파일을 가리킴 (모노레포에 일반적).
 
-### 3. Confirm and edit
+### 3. 확인 및 편집
 
-Show the user a draft of:
+사용자에게 초안을 보여준다:
 
-- The `## Agent skills` block to add to whichever of `CLAUDE.md` / `AGENTS.md` is being edited (see step 4 for selection rules)
-- The contents of `docs/agents/issue-tracker.md`, `docs/agents/triage-labels.md`, `docs/agents/domain.md`
+- `CLAUDE.md` / `AGENTS.md`에 추가할 `## Agent skills` 블록
+- `docs/agents/issue-tracker.md`, `docs/agents/triage-labels.md`, `docs/agents/domain.md` 내용
 
-Let them edit before writing.
+작성 전에 수정할 기회를 준다.
 
-### 4. Write
+### 4. 작성
 
-**Pick the file to edit:**
+**편집할 파일 선택:**
 
-- If `CLAUDE.md` exists, edit it.
-- Else if `AGENTS.md` exists, edit it.
-- If neither exists, ask the user which one to create — don't pick for them.
+- `CLAUDE.md`가 있으면 편집한다.
+- 없고 `AGENTS.md`가 있으면 편집한다.
+- 둘 다 없으면 사용자에게 어느 것을 생성할지 묻는다 — 스스로 선택하지 않는다.
 
-Never create `AGENTS.md` when `CLAUDE.md` already exists (or vice versa) — always edit the one that's already there.
+`CLAUDE.md`가 있는데 `AGENTS.md`를 새로 만들거나, 그 반대를 하지 않는다 — 항상 이미 있는 것을 편집한다.
 
-If an `## Agent skills` block already exists in the chosen file, update its contents in-place rather than appending a duplicate. Don't overwrite user edits to the surrounding sections.
+선택한 파일에 `## Agent skills` 블록이 이미 있으면 내용을 제자리에서 업데이트한다. 중복으로 추가하지 않는다.
 
-The block:
+블록 형식:
 
 ```markdown
 ## Agent skills
 
-### Issue tracker
+### 이슈 트래커
 
-[one-line summary of where issues are tracked, plus whether external PRs are a triage surface]. See `docs/agents/issue-tracker.md`.
+[이슈 추적 위치 한 줄 요약, 외부 PR이 트리아지 대상인지 포함]. `docs/agents/issue-tracker.md` 참조.
 
-### Triage labels
+### 트리아지 레이블
 
-[one-line summary of the label vocabulary]. See `docs/agents/triage-labels.md`.
+[레이블 어휘 한 줄 요약]. `docs/agents/triage-labels.md` 참조.
 
-### Domain docs
+### 도메인 문서
 
-[one-line summary of layout — "single-context" or "multi-context"]. See `docs/agents/domain.md`.
+[구조 한 줄 요약 — "단일 컨텍스트" 또는 "멀티 컨텍스트"]. `docs/agents/domain.md` 참조.
 ```
 
-Then write the three docs files using the seed templates in this skill folder as a starting point:
+그 다음 이 스킬 폴더의 시드 템플릿을 시작점으로 세 개의 docs 파일을 작성한다:
 
-- [issue-tracker-github.md](./issue-tracker-github.md) — GitHub issue tracker
-- [issue-tracker-gitlab.md](./issue-tracker-gitlab.md) — GitLab issue tracker
-- [issue-tracker-local.md](./issue-tracker-local.md) — local-markdown issue tracker
-- [triage-labels.md](./triage-labels.md) — label mapping
-- [domain.md](./domain.md) — domain doc consumer rules + layout
+- [issue-tracker-github.md](./issue-tracker-github.md) — GitHub 이슈 트래커
+- [issue-tracker-gitlab.md](./issue-tracker-gitlab.md) — GitLab 이슈 트래커
+- [issue-tracker-local.md](./issue-tracker-local.md) — 로컬 마크다운 이슈 트래커
+- [triage-labels.md](./triage-labels.md) — 레이블 매핑
+- [domain.md](./domain.md) — 도메인 문서 소비 규칙 및 구조
 
-For "other" issue trackers, write `docs/agents/issue-tracker.md` from scratch using the user's description.
+"기타" 이슈 트래커의 경우 사용자의 설명을 바탕으로 `docs/agents/issue-tracker.md`를 처음부터 작성한다.
 
-### 5. Done
+### 5. 완료
 
-Tell the user the setup is complete and which engineering skills will now read from these files. Mention they can edit `docs/agents/*.md` directly later — re-running this skill is only necessary if they want to switch issue trackers or restart from scratch.
+설정이 완료됐음을 알리고 어떤 엔지니어링 스킬이 이 파일들을 참조할지 안내한다. `docs/agents/*.md`는 나중에 직접 편집할 수 있다 — 이슈 트래커를 변경하거나 처음부터 다시 시작하려는 경우에만 이 스킬을 재실행하면 된다.

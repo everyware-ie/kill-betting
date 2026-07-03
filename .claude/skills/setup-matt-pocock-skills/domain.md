@@ -1,18 +1,18 @@
-# Domain Docs
+# 도메인 문서
 
-How the engineering skills should consume this repo's domain documentation when exploring the codebase.
+엔지니어링 스킬이 코드베이스를 탐색할 때 이 레포의 도메인 문서를 참조하는 방법.
 
-## Before exploring, read these
+## 탐색 전 먼저 읽을 파일
 
-- **`CONTEXT.md`** at the repo root, or
-- **`CONTEXT-MAP.md`** at the repo root if it exists — it points at one `CONTEXT.md` per context. Read each one relevant to the topic.
-- **`docs/adr/`** — read ADRs that touch the area you're about to work in. In multi-context repos, also check `src/<context>/docs/adr/` for context-scoped decisions.
+- 레포 루트의 **`CONTEXT.md`**, 또는
+- 존재하는 경우 레포 루트의 **`CONTEXT-MAP.md`** — 컨텍스트별 `CONTEXT.md`를 가리킴. 주제와 관련된 것을 모두 읽는다.
+- **`docs/adr/`** — 작업하려는 영역과 관련된 ADR을 읽는다. 멀티 컨텍스트 레포의 경우 `src/<context>/docs/adr/`도 확인한다.
 
-If any of these files don't exist, **proceed silently**. Don't flag their absence; don't suggest creating them upfront. The `/domain-modeling` skill (reached via `/grill-with-docs` and `/improve-codebase-architecture`) creates them lazily when terms or decisions actually get resolved.
+이 파일들이 없다면 **조용히 진행**한다. 부재를 표시하거나 미리 생성을 제안하지 않는다. `/domain-modeling` 스킬이 용어나 결정이 실제로 확정될 때 lazily 생성한다.
 
-## File structure
+## 파일 구조
 
-Single-context repo (most repos):
+단일 컨텍스트 레포 (대부분의 레포):
 
 ```
 /
@@ -23,29 +23,29 @@ Single-context repo (most repos):
 └── src/
 ```
 
-Multi-context repo (presence of `CONTEXT-MAP.md` at the root):
+멀티 컨텍스트 레포 (루트에 `CONTEXT-MAP.md`가 있는 경우):
 
 ```
 /
 ├── CONTEXT-MAP.md
-├── docs/adr/                          ← system-wide decisions
+├── docs/adr/                          ← 시스템 전체 결정
 └── src/
     ├── ordering/
     │   ├── CONTEXT.md
-    │   └── docs/adr/                  ← context-specific decisions
+    │   └── docs/adr/                  ← 컨텍스트별 결정
     └── billing/
         ├── CONTEXT.md
         └── docs/adr/
 ```
 
-## Use the glossary's vocabulary
+## 용어집 어휘 사용
 
-When your output names a domain concept (in an issue title, a refactor proposal, a hypothesis, a test name), use the term as defined in `CONTEXT.md`. Don't drift to synonyms the glossary explicitly avoids.
+출력에서 도메인 개념을 명명할 때(이슈 제목, 리팩토링 제안, 테스트 이름 등) `CONTEXT.md`에 정의된 용어를 그대로 사용한다. 용어집이 명시적으로 피하는 동의어로 바꾸지 않는다.
 
-If the concept you need isn't in the glossary yet, that's a signal — either you're inventing language the project doesn't use (reconsider) or there's a real gap (note it for `/domain-modeling`).
+필요한 개념이 용어집에 없다면 신호다 — 프로젝트에서 사용하지 않는 언어를 만들고 있거나(재고할 것), 실제 공백이 있는 것(` /domain-modeling`에 기록할 것).
 
-## Flag ADR conflicts
+## ADR 충돌 표시
 
-If your output contradicts an existing ADR, surface it explicitly rather than silently overriding:
+출력이 기존 ADR과 충돌하면 조용히 덮어쓰지 말고 명시적으로 표면화한다:
 
-> _Contradicts ADR-0007 (event-sourced orders) — but worth reopening because…_
+> _ADR-0007(이벤트 소싱 주문)과 충돌합니다 — 하지만 재검토할 가치가 있는 이유는…_

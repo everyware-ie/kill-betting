@@ -1,34 +1,34 @@
-# Issue tracker: GitHub
+# 이슈 트래커: GitHub
 
-Issues and PRDs for this repo live as GitHub issues. Use the `gh` CLI for all operations.
+이 레포의 이슈와 PRD는 GitHub 이슈로 관리한다. 모든 작업에 `gh` CLI를 사용한다.
 
-## Conventions
+## 컨벤션
 
-- **Create an issue**: `gh issue create --title "..." --body "..."`. Use a heredoc for multi-line bodies.
-- **Read an issue**: `gh issue view <number> --comments`, filtering comments by `jq` and also fetching labels.
-- **List issues**: `gh issue list --state open --json number,title,body,labels,comments --jq '[.[] | {number, title, body, labels: [.labels[].name], comments: [.comments[].body]}]'` with appropriate `--label` and `--state` filters.
-- **Comment on an issue**: `gh issue comment <number> --body "..."`
-- **Apply / remove labels**: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`
-- **Close**: `gh issue close <number> --comment "..."`
+- **이슈 생성**: `gh issue create --title "..." --body "..."`. 여러 줄 본문은 heredoc 사용.
+- **이슈 조회**: `gh issue view <number> --comments`. 댓글과 레이블을 함께 확인.
+- **이슈 목록**: `gh issue list --state open --json number,title,body,labels,comments --jq '[.[] | {number, title, body, labels: [.labels[].name], comments: [.comments[].body]}]'`. `--label`, `--state` 필터 활용.
+- **댓글 작성**: `gh issue comment <number> --body "..."`
+- **레이블 추가/제거**: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`
+- **이슈 닫기**: `gh issue close <number> --comment "..."`
 
-Infer the repo from `git remote -v` — `gh` does this automatically when run inside a clone.
+레포는 `git remote -v`에서 자동으로 추론된다 — 클론 내부에서 `gh` 실행 시 자동 적용.
 
-## Pull requests as a triage surface
+## PR의 트리아지 대상 여부
 
-**PRs as a request surface: no.** _(Set to `yes` if this repo treats external PRs as feature requests; `/triage` reads this flag.)_
+**PR을 요청 대상으로 처리: no.** _(외부 PR을 기능 요청으로 처리할 경우 `yes`로 변경; `/triage` 스킬이 이 값을 읽음.)_
 
-When set to `yes`, PRs run through the same labels and states as issues, using the `gh pr` equivalents:
+`yes`로 설정된 경우, PR도 이슈와 동일한 레이블·상태를 거치며 `gh pr` 명령어를 사용한다:
 
-- **Read a PR**: `gh pr view <number> --comments` and `gh pr diff <number>` for the diff.
-- **List external PRs for triage**: `gh pr list --state open --json number,title,body,labels,author,authorAssociation,comments` then keep only `authorAssociation` of `CONTRIBUTOR`, `FIRST_TIME_CONTRIBUTOR`, or `NONE` (drop `OWNER`/`MEMBER`/`COLLABORATOR`).
-- **Comment / label / close**: `gh pr comment`, `gh pr edit --add-label`/`--remove-label`, `gh pr close`.
+- **PR 조회**: `gh pr view <number> --comments` 및 `gh pr diff <number>`.
+- **외부 PR 트리아지 목록**: `gh pr list --state open --json number,title,body,labels,author,authorAssociation,comments` 후 `authorAssociation`이 `CONTRIBUTOR`, `FIRST_TIME_CONTRIBUTOR`, `NONE`인 것만 유지 (`OWNER`/`MEMBER`/`COLLABORATOR` 제외).
+- **댓글/레이블/닫기**: `gh pr comment`, `gh pr edit --add-label`/`--remove-label`, `gh pr close`.
 
-GitHub shares one number space across issues and PRs, so a bare `#42` may be either — resolve with `gh pr view 42` and fall back to `gh issue view 42`.
+GitHub은 이슈와 PR이 번호 공간을 공유하므로 `#42`는 둘 중 하나일 수 있다 — `gh pr view 42`로 확인 후 실패하면 `gh issue view 42`로 대체.
 
-## When a skill says "publish to the issue tracker"
+## 스킬에서 "이슈 트래커에 게시"라고 할 때
 
-Create a GitHub issue.
+GitHub 이슈를 생성한다.
 
-## When a skill says "fetch the relevant ticket"
+## 스킬에서 "관련 티켓을 가져와"라고 할 때
 
-Run `gh issue view <number> --comments`.
+`gh issue view <number> --comments`를 실행한다.
