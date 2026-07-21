@@ -66,6 +66,9 @@ public class Rule {
         if (isType(RuleType.SURVIVAL_PENALTY) && failedTop10Count > 0) {
             return -(int) failedTop10Count * value;
         }
+        if (isType(RuleType.TEAM_SURVIVAL_PENALTY) && failedTop10Count > 0) {
+            return -value;
+        }
         return 0;
     }
 

@@ -21,6 +21,9 @@
 | **Placement**   | 순위    | 해당 Match에서의 최종 순위 (1위, 2위 ...) |
 | **Kill**        | 킬     | 한 Match에서의 킬 수 |
 | **TotalScore**  | 총점    | 세션 내 모든 Match 점수의 합산 |
+| **ChickenBonus** | 치킨 보너스 | 치킨(1위) 달성 시 팀에 +value 보너스 (RuleType) |
+| **SurvivalPenalty** | 생존 패널티(인당) | TOP10 진입 실패자 **인원 수 × value** 만큼 팀 감점 (RuleType) |
+| **TeamSurvivalPenalty** | 팀 생존 패널티 | TOP10 실패자가 **1명이라도** 있으면 팀 전체 **-value (1회)** 감점. SurvivalPenalty와 **택일** (RuleType) |
 
 ---
 
@@ -29,3 +32,4 @@
 - `결과`라는 단어는 **MatchResult**(파싱된 원시 데이터)와 **ScoreBoard**(집계된 점수)를 혼동하기 쉬움 → 반드시 구분해서 사용
 - `팀`은 서비스 내에서 **Participant**로 통일 (솔로 참가도 Participant로 표현)
 - `게임`은 **Match**로, `이벤트/대회`는 **Session**으로 표현
+- 생존 패널티는 **SurvivalPenalty(인당)** 와 **TeamSurvivalPenalty(팀 1회)** 중 하나만 사용 가능 (세션당 택일, 백엔드에서 강제)

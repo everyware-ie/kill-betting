@@ -59,8 +59,8 @@ const genCode = () =>
 
 /**
  * 프론트엔드 rule 객체를 백엔드 RuleRequest[] 형식으로 변환
- * 백엔드 RuleType: CHICKEN_BONUS, SURVIVAL_PENALTY만 지원
- * 프론트: { chickenBonusOn: true, chickenBonus: 5, survivalPenaltyOn: true, survivalPenalty: 2 }
+ * 백엔드 RuleType: CHICKEN_BONUS, SURVIVAL_PENALTY, TEAM_SURVIVAL_PENALTY
+ * 생존 패널티는 penaltyMode로 택일: 'NONE' | 'PER_PLAYER' | 'TEAM_ONCE'
  * 백엔드: [{ ruleType: 'CHICKEN_BONUS', operator: 'PLUS', value: 5 }, ...]
  */
 const convertRuleToBackend = (rule) => {
@@ -69,8 +69,11 @@ const convertRuleToBackend = (rule) => {
   if (rule.chickenBonusOn && rule.chickenBonus > 0) {
     rules.push({ ruleType: 'CHICKEN_BONUS', operator: 'PLUS', value: rule.chickenBonus });
   }
-  if (rule.survivalPenaltyOn && rule.survivalPenalty > 0) {
+  if (rule.penaltyMode === 'PER_PLAYER' && rule.survivalPenalty > 0) {
     rules.push({ ruleType: 'SURVIVAL_PENALTY', operator: 'MINUS', value: rule.survivalPenalty });
+  }
+  if (rule.penaltyMode === 'TEAM_ONCE' && rule.teamSurvivalPenalty > 0) {
+    rules.push({ ruleType: 'TEAM_SURVIVAL_PENALTY', operator: 'MINUS', value: rule.teamSurvivalPenalty });
   }
 
   return rules;
@@ -148,10 +151,13 @@ export const RoomAPI = {
       room.rule = { ...rule };
       return ok({ rule });
     }
+    // 현재 룰 수정 API는 기존 룰의 value만 변경한다 (룰 생성/삭제·타입 전환 미지원).
+    // 활성화된 방식의 값만 전송한다. (백엔드는 value >= 1만 허용)
     const updates = [
-      { ruleId: rule.chickenBonusRuleId, value: rule.chickenBonusOn ? rule.chickenBonus : 0 },
-      { ruleId: rule.survivalPenaltyRuleId, value: rule.survivalPenaltyOn ? rule.survivalPenalty : 0 },
-    ].filter((u) => u.ruleId != null);
+      { ruleId: rule.chickenBonusOn ? rule.chickenBonusRuleId : null, value: rule.chickenBonus },
+      { ruleId: rule.penaltyMode === 'PER_PLAYER' ? rule.survivalPenaltyRuleId : null, value: rule.survivalPenalty },
+      { ruleId: rule.penaltyMode === 'TEAM_ONCE' ? rule.teamSurvivalPenaltyRuleId : null, value: rule.teamSurvivalPenalty },
+    ].filter((u) => u.ruleId != null && u.value > 0);
 
     for (const { ruleId, value } of updates) {
       const res = await apiFetch(`/sessions/${sessionId}/rules/${ruleId}`, {

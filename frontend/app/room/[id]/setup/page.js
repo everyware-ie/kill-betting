@@ -150,8 +150,11 @@ export default function SetupPage() {
               {rule?.chickenBonusOn && (
                 <RuleRow icon="trophy" label="치킨" value={`+${rule.chickenBonus}`} valueColor="var(--kn-success)" />
               )}
-              {rule?.survivalPenaltyOn && (
-                <RuleRow icon="shield" label="생존" value={`-${rule.survivalPenalty}`} valueColor="var(--kn-danger)" />
+              {rule?.penaltyMode === 'PER_PLAYER' && (
+                <RuleRow icon="shield" label="생존(인당)" value={`-${rule.survivalPenalty}`} valueColor="var(--kn-danger)" />
+              )}
+              {rule?.penaltyMode === 'TEAM_ONCE' && (
+                <RuleRow icon="shield" label="생존(팀 1회)" value={`-${rule.teamSurvivalPenalty}`} valueColor="var(--kn-danger)" />
               )}
               <button
                 onClick={() => setShowRuleModal(true)}

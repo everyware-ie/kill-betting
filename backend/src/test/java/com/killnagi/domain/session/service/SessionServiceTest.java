@@ -114,6 +114,21 @@ class SessionServiceTest {
     }
 
     @Test
+    void 인당_패널티와_팀_패널티를_함께_등록하면_예외가_발생한다() {
+        CreateRequest request = new CreateRequest(
+                "킬내기 세션", 50, 60,
+                List.of(
+                        new RuleRequest(RuleType.SURVIVAL_PENALTY, Operator.MINUS, 2),
+                        new RuleRequest(RuleType.TEAM_SURVIVAL_PENALTY, Operator.MINUS, 3)
+                )
+        );
+
+        assertThatThrownBy(() -> sessionService.createSession(HOST_ID, request))
+                .isInstanceOf(KillnagiException.class)
+                .hasMessage("생존 패널티는 인당/팀 방식 중 하나만 사용할 수 있습니다.");
+    }
+
+    @Test
     void 존재하지_않는_유저가_세션_생성시_예외가_발생한다() {
         CreateRequest request = new CreateRequest("킬내기 세션", 50, 60, null);
         given(userRepository.findById(HOST_ID)).willReturn(Optional.empty());
