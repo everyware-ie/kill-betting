@@ -1,5 +1,6 @@
 package com.killnagi.domain.session.repository;
 
+import com.killnagi.domain.session.dto.response.SessionParticipantCount;
 import com.killnagi.domain.session.entity.SessionUser;
 import com.killnagi.domain.session.entity.SessionUser.SessionUserStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -30,4 +31,13 @@ public interface SessionUserRepository extends JpaRepository<SessionUser, Long> 
               AND su.joinedAt <= su.user.createdAt + 7 day
             """)
     long countW1RetainedUsers(@Param("observableCutoff") LocalDateTime observableCutoff);
+
+    // 어드민 세션 목록: 여러 세션의 활성 참가자 수를 한 번에 집계(N+1 방지).
+    @Query("""
+            SELECT new com.killnagi.domain.session.dto.response.SessionParticipantCount(su.session.id, COUNT(su.id))
+            FROM SessionUser su
+            WHERE su.session.id IN :sessionIds AND su.status = com.killnagi.domain.session.entity.SessionUser.SessionUserStatus.ACTIVE
+            GROUP BY su.session.id
+            """)
+    List<SessionParticipantCount> countActiveParticipantsBySessionIds(@Param("sessionIds") List<Long> sessionIds);
 }
