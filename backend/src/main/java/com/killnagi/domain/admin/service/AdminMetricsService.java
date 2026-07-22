@@ -23,6 +23,7 @@ public class AdminMetricsService {
 
     private static final int RECENT_DAYS_SHORT = 7;
     private static final int RECENT_DAYS_LONG = 30;
+    private static final int RETENTION_WINDOW_DAYS = 7;
 
     private final UserRepository userRepository;
     private final SessionRepository sessionRepository;
@@ -44,8 +45,24 @@ public class AdminMetricsService {
                 roundedAverage(sessionUserRepository.countByStatus(SessionUserStatus.ACTIVE), totalSessions),
                 roundedAverage(sessionUserRepository.count(), totalUsers),
                 sessionUserRepository.countDistinctUsersByJoinedAtAfter(now.minusDays(RECENT_DAYS_SHORT)),
-                sessionUserRepository.countDistinctUsersByJoinedAtAfter(now.minusDays(RECENT_DAYS_LONG))
+                sessionUserRepository.countDistinctUsersByJoinedAtAfter(now.minusDays(RECENT_DAYS_LONG)),
+                w1RetentionRate(now)
         );
+    }
+
+    private double w1RetentionRate(LocalDateTime now) {
+        LocalDateTime observableCutoff = now.minusDays(RETENTION_WINDOW_DAYS);
+        long observableUsers = userRepository.countByCreatedAtLessThanEqual(observableCutoff);
+        long retainedUsers = sessionUserRepository.countW1RetainedUsers(observableCutoff);
+        return percentage(retainedUsers, observableUsers);
+    }
+
+    private double percentage(long numerator, long denominator) {
+        if (denominator == 0) {
+            return 0.0;
+        }
+        double rate = numerator * 100.0 / denominator;
+        return Math.round(rate * 100) / 100.0;
     }
 
     private Map<String, Long> countSessionsByStatus() {

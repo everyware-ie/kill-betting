@@ -47,6 +47,19 @@ class UserRepositoryTest {
         assertThat(userRepository.countByCreatedAtAfter(CUTOFF)).isZero();
     }
 
+    @Test
+    @DisplayName("기준 시각 이전(경계 포함)에 가입한 관측 가능 유저만 센다")
+    void 기준_시각_이전_경계_포함_유저만_센다() {
+        // 기준 이전 1명, 경계(정확히 기준) 1명, 기준 이후 1명
+        saveUserWithCreatedAt("before", "before@test.com", CUTOFF.minusDays(1));
+        saveUserWithCreatedAt("boundary", "boundary@test.com", CUTOFF);
+        saveUserWithCreatedAt("after", "after@test.com", CUTOFF.plusDays(1));
+
+        long count = userRepository.countByCreatedAtLessThanEqual(CUTOFF);
+
+        assertThat(count).isEqualTo(2L);
+    }
+
     private void saveUserWithCreatedAt(String nickname, String email, LocalDateTime createdAt) {
         User user = userRepository.save(TestFixtures.user(null, nickname, email));
         // @CreatedDate 가 자동 설정한 값을 경계 검증용 시각으로 덮어쓴다
