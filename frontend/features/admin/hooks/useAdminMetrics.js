@@ -13,16 +13,20 @@ export function useAdminMetrics() {
     let active = true;
 
     (async () => {
-      const res = await AdminAPI.getMetrics();
-      if (!active) return;
+      try {
+        const res = await AdminAPI.getMetrics();
+        if (!active) return;
 
-      if (res.success) {
-        setMetrics(res.data);
-        setStatus('ready');
-      } else if (res.forbidden) {
-        setStatus('forbidden');
-      } else {
-        setStatus('error');
+        if (res.success) {
+          setMetrics(res.data);
+          setStatus('ready');
+        } else if (res.forbidden) {
+          setStatus('forbidden');
+        } else {
+          setStatus('error');
+        }
+      } catch {
+        if (active) setStatus('error');
       }
     })();
 
