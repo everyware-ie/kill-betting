@@ -16,3 +16,9 @@ logging:
     com.killnagi: DEBUG
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: trace
+
+# 어드민 지표 대시보드(/admin) 접근 허용 이메일.
+# 이 이메일로 가입/로그인한 계정만 /api/admin/** 에 접근할 수 있다.
+# 비워두면 아무도 접근할 수 없다. (운영 환경은 ADMIN_EMAIL 환경변수로 주입)
+admin:
+  email: your-account@example.com
