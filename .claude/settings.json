@@ -37,6 +37,16 @@
             "statusMessage": "PR 체크리스트 확인 중..."
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash scripts/hooks/pre-implementation-frd-check.sh",
+            "statusMessage": "구현 착수 전 FRD 확인 단계 점검 중..."
+          }
+        ]
       }
     ],
     "SessionStart": [

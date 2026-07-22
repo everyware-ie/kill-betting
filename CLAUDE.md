@@ -12,6 +12,15 @@
 - 구현 중 스텁과 허브 FRD가 어긋난 것을 발견하면 **허브가 우선** — 즉시 이슈를 만들고 진행 여부를 확인한다.
 - approved 아닌(draft/review) FRD는 구현 근거가 아니다.
 
+### 강제 게이트 (훅으로 자동 적용)
+
+approved FRD라도 착수 전 확인 단계를 건너뛰지 못하도록 두 지점에서 훅이 강제한다:
+
+1. **구현 착수 시점** (`pre-implementation-frd-check.sh`): `feature/*` 브랜치에서 `backend/src`·`frontend`의 구현 소스를 처음 편집할 때, 그 기능의 **확인 스텁**(`docs/product/features/<기능>.md`, 허브 FRD 링크 포함)이 없으면 편집이 차단된다. 스텁을 만들려면 허브 FRD를 가져와 사용자에게 보여주고 확인받는 단계를 거쳐야 한다. **"바로 진행"으로도 이 단계는 건너뛸 수 없다.**
+2. **PR 생성 시점** (`pre-pr-checklist.sh`): PR 본문이 참조하는 허브 FRD의 `status`가 `approved`가 아니면 PR 생성이 차단된다.
+
+훅이 강제하는 것은 "확인 체크포인트가 실행됐다"까지다. 문서를 실제로 읽는 것은 담당자의 몫이다.
+
 ## 팀 & 스택
 - 백엔드: Java / Spring Boot
 - 프론트엔드: React / Next.js
