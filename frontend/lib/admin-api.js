@@ -33,7 +33,8 @@ export const AdminAPI = {
    *   GET /api/admin/metrics
    *   Response 200: { totalUsers, newUsers7d, newUsers30d, totalSessions,
    *                    sessionsByStatus, avgParticipantsPerSession,
-   *                    avgSessionsPerUser, activeUsers7d, activeUsers30d }
+   *                    avgSessionsPerUser, activeUsers7d, activeUsers30d,
+   *                    w1RetentionRate }
    *   Response 403: 어드민 화이트리스트 밖
    */
   getMetrics: async () => {
@@ -49,6 +50,7 @@ export const AdminAPI = {
         avgSessionsPerUser: 1.85,
         activeUsers7d: 12,
         activeUsers30d: 29,
+        w1RetentionRate: 41.67,
       });
     }
 
