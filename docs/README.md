@@ -13,7 +13,7 @@ docs/
 ├── frontend/
 │   └── conventions.md     # 코딩 컨벤션 (API 레이어, 상태 관리, 스타일 등)
 ├── product/
-│   └── features/          # 기능 명세 (FRD)
+│   └── features/          # 허브 FRD 스텁 (링크+구현 노트, 원문은 mechuri-docs)
 ├── team/
 │   └── workflow.md        # 개발 워크플로우
 └── common/
@@ -32,7 +32,7 @@ docs/
 | 테스트 전략 | `backend/tests.md` |
 | 아키텍처 규칙 / 예외 처리 | `backend/architecture.md` |
 | 프론트엔드 코딩 규칙 | `frontend/conventions.md` |
-| 기능 명세 (FRD) | `product/features/` |
+| 기능 명세 (FRD) | [mechuri-docs specs](https://github.com/everyware-ie/mechuri-docs/tree/main/products/kill-betting/specs) (스텁: `product/features/`) |
 | 현재 ERD | `architecture/erd/current.mermaid` |
 | 아키텍처 결정 기록 | `architecture/adr/` |
 | 기술 부채 현황 | `common/tech-debt.md` |
