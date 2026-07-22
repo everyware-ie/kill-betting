@@ -31,13 +31,25 @@ export const AdminAPI = {
   /**
    * 운영 지표 조회
    *   GET /api/admin/metrics
-   *   Response 200: { totalUsers }
+   *   Response 200: { totalUsers, newUsers7d, newUsers30d, totalSessions,
+   *                    sessionsByStatus, avgParticipantsPerSession,
+   *                    avgSessionsPerUser, activeUsers7d, activeUsers30d }
    *   Response 403: 어드민 화이트리스트 밖
    */
   getMetrics: async () => {
     if (USE_MOCK) {
       await delay();
-      return ok({ totalUsers: 42 });
+      return ok({
+        totalUsers: 42,
+        newUsers7d: 5,
+        newUsers30d: 18,
+        totalSessions: 27,
+        sessionsByStatus: { WAITING: 3, IN_PROGRESS: 4, ENDED: 20 },
+        avgParticipantsPerSession: 3.7,
+        avgSessionsPerUser: 1.85,
+        activeUsers7d: 12,
+        activeUsers30d: 29,
+      });
     }
 
     try {

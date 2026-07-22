@@ -24,5 +24,7 @@ public interface SessionRepository extends JpaRepository<Session, Long> {
 
     List<Session> findByStatus(Session.SessionStatus status);
 
+    long countByStatus(Session.SessionStatus status);
+
     List<Session> findByStatusAndTimeLimitMinutesIsNotNull(Session.SessionStatus status);
 }
