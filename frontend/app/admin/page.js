@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useAdminMetrics } from '@/features/admin/hooks/useAdminMetrics';
 
 const SESSION_STATUS_LABELS = {
@@ -24,7 +25,10 @@ export default function AdminPage() {
   return (
     <main style={{ minHeight: '100vh', background: 'var(--kn-bg)', color: 'var(--kn-text)', padding: '40px 24px' }}>
       <div style={{ maxWidth: 960, margin: '0 auto' }}>
-        <h1 style={{ fontSize: 24, fontWeight: 'var(--kn-w-bold)', marginBottom: 32 }}>운영 지표</h1>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
+          <h1 style={{ fontSize: 24, fontWeight: 'var(--kn-w-bold)' }}>운영 지표</h1>
+          <Link href="/admin/sessions" style={{ color: 'var(--kn-accent)', fontSize: 13 }}>세션 드릴다운 →</Link>
+        </div>
 
         <MetricGroup title="성장">
           <MetricCard label="총 가입 유저" value={metrics.totalUsers} />
