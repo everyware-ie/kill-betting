@@ -3,6 +3,7 @@ package com.killnagi.domain.session.repository;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -99,6 +100,30 @@ class SessionUserRepositoryTest {
         entityManager.flush();
         entityManager.clear();
         return userRepository.findById(user.getId()).orElseThrow();
+    }
+
+    @Test
+    @DisplayName("어드민 목록: 여러 세션의 활성 참가자 수를 한 번에 집계한다 (LEFT 제외)")
+    void 여러_세션의_활성_참가자_수를_배치로_집계한다() {
+        User host = userRepository.save(TestFixtures.user(null, "host", "host@test.com"));
+        Session s1 = sessionRepository.save(TestFixtures.session(host));
+        Session s2 = sessionRepository.save(TestFixtures.session(host));
+
+        // s1: 활성 2명 + 나간 1명
+        join(s1, "a1", "a1@test.com");
+        join(s1, "a2", "a2@test.com");
+        joinAndLeave(s1, "left1", "left1@test.com");
+        // s2: 활성 1명
+        join(s2, "b1", "b1@test.com");
+
+        var counts = sessionUserRepository.countActiveParticipantsBySessionIds(
+                List.of(s1.getId(), s2.getId()));
+
+        assertThat(counts)
+                .extracting(c -> c.sessionId(), c -> c.count())
+                .containsExactlyInAnyOrder(
+                        org.assertj.core.groups.Tuple.tuple(s1.getId(), 2L),
+                        org.assertj.core.groups.Tuple.tuple(s2.getId(), 1L));
     }
 
     private void join(Session session, String nickname, String email) {
