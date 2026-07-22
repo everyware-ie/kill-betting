@@ -37,11 +37,11 @@
 ## 구현 결정사항
 
 ### 접근 제어
-- 인증은 기존 JWT를 그대로 사용한다. 어드민 여부는 **role 필드가 아니라 이메일 화이트리스트**로 판단한다.
-  - 사유: 운영자는 소수 고정 인원이고, User에 role 개념이 없다. role 도입(엔티티/마이그레이션)은 이 규모에 과하다. 인원이 늘면 role 체계로 승격한다. (ADR로 기록)
-- `ADMIN_EMAILS` 환경변수로 화이트리스트를 주입한다.
-- `SecurityConfig`에 `/api/admin/**` 접근 규칙을 추가한다. 인증된 유저 중 이메일이 화이트리스트에 있을 때만 통과, 아니면 403.
-- 화이트리스트 판정은 `common/security`의 별도 컴포넌트(AuthorizationManager 성격)로 분리한다.
+- 인증은 기존 JWT를 그대로 사용한다. 어드민 여부는 **role 필드가 아니라 단일 어드민 이메일**로 판단한다.
+  - 사유: 운영자는 소수(사실상 1명 공용)이고, User에 role 개념이 없다. role 도입(엔티티/마이그레이션)은 이 규모에 과하다. 인원이 늘면 이메일 목록 → role 체계로 승격한다. (ADR로 기록)
+- `ADMIN_EMAIL` 환경변수로 단일 어드민 이메일을 주입한다. 값이 비면 아무도 접근할 수 없다.
+- `SecurityConfig`에 `/api/admin/**` 접근 규칙을 추가한다. 인증된 유저의 이메일이 `ADMIN_EMAIL`과 일치할 때만 통과, 아니면 403.
+- 판정은 `common/security`의 별도 컴포넌트(`AdminAccessManager`, AuthorizationManager)로 분리한다. principal의 userId로 유저를 조회해 email을 비교한다.
 
 ### 백엔드 모듈
 - 신규 `domain/admin` 모듈을 만든다. 읽기 전용 오케스트레이션만 담당한다.
@@ -60,25 +60,32 @@
 - W1 리텐션: 분모 = 가입 후 7일이 경과한(관측 가능한) 유저 수, 분자 = 그중 `가입일 ~ 가입일+7d` 사이에 `SessionUser.joinedAt` 기록이 1건 이상인 유저 수. 비율(%)로 표기. 분모 0이면 0.
   - 아직 7일이 지나지 않은 신규 유저는 분모에서 제외(관측 미완료).
 
-### API 계약 (초안)
-```
+### API 계약 (기능 전체 목표 = 3개 슬라이스 종료 시점)
+
+> ⚠️ 아래는 기능 완성 시의 **최종** 응답 형태다. 슬라이스별로 필드가 점진적으로 채워진다.
+> - #94(walking skeleton, 현재 구현): `totalUsers`만 반환·렌더링한다.
+> - #95: `newUsers7d/30d`, `totalSessions`, `sessionsByStatus`, `avgParticipantsPerSession`, `avgSessionsPerUser`, `activeUsers7d/30d` 추가.
+> - #96: `w1RetentionRate` 추가.
+
+```http
 GET /api/admin/metrics
 200 OK
 {
-  "totalUsers": number,
-  "newUsers7d": number,
-  "newUsers30d": number,
-  "totalSessions": number,
-  "sessionsByStatus": { "IN_PROGRESS": number, "ENDED": number, ... },
-  "avgParticipantsPerSession": number,
-  "avgSessionsPerUser": number,
-  "activeUsers7d": number,
-  "activeUsers30d": number,
-  "w1RetentionRate": number   // 0~100 (%)
+  "totalUsers": 0,
+  "newUsers7d": 0,
+  "newUsers30d": 0,
+  "totalSessions": 0,
+  "sessionsByStatus": { "IN_PROGRESS": 0, "ENDED": 0 },
+  "avgParticipantsPerSession": 0,
+  "avgSessionsPerUser": 0,
+  "activeUsers7d": 0,
+  "activeUsers30d": 0,
+  "w1RetentionRate": 0
 }
-403 Forbidden  // 화이트리스트 밖
 ```
-(공통 응답 래퍼 `ApiResponse` 규약을 따른다.)
+- `w1RetentionRate`는 0~100(%) 범위.
+- 403 Forbidden: 어드민 이메일(`ADMIN_EMAIL`)과 불일치.
+- 공통 응답 래퍼 `ApiResponse` 규약을 따른다.
 
 ### 프론트엔드
 - `app/admin/page.js` 신규 페이지. 신규 컴포넌트이므로 Tailwind + CSS 변수(`--kn-*`)를 사용한다(인라인 스타일 금지).
