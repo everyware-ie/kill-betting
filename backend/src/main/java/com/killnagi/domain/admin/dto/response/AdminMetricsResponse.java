@@ -11,6 +11,7 @@ public record AdminMetricsResponse(
         double avgParticipantsPerSession,
         double avgSessionsPerUser,
         long activeUsers7d,
-        long activeUsers30d
+        long activeUsers30d,
+        double w1RetentionRate
 ) {
 }

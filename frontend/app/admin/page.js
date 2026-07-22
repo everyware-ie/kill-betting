@@ -22,9 +22,9 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[var(--kn-bg)] px-6 py-10 text-[var(--kn-text)]">
-      <div className="mx-auto max-w-4xl">
-        <h1 className="mb-8 text-2xl font-bold">운영 지표</h1>
+    <main style={{ minHeight: '100vh', background: 'var(--kn-bg)', color: 'var(--kn-text)', padding: '40px 24px' }}>
+      <div style={{ maxWidth: 960, margin: '0 auto' }}>
+        <h1 style={{ fontSize: 24, fontWeight: 'var(--kn-w-bold)', marginBottom: 32 }}>운영 지표</h1>
 
         <MetricGroup title="성장">
           <MetricCard label="총 가입 유저" value={metrics.totalUsers} />
@@ -46,6 +46,10 @@ export default function AdminPage() {
           <MetricCard label="활성 유저 (7일)" value={metrics.activeUsers7d} />
           <MetricCard label="활성 유저 (30일)" value={metrics.activeUsers30d} />
         </MetricGroup>
+
+        <MetricGroup title="리텐션">
+          <MetricCard label="W1 리텐션 (가입 첫 주 참여율)" value={metrics.w1RetentionRate} suffix="%" />
+        </MetricGroup>
       </div>
     </main>
   );
@@ -53,18 +57,32 @@ export default function AdminPage() {
 
 function MetricGroup({ title, children }) {
   return (
-    <section className="mb-8">
-      <h2 className="mb-3 text-sm font-semibold text-[var(--kn-text-muted)]">{title}</h2>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">{children}</div>
+    <section style={{ marginBottom: 32 }}>
+      <h2 style={{ fontSize: 13, fontWeight: 'var(--kn-w-label)', color: 'var(--kn-text-muted)', marginBottom: 12 }}>
+        {title}
+      </h2>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
+        {children}
+      </div>
     </section>
   );
 }
 
-function MetricCard({ label, value }) {
+const cardStyle = {
+  background: 'var(--kn-surface-1)',
+  border: '1px solid var(--kn-border)',
+  borderRadius: 12,
+  padding: 20,
+};
+
+function MetricCard({ label, value, suffix = '' }) {
   return (
-    <div className="rounded-xl border border-[var(--kn-border)] bg-[var(--kn-surface-1)] p-5">
-      <p className="text-sm text-[var(--kn-text-muted)]">{label}</p>
-      <p className="mt-2 text-3xl font-bold">{value}</p>
+    <div style={cardStyle}>
+      <p style={{ fontSize: 13, color: 'var(--kn-text-muted)' }}>{label}</p>
+      <p style={{ fontSize: 30, fontWeight: 'var(--kn-w-bold)', marginTop: 8 }}>
+        {value}
+        {suffix}
+      </p>
     </div>
   );
 }
@@ -72,15 +90,15 @@ function MetricCard({ label, value }) {
 function StatusBreakdownCard({ label, breakdown }) {
   const entries = Object.entries(breakdown ?? {});
   return (
-    <div className="rounded-xl border border-[var(--kn-border)] bg-[var(--kn-surface-1)] p-5">
-      <p className="text-sm text-[var(--kn-text-muted)]">{label}</p>
-      <ul className="mt-2 space-y-1">
+    <div style={cardStyle}>
+      <p style={{ fontSize: 13, color: 'var(--kn-text-muted)' }}>{label}</p>
+      <ul style={{ marginTop: 8, listStyle: 'none', padding: 0 }}>
         {entries.map(([statusKey, count]) => (
-          <li key={statusKey} className="flex justify-between text-base">
-            <span className="text-[var(--kn-text-muted)]">
+          <li key={statusKey} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
+            <span style={{ color: 'var(--kn-text-muted)' }}>
               {SESSION_STATUS_LABELS[statusKey] ?? statusKey}
             </span>
-            <span className="font-semibold">{count}</span>
+            <span style={{ fontWeight: 'var(--kn-w-bold)' }}>{count}</span>
           </li>
         ))}
       </ul>
@@ -90,8 +108,8 @@ function StatusBreakdownCard({ label, breakdown }) {
 
 function CenterMessage({ children }) {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[var(--kn-bg)] text-[var(--kn-text-muted)]">
+    <div style={{ minHeight: '100vh', background: 'var(--kn-bg)', color: 'var(--kn-text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       {children}
-    </main>
+    </div>
   );
 }

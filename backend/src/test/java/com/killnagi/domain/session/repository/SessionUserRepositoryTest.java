@@ -67,6 +67,40 @@ class SessionUserRepositoryTest {
         assertThat(count).isEqualTo(1L);
     }
 
+    @Test
+    @DisplayName("W1 리텐션 분자: 관측 가능 유저 중 가입 첫 주에 참여한 유저만 센다")
+    void W1_리텐션_분자를_센다() {
+        User host = userRepository.save(TestFixtures.user(null, "host", "host@test.com"));
+        Session session = sessionRepository.save(TestFixtures.session(host));
+
+        // retained: 관측 가능(가입 10일 전) + 가입 2일 뒤 참여(첫 주 안) → 센다
+        User retained = saveUserWithCreatedAt("retained", "retained@test.com", CUTOFF.minusDays(10));
+        joinWithJoinedAt(session, retained, CUTOFF.minusDays(8));
+
+        // late: 관측 가능 + 가입 8일 뒤 참여(첫 주 밖) → 제외
+        User late = saveUserWithCreatedAt("late", "late@test.com", CUTOFF.minusDays(10));
+        joinWithJoinedAt(session, late, CUTOFF.minusDays(2));
+
+        // newbie: 아직 7일 미경과(관측 미완료) + 첫 주 안 참여 → 제외
+        User newbie = saveUserWithCreatedAt("newbie", "newbie@test.com", CUTOFF.plusDays(1));
+        joinWithJoinedAt(session, newbie, CUTOFF.plusDays(2));
+
+        long count = sessionUserRepository.countW1RetainedUsers(CUTOFF);
+
+        assertThat(count).isEqualTo(1L);
+    }
+
+    private User saveUserWithCreatedAt(String nickname, String email, LocalDateTime createdAt) {
+        User user = userRepository.save(TestFixtures.user(null, nickname, email));
+        entityManager.createNativeQuery("UPDATE users SET created_at = :createdAt WHERE id = :id")
+                .setParameter("createdAt", createdAt)
+                .setParameter("id", user.getId())
+                .executeUpdate();
+        entityManager.flush();
+        entityManager.clear();
+        return userRepository.findById(user.getId()).orElseThrow();
+    }
+
     private void join(Session session, String nickname, String email) {
         User user = userRepository.save(TestFixtures.user(null, nickname, email));
         sessionUserRepository.save(SessionUser.builder().session(session).user(user).build());

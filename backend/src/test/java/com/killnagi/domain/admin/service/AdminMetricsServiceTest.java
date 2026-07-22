@@ -137,4 +137,26 @@ class AdminMetricsServiceTest {
         assertThat(response.activeUsers7d()).isEqualTo(4L);
         assertThat(response.activeUsers30d()).isEqualTo(9L);
     }
+
+    @Test
+    @DisplayName("W1 리텐션은 관측 가능 유저 중 가입 첫 주에 참여한 유저 비율을 소수 2자리로 반환한다")
+    void W1_리텐션_비율을_소수_2자리로_반환한다() {
+        given(userRepository.countByCreatedAtLessThanEqual(NOW.minusDays(7))).willReturn(3L);
+        given(sessionUserRepository.countW1RetainedUsers(NOW.minusDays(7))).willReturn(2L);
+
+        AdminMetricsResponse response = adminMetricsService.getMetrics();
+
+        // 2 / 3 * 100 = 66.666... → 66.67
+        assertThat(response.w1RetentionRate()).isEqualTo(66.67);
+    }
+
+    @Test
+    @DisplayName("관측 가능 유저가 없으면 W1 리텐션은 0이다")
+    void 관측_가능_유저가_없으면_W1_리텐션은_0이다() {
+        // userRepository.countByCreatedAtLessThanEqual 미스텁 → 분모 0
+
+        AdminMetricsResponse response = adminMetricsService.getMetrics();
+
+        assertThat(response.w1RetentionRate()).isZero();
+    }
 }

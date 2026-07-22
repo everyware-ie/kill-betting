@@ -13,4 +13,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByNickname(String nickname);
 
     long countByCreatedAtAfter(LocalDateTime cutoff);
+
+    long countByCreatedAtLessThanEqual(LocalDateTime cutoff);
 }
