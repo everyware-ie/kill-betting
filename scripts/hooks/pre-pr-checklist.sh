@@ -41,6 +41,9 @@ $(cat "$BODY_FILE")"
 fi
 
 # 이 브랜치가 새로 만든 확인 스텁 내용 포함(본문 전달 방식과 무관하게 검증)
+# STUB_TEXT는 스텁 내용만 따로 모은다 — 이슈 번호는 커맨드의 무관한 #N을
+# 오탐하지 않도록 스텁에서만 추출한다.
+STUB_TEXT=""
 if [ -n "$ROOT" ] && [ -d "$ROOT/docs/product/features" ]; then
     BASE_REF=""
     for ref in origin/main main; do
@@ -55,6 +58,8 @@ if [ -n "$ROOT" ] && [ -d "$ROOT/docs/product/features" ]; then
         relstub="docs/product/features/$base"
         echo "$BASE_STUBS" | grep -qx "$relstub" && continue
         CORPUS="$CORPUS
+$(cat "$stub")"
+        STUB_TEXT="$STUB_TEXT
 $(cat "$stub")"
     done <<EOF
 $(find "$ROOT/docs/product/features" -maxdepth 1 -name '*.md' 2>/dev/null)
@@ -107,6 +112,33 @@ if [ -n "$FRD_REFS" ]; then
     fi
 fi
 
+# ── 이슈 실존 검증 — 스텁의 '이슈: #N'이 실제로 존재하는 이슈인지 확인 ──
+# 스텁에 '이슈:' 줄이 있고 '없음'(소규모 면제)이 아니면, 참조한 #N을 실존 확인한다.
+# (착수 게이트가 이미 '이슈:' 필드 존재는 강제하므로, 여기선 그 번호가 진짜인지만 본다)
+# 네트워크 장애와 "이슈 없음"을 구분하려고 먼저 레포 접근 프로브를 한다 —
+# 프로브가 실패하면(오프라인 등) 차단하지 않고 경고만 한다(FRD 게이트와 동일한 fail-open).
+ISSUE_LINE=$(echo "$STUB_TEXT" | grep -E '^[-*]?[[:space:]]*이슈:' | head -1)
+if [ -n "$ISSUE_LINE" ] && ! echo "$ISSUE_LINE" | grep -q '없음'; then
+    ISSUE_NUMS=$(echo "$ISSUE_LINE" | grep -oE '#[0-9]+' | tr -d '#' | sort -u)
+    if [ -n "$ISSUE_NUMS" ]; then
+        if ! gh api repos/everyware-ie/kill-betting --jq .id >/dev/null 2>&1; then
+            echo "[pre-pr-checklist] 경고 — GitHub 접근 실패로 이슈 실존을 확인하지 못했습니다 (차단하지 않음)." >&2
+        else
+            MISSING_ISSUES=""
+            for num in $ISSUE_NUMS; do
+                gh api "repos/everyware-ie/kill-betting/issues/$num" --jq .number >/dev/null 2>&1 \
+                    || MISSING_ISSUES="${MISSING_ISSUES} #$num"
+            done
+            if [ -n "$MISSING_ISSUES" ]; then
+                echo "[pre-pr-checklist] 스텁이 참조한 이슈가 존재하지 않습니다:${MISSING_ISSUES}" >&2
+                echo "실제 GitHub 이슈로 분해했는지 확인하세요." >&2
+                echo "(소규모라 이슈 분해가 불필요하면 스텁에 '이슈: 없음(소규모)'로 명시하세요)" >&2
+                exit 2
+            fi
+        fi
+    fi
+fi
+
 python3 -c "
 import json
 msg = '''[PR 생성 전 체크리스트]
@@ -116,7 +148,8 @@ msg = '''[PR 생성 전 체크리스트]
 - [ ] 단일 목적 PR인가? (스코프 오염 없나)
 - [ ] 관련 docs 업데이트 필요한 변경 완료하였는가?
 - [ ] 세션 중 발견한 범위 외 내용들을 별도 깃허브 이슈로 기록해두었는가
-- [ ] 관련 mechuri-docs FRD가 있다면 status: approved인가? (본문·스텁 링크로 자동 검증됨)'''
+- [ ] 관련 mechuri-docs FRD가 있다면 status: approved인가? (본문·스텁 링크로 자동 검증됨)
+- [ ] 착수 전 이 기능을 GitHub 이슈로 분해했는가? (스텁 '이슈: #N', 소규모면 '없음(소규모)')'''
 print(json.dumps({'systemMessage': msg}))
 "
 
