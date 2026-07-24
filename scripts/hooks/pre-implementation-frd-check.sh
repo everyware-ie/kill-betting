@@ -1,10 +1,15 @@
 #!/bin/bash
 # PreToolUse 훅 — 구현 착수 시점 게이트
 #
-# chore/docs/test 이외의 브랜치에서 구현 소스(backend/src,
-# frontend/app·components·features·lib)를 편집하려 할 때, 이 브랜치에
-# FRD 확인 스텁(docs/product/features/<기능>.md, 허브 FRD 링크 포함)이
-# 하나도 없으면 편집을 차단한다(exit 2).
+# 구현 메인 소스(backend/src/main, frontend/app·components·features·lib)를
+# 편집하려 할 때, 이 브랜치에 FRD 확인 스텁(docs/product/features/<기능>.md,
+# 허브 FRD 링크 포함)이 하나도 없으면 편집을 차단한다(exit 2).
+#
+# 게이트 대상 판정은 "무엇을 편집하는가"(메인 구현 소스)를 우선한다:
+# - 테스트 파일(backend/src/test, *.test.js, *.spec.js)은 대상 아님 —
+#   TDD test-first를 브랜치와 무관하게 허용한다.
+# - 브랜치 타입 chore/docs는 면제 — FRD 없이 소스를 정당하게 건드리는 작업.
+#   (test는 위 경로 제외로 처리하므로 타입 면제에서 뺐다)
 #
 # 목적: mechuri-docs의 FRD가 approved라 하더라도, "바로 진행"으로 확인 단계를
 # 건너뛰지 못하게 한다. 스텁을 만들려면 허브 FRD 링크를 스텁에 적어야 하므로,
@@ -73,9 +78,16 @@ except:
 ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
 REL="${FILE_PATH#$ROOT/}"
 
-# 구현 소스만 대상 — 그 외(docs, 설정, 스크립트 등)는 통과
+# 테스트 파일은 게이트 대상 아님 — TDD test-first를 브랜치 무관하게 허용
 case "$REL" in
-    backend/src/*|frontend/app/*|frontend/components/*|frontend/features/*|frontend/lib/*)
+    backend/src/test/*|*.test.js|*.spec.js)
+        exit 0
+        ;;
+esac
+
+# 구현 메인 소스만 대상 — 그 외(docs, 설정, 스크립트, 빌드 등)는 통과
+case "$REL" in
+    backend/src/main/*|frontend/app/*|frontend/components/*|frontend/features/*|frontend/lib/*)
         ;;
     *)
         exit 0
@@ -90,11 +102,12 @@ case "$BRANCH" in
 esac
 
 # 차단 제외 목록 — FRD와 무관한 작업 유형은 면제.
-# (feature/fix/hotfix/refactor 등 나머지는 모두 게이트 적용 — 브랜치 네이밍
-#  규칙 준수 여부와 무관하게, "면제 목록"에 없으면 확인을 요구한다)
+# chore/docs만 면제(FRD 없이 메인 소스를 정당하게 건드리는 작업).
+# test는 위에서 경로로 제외했으므로 타입 면제 불필요.
+# 나머지(feature/fix/hotfix/refactor 등)는 모두 게이트 적용.
 TYPE=$(echo "$BRANCH" | cut -d'/' -f2)
 case "$TYPE" in
-    chore|docs|test) exit 0 ;;
+    chore|docs) exit 0 ;;
 esac
 
 FEATURES_DIR="$ROOT/docs/product/features"

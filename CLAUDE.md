@@ -16,7 +16,7 @@
 
 approved FRD라도 착수 전 확인 단계를 건너뛰지 못하도록 두 지점에서 훅이 강제한다:
 
-1. **구현 착수 시점** (`pre-implementation-frd-check.sh`): `chore`·`docs`·`test` 외 브랜치에서 `backend/src`·`frontend`의 구현 소스를 편집할 때, **이 브랜치에** 확인 스텁(`docs/product/features/<기능>.md`, 허브 FRD 링크 포함)이 하나도 없으면 편집이 차단된다. 스텁을 만들려면 허브 FRD를 가져와 사용자에게 보여주고 확인받는 단계를 거쳐야 한다. **"바로 진행"으로도 이 단계는 건너뛸 수 없다.**
+1. **구현 착수 시점** (`pre-implementation-frd-check.sh`): 구현 메인 소스(`backend/src/main`·`frontend/{app,components,features,lib}`)를 편집할 때, **이 브랜치에** 확인 스텁(`docs/product/features/<기능>.md`, 허브 FRD 링크 포함)이 하나도 없으면 편집이 차단된다. 테스트 파일(`*.test.js`·`*.spec.js`·`backend/src/test`)은 대상 아님(TDD test-first 허용), 브랜치 타입 `chore`·`docs`는 면제. 스텁을 만들려면 허브 FRD를 가져와 사용자에게 보여주고 확인받는 단계를 거쳐야 한다. **"바로 진행"으로도 이 단계는 건너뛸 수 없다.**
 2. **PR 생성 시점** (`pre-pr-checklist.sh`): PR이 참조하는 허브 FRD(본문·`--body-file`·이 브랜치의 스텁 링크에서 수집)의 `status`가 `approved`가 아니면 PR 생성이 차단된다.
 
 훅이 강제하는 수준은 정직하게 다음까지다:
