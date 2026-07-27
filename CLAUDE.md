@@ -4,6 +4,14 @@
 배틀그라운드 킬내기 세션 점수 자동 계산 서비스.
 팀들이 매치 결과 이미지를 업로드하면 세션 룰에 따라 점수를 자동 집계한다.
 
+## 기획 문서의 상류 (mechuri-docs)
+
+기능의 **무엇·왜**(정책·기능정의·요구사항)는 팀 문서 허브 [mechuri-docs](https://github.com/everyware-ie/mechuri-docs)의 `products/kill-betting/specs/`가 유일한 진실이다.
+
+- 이 레포의 `docs/product/features/`는 허브 **approved FRD의 스텁**(링크 + 구현 노트)만 담는다. 규칙 원문을 여기에 복사하지 않는다.
+- 구현 중 스텁과 허브 FRD가 어긋난 것을 발견하면 **허브가 우선** — 즉시 이슈를 만들고 진행 여부를 확인한다.
+- approved 아닌(draft/review) FRD는 구현 근거가 아니다.
+
 ## 팀 & 스택
 - 백엔드: Java / Spring Boot
 - 프론트엔드: React / Next.js

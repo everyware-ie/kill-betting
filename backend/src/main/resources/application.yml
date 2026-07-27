@@ -38,6 +38,9 @@ jwt:
   secret: ${JWT_SECRET}
   expiration: 86400000  # 24시간 (ms)
 
+admin:
+  email: ${ADMIN_EMAIL:}  # 어드민 지표 대시보드 접근 허용 단일 이메일
+
 storage:
   type: ${STORAGE_TYPE:local}
 
