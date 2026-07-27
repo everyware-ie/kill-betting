@@ -28,8 +28,8 @@ public interface SessionControllerDocs {
             UserDetails userDetails,
             @Valid CreateRequest request);
 
-    @Operation(summary = "세션 상세 조회", description = "방 코드로 세션 상세 정보를 조회합니다.")
-    ResponseEntity<ApiResponse<SessionDetailResponse>> getSessionByRoomCode(String roomCode);
+    @Operation(summary = "세션 상세 조회", description = "방 코드로 세션 상세 정보를 조회합니다. 로그인 사용자가 재입장하면 내 세션 목록 숨김이 해제됩니다.")
+    ResponseEntity<ApiResponse<SessionDetailResponse>> getSessionByRoomCode(UserDetails userDetails, String roomCode);
 
     @Operation(summary = "세션 시작", description = "세션을 시작 상태로 변경합니다. 호스트만 가능합니다.")
     ResponseEntity<ApiResponse<Void>> startSession(UserDetails userDetails, Long sessionId);
@@ -51,4 +51,7 @@ public interface SessionControllerDocs {
 
     @Operation(summary = "세션 종료", description = "세션을 강제 종료합니다. 호스트만 가능합니다.")
     ResponseEntity<ApiResponse<Void>> endSession(UserDetails userDetails, Long sessionId);
+
+    @Operation(summary = "내 세션 목록에서 삭제", description = "요청한 사용자의 내 세션 목록에서만 해당 세션을 숨깁니다. 실제 참여 관계나 세션 데이터는 변경되지 않습니다.")
+    ResponseEntity<ApiResponse<Void>> hideMySession(UserDetails userDetails, Long sessionId);
 }

@@ -9,6 +9,7 @@ import com.killnagi.domain.session.dto.response.SessionDetailResponse;
 import com.killnagi.domain.session.dto.response.SessionResponse;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.session.entity.Session.SessionStatus;
+import com.killnagi.domain.session.repository.HiddenSessionRepository;
 import com.killnagi.domain.session.repository.SessionRepository;
 import com.killnagi.domain.team.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,7 @@ public class SessionQueryService {
     private final SessionRepository sessionRepository;
     private final RuleRepository ruleRepository;
     private final TeamRepository teamRepository;
+    private final HiddenSessionRepository hiddenSessionRepository;
 
     public List<SessionResponse> getWaitingSessions() {
         return sessionRepository.findByStatus(SessionStatus.WAITING).stream()
@@ -51,8 +53,10 @@ public class SessionQueryService {
         Set<Long> leaderSessionIds = teamRepository.findSessionIdsByLeaderUserId(userId);
 
         List<Session> allSessions = withMissingLeaderSessions(sessions, leaderSessionIds);
+        Set<Long> hiddenSessionIds = hiddenSessionRepository.findSessionIdsByUserId(userId);
 
         return allSessions.stream()
+                .filter(session -> !hiddenSessionIds.contains(session.getId()))
                 .map(session -> MySessionResponse.of(session, resolveRole(session, userId, leaderSessionIds)))
                 .toList();
     }
