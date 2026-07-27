@@ -111,13 +111,19 @@ export default function useSetupRoom() {
     publish(`/sessions/${sessionId}/teams/${teamId}/leader`, { userId: targetUserId });
   };
 
-  // ── 닉네임 추가 (직접 입력) ──
-  const addPlayer = (teamId) => {
-    const nick = (inputs[teamId] || '').trim();
-    if (!nick) return;
-    if (/\s/.test(nick)) { setError('배그 닉네임에는 공백을 사용할 수 없습니다'); return; }
+  // ── 닉네임 추가 (즐겨찾기·최근 목록에서 선택 등, 값을 직접 지정) ──
+  const addPlayerByNickname = (teamId, nickname) => {
+    const nick = (nickname || '').trim();
+    if (!nick) return false;
+    if (/\s/.test(nick)) { setError('배그 닉네임에는 공백을 사용할 수 없습니다'); return false; }
     setError('');
     publish(`/sessions/${sessionId}/teams/${teamId}/players/add`, { playerNickname: nick });
+    return true;
+  };
+
+  // ── 닉네임 추가 (직접 입력) ──
+  const addPlayer = (teamId) => {
+    if (!addPlayerByNickname(teamId, inputs[teamId])) return;
     setInputs((p) => ({ ...p, [teamId]: '' }));
   };
 
@@ -165,7 +171,7 @@ export default function useSetupRoom() {
     user, hostUserId, isHost,
     totalPlayers, canStart,
     handleAddTeam, handleDeleteTeam, handleMoveToTeam,
-    addPlayer, removePlayer,
+    addPlayer, addPlayerByNickname, removePlayer,
     handleSetLeader, handleUnassignLeader,
     handleSaveRule, handleStart,
   };

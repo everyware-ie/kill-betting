@@ -11,6 +11,7 @@ export const MAX_FAVORITES = 20;
  */
 export default function useFavoriteNicknames({ enabled = true } = {}) {
   const [favorites, setFavorites] = useState([]);
+  const [recentUnfavorited, setRecentUnfavorited] = useState([]);
   const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState('');
 
@@ -20,7 +21,8 @@ export default function useFavoriteNicknames({ enabled = true } = {}) {
     setLoading(false);
     if (!res.success) { setError(res.error); return; }
     setError('');
-    setFavorites(res.data || []);
+    setFavorites(res.data?.favorites || []);
+    setRecentUnfavorited(res.data?.recentUnfavorited || []);
   }, []);
 
   useEffect(() => {
@@ -41,6 +43,8 @@ export default function useFavoriteNicknames({ enabled = true } = {}) {
     if (!res.success) { setError(res.error); return false; }
 
     setFavorites((prev) => [res.data, ...prev]);
+    // 즐겨찾기가 된 닉네임은 더 이상 "최근(미등록)" 목록에 남지 않는다
+    setRecentUnfavorited((prev) => prev.filter((nick) => nick !== trimmed));
     return true;
   };
 
@@ -55,6 +59,7 @@ export default function useFavoriteNicknames({ enabled = true } = {}) {
 
   return {
     favorites,
+    recentUnfavorited,
     loading,
     error,
     setError,

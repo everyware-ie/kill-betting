@@ -34,6 +34,8 @@ let _mockFavorites = [
   { id: 2, nickname: 'JiEung2' },
 ];
 
+const _mockRecentUnfavorited = ['pubg_friend1', 'pubg_friend2'];
+
 const request = async (path, options = {}, fallbackMessage) => {
   try {
     const token = getStoredToken();
@@ -63,14 +65,20 @@ const request = async (path, options = {}, fallbackMessage) => {
 
 export const FavoriteAPI = {
   /**
-   * 즐겨찾기 목록 조회
+   * 즐겨찾기 목록 + 최근 함께한 닉네임 조회
    *   GET /api/users/me/favorite-nicknames
-   *   Response 200: [{ id, nickname }]
+   *   Response 200: { favorites: [{ id, nickname }], recentUnfavorited: [nickname] }
+   *
+   *   recentUnfavorited는 저장되는 값이 아니라 조회 시 계산되는 파생 데이터로,
+   *   내가 리더였던 최근 세션에서 등록한 닉네임 중 즐겨찾기에 없는 것만 최대 10개다.
    */
   list: async () => {
     if (USE_MOCK) {
       await delay();
-      return ok([..._mockFavorites]);
+      return ok({
+        favorites: [..._mockFavorites],
+        recentUnfavorited: [..._mockRecentUnfavorited],
+      });
     }
     return request(BASE_PATH, { method: 'GET' }, '즐겨찾기를 불러오지 못했습니다.');
   },

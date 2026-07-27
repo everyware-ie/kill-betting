@@ -3,6 +3,8 @@ package com.killnagi.domain.user.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 
@@ -18,10 +20,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.killnagi.common.exception.KillnagiException;
+import com.killnagi.domain.user.dto.response.FavoriteNicknameListResponse;
 import com.killnagi.domain.user.dto.response.FavoriteNicknameResponse;
 import com.killnagi.domain.user.entity.FavoriteNickname;
 import com.killnagi.domain.user.entity.User;
 import com.killnagi.domain.user.repository.FavoriteNicknameRepository;
+import com.killnagi.domain.team.service.TeamService;
 import com.killnagi.domain.user.repository.UserRepository;
 import com.killnagi.support.TestFixtures;
 
@@ -31,6 +35,7 @@ class FavoriteNicknameServiceTest {
 
     @Mock private FavoriteNicknameRepository favoriteNicknameRepository;
     @Mock private UserRepository userRepository;
+    @Mock private TeamService teamService;
     @InjectMocks private FavoriteNicknameService favoriteNicknameService;
 
     private static final Long USER_ID = 1L;
@@ -43,12 +48,42 @@ class FavoriteNicknameServiceTest {
         User user = TestFixtures.user(USER_ID);
         given(favoriteNicknameRepository.findByUser_IdOrderByCreatedAtDesc(USER_ID))
                 .willReturn(List.of(favorite(FAVORITE_ID, user, "친구1"), favorite(101L, user, "친구2")));
+        given(teamService.getRecentPlayerNicknamesByLeader(eq(USER_ID), anyInt()))
+                .willReturn(List.of());
 
-        List<FavoriteNicknameResponse> favorites = favoriteNicknameService.getFavorites(USER_ID);
+        FavoriteNicknameListResponse response = favoriteNicknameService.getFavorites(USER_ID);
 
-        assertThat(favorites).hasSize(2);
-        assertThat(favorites).extracting(FavoriteNicknameResponse::nickname)
+        assertThat(response.favorites()).extracting(FavoriteNicknameResponse::nickname)
                 .containsExactly("친구1", "친구2");
+    }
+
+    @Test
+    @DisplayName("최근 함께한 닉네임 중 이미 즐겨찾기에 있는 것은 제외한다")
+    void 최근_닉네임중_즐겨찾기에_있는_것은_제외한다() {
+        User user = TestFixtures.user(USER_ID);
+        given(favoriteNicknameRepository.findByUser_IdOrderByCreatedAtDesc(USER_ID))
+                .willReturn(List.of(favorite(FAVORITE_ID, user, "친구1")));
+        given(teamService.getRecentPlayerNicknamesByLeader(eq(USER_ID), anyInt()))
+                .willReturn(List.of("친구1", "친구2", "친구3"));
+
+        FavoriteNicknameListResponse response = favoriteNicknameService.getFavorites(USER_ID);
+
+        assertThat(response.recentUnfavorited()).containsExactly("친구2", "친구3");
+    }
+
+    @Test
+    @DisplayName("최근 함께한 닉네임은 최대 10개까지만 반환한다")
+    void 최근_닉네임은_최대_10개까지만_반환한다() {
+        given(favoriteNicknameRepository.findByUser_IdOrderByCreatedAtDesc(USER_ID))
+                .willReturn(List.of());
+        given(teamService.getRecentPlayerNicknamesByLeader(eq(USER_ID), anyInt()))
+                .willReturn(java.util.stream.IntStream.rangeClosed(1, 15)
+                        .mapToObj(i -> "친구" + i).toList());
+
+        FavoriteNicknameListResponse response = favoriteNicknameService.getFavorites(USER_ID);
+
+        assertThat(response.recentUnfavorited()).hasSize(10);
+        assertThat(response.recentUnfavorited().get(0)).isEqualTo("친구1");
     }
 
     @Test

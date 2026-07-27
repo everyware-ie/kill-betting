@@ -1,6 +1,7 @@
 'use client';
 
 import Icon from '@/components/ui/Icon';
+import NicknamePicker from '@/features/favorite/components/NicknamePicker';
 
 const TEAM_COLORS = [
   'oklch(0.65 0.22 25)',   // red
@@ -15,6 +16,7 @@ export default function TeamCard({
   team, teamIndex = 0, isHost, userId, hostUserId,
   inputs, setInputs,
   onAddPlayer, onRemovePlayer, onUnassignLeader, onDeleteTeam,
+  favorites = [], recentUnfavorited = [], onPickNickname, onSaveFavorite,
 }) {
   const players = team.players || [];
   const dotColor = TEAM_COLORS[teamIndex % TEAM_COLORS.length];
@@ -146,6 +148,17 @@ export default function TeamCard({
             추가
           </button>
         </div>
+      )}
+
+      {/* 즐겨찾기 · 최근 함께한 닉네임 — 타이핑 없이 선택해 추가 */}
+      {canManagePlayers && (
+        <NicknamePicker
+          favorites={favorites}
+          recentUnfavorited={recentUnfavorited}
+          usedNicknames={players.map((p) => p.nickname)}
+          onPick={(nickname) => onPickNickname?.(team.id, nickname)}
+          onSaveFavorite={onSaveFavorite}
+        />
       )}
     </div>
   );

@@ -2,6 +2,7 @@ package com.killnagi.domain.user.controller;
 
 import com.killnagi.common.response.ApiResponse;
 import com.killnagi.domain.user.dto.request.FavoriteNicknameRequest;
+import com.killnagi.domain.user.dto.response.FavoriteNicknameListResponse;
 import com.killnagi.domain.user.dto.response.FavoriteNicknameResponse;
 import com.killnagi.domain.user.service.FavoriteNicknameService;
 import jakarta.validation.Valid;
@@ -17,7 +18,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/users/me/favorite-nicknames")
@@ -27,7 +27,7 @@ public class FavoriteNicknameController {
     private final FavoriteNicknameService favoriteNicknameService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<FavoriteNicknameResponse>>> getFavorites(
+    public ResponseEntity<ApiResponse<FavoriteNicknameListResponse>> getFavorites(
             @AuthenticationPrincipal UserDetails userDetails) {
         Long userId = Long.parseLong(userDetails.getUsername());
         return ResponseEntity.ok(ApiResponse.ok(favoriteNicknameService.getFavorites(userId)));

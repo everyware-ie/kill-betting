@@ -37,6 +37,7 @@ import CopyCodeBadge from '@/features/setup/components/CopyCodeBadge';
 import RuleEditModal from '@/features/setup/components/RuleEditModal';
 import WaitingUserList from '@/features/setup/components/WaitingUserList';
 import TeamCard from '@/features/setup/components/TeamCard';
+import useFavoriteNicknames from '@/features/favorite/hooks/useFavoriteNicknames';
 
 export default function SetupPage() {
   const router = useRouter();
@@ -48,10 +49,13 @@ export default function SetupPage() {
     user, hostUserId, isHost,
     totalPlayers, canStart,
     handleAddTeam, handleDeleteTeam, handleMoveToTeam,
-    addPlayer, removePlayer,
+    addPlayer, addPlayerByNickname, removePlayer,
     handleSetLeader, handleUnassignLeader,
     handleSaveRule, handleStart,
   } = useSetupRoom();
+
+  // 팀원 추가 시 타이핑 없이 고를 수 있는 닉네임 (즐겨찾기 + 최근 함께함)
+  const { favorites, recentUnfavorited, addFavorite } = useFavoriteNicknames();
 
   const onSaveRule = async (newRule) => {
     const success = await handleSaveRule(newRule);
@@ -268,6 +272,10 @@ export default function SetupPage() {
                   setInputs={setInputs}
                   onAddPlayer={addPlayer}
                   onRemovePlayer={removePlayer}
+                  favorites={favorites}
+                  recentUnfavorited={recentUnfavorited}
+                  onPickNickname={addPlayerByNickname}
+                  onSaveFavorite={addFavorite}
                   onUnassignLeader={handleUnassignLeader}
                   onDeleteTeam={handleDeleteTeam}
                 />

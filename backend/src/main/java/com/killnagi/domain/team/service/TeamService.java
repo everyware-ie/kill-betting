@@ -7,8 +7,10 @@ import com.killnagi.domain.team.dto.request.CreateTeamRequest;
 import com.killnagi.domain.team.dto.response.TeamResponse;
 import com.killnagi.domain.team.entity.Team;
 import com.killnagi.domain.team.entity.TeamPlayer;
+import com.killnagi.domain.team.repository.TeamPlayerRepository;
 import com.killnagi.domain.team.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +23,16 @@ public class TeamService {
 
     private final TeamRepository teamRepository;
     private final SessionRepository sessionRepository;
+    private final TeamPlayerRepository teamPlayerRepository;
+
+    /**
+     * 내가 리더였던 팀에 등록했던 배그 닉네임을 최근 순으로 조회한다.
+     * 팀 데이터는 team 모듈이 소유하므로 조회도 이 모듈에 둔다.
+     */
+    public List<String> getRecentPlayerNicknamesByLeader(Long leaderUserId, int limit) {
+        return teamPlayerRepository.findRecentNicknamesByLeaderId(
+                leaderUserId, PageRequest.of(0, limit));
+    }
 
     @Transactional
     public TeamResponse createTeam(Long sessionId, Long hostUserId, CreateTeamRequest request) {

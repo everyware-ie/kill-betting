@@ -1,6 +1,8 @@
 package com.killnagi.domain.user.service;
 
 import com.killnagi.common.exception.KillnagiException;
+import com.killnagi.domain.team.service.TeamService;
+import com.killnagi.domain.user.dto.response.FavoriteNicknameListResponse;
 import com.killnagi.domain.user.dto.response.FavoriteNicknameResponse;
 import com.killnagi.domain.user.entity.FavoriteNickname;
 import com.killnagi.domain.user.entity.User;
@@ -11,6 +13,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -18,13 +22,35 @@ import java.util.List;
 public class FavoriteNicknameService {
 
     static final int MAX_FAVORITES_PER_USER = 20;
+    static final int MAX_RECENT_UNFAVORITED = 10;
 
     private final FavoriteNicknameRepository favoriteNicknameRepository;
     private final UserRepository userRepository;
+    private final TeamService teamService;
 
-    public List<FavoriteNicknameResponse> getFavorites(Long userId) {
-        return favoriteNicknameRepository.findByUser_IdOrderByCreatedAtDesc(userId).stream()
-                .map(FavoriteNicknameResponse::from)
+    public FavoriteNicknameListResponse getFavorites(Long userId) {
+        List<FavoriteNicknameResponse> favorites =
+                favoriteNicknameRepository.findByUser_IdOrderByCreatedAtDesc(userId).stream()
+                        .map(FavoriteNicknameResponse::from)
+                        .toList();
+
+        return new FavoriteNicknameListResponse(favorites, findRecentUnfavorited(userId, favorites));
+    }
+
+    /**
+     * 내가 리더였던 최근 세션에서 등록한 닉네임 중 아직 즐겨찾기에 없는 것.
+     * 즐겨찾기로 걸러낸 뒤에도 개수를 채우기 위해 상한보다 넉넉히 조회한다.
+     */
+    private List<String> findRecentUnfavorited(Long userId, List<FavoriteNicknameResponse> favorites) {
+        Set<String> alreadyFavorited = favorites.stream()
+                .map(FavoriteNicknameResponse::nickname)
+                .collect(Collectors.toSet());
+
+        return teamService
+                .getRecentPlayerNicknamesByLeader(userId, MAX_RECENT_UNFAVORITED + MAX_FAVORITES_PER_USER)
+                .stream()
+                .filter(nickname -> !alreadyFavorited.contains(nickname))
+                .limit(MAX_RECENT_UNFAVORITED)
                 .toList();
     }
 
