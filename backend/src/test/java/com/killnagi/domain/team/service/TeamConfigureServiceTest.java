@@ -46,6 +46,9 @@ class TeamConfigureServiceTest {
     private static final Long SESSION_ID = 10L;
     private static final Long TEAM_ID = 20L;
     private static final Long PLAYER_ID = 30L;
+    private static final Long LEADER_ID = 40L;
+    private static final Long OTHER_LEADER_ID = 41L;
+    private static final Long STRANGER_ID = 42L;
 
     // ── addPlayer ─────────────────────────────────────────────────────────────
 
@@ -101,8 +104,11 @@ class TeamConfigureServiceTest {
     void 호스트가_아니면_플레이어_추가시_예외가_발생한다() {
         User host = TestFixtures.user(HOST_ID);
         Session session = TestFixtures.session(SESSION_ID, host);
+        // 리더가 없는 팀 — 호스트도 리더도 아닌 사용자는 팀원을 관리할 수 없다
+        Team team = teamWithId(session, TEAM_ID);
 
         given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
+        given(teamRepository.findByIdAndSessionId(TEAM_ID, SESSION_ID)).willReturn(Optional.of(team));
 
         assertThatThrownBy(() -> teamConfigureService.addPlayer(SESSION_ID, TEAM_ID, 99L, "Player1"))
                 .isInstanceOf(KillnagiException.class)
@@ -346,7 +352,115 @@ class TeamConfigureServiceTest {
         assertThat(state.waitingUsers().get(0).userId()).isEqualTo(60L);
     }
 
+    // ── 팀 구성 권한 위임 (FRD T1~T3) ─────────────────────────────────────────
+
+    @Test
+    @DisplayName("팀 리더는 본인 팀에 플레이어를 추가할 수 있다")
+    void 팀_리더가_본인_팀에_플레이어를_추가하면_성공한다() {
+        Session session = TestFixtures.session(SESSION_ID, TestFixtures.user(HOST_ID));
+        Team team = teamWithLeader(session, TEAM_ID, LEADER_ID);
+
+        given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
+        given(teamRepository.findByIdAndSessionId(TEAM_ID, SESSION_ID)).willReturn(Optional.of(team));
+        given(teamPlayerRepository.countByTeam_Id(TEAM_ID)).willReturn(0);
+        given(teamPlayerRepository.existsByTeam_IdAndPlayerNickname(TEAM_ID, "Player1")).willReturn(false);
+        given(teamPlayerRepository.save(any(TeamPlayer.class))).willAnswer(inv -> inv.getArgument(0));
+
+        teamConfigureService.addPlayer(SESSION_ID, TEAM_ID, LEADER_ID, "Player1");
+
+        then(teamPlayerRepository).should().save(any(TeamPlayer.class));
+    }
+
+    @Test
+    @DisplayName("본인이 리더가 아닌 팀에는 플레이어를 추가할 수 없다")
+    void 다른_팀의_리더가_플레이어를_추가하면_예외가_발생한다() {
+        Session session = TestFixtures.session(SESSION_ID, TestFixtures.user(HOST_ID));
+        Team team = teamWithLeader(session, TEAM_ID, LEADER_ID);
+
+        given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
+        given(teamRepository.findByIdAndSessionId(TEAM_ID, SESSION_ID)).willReturn(Optional.of(team));
+
+        assertThatThrownBy(() -> teamConfigureService.addPlayer(SESSION_ID, TEAM_ID, OTHER_LEADER_ID, "Player1"))
+                .isInstanceOf(KillnagiException.class);
+    }
+
+    @Test
+    @DisplayName("호스트도 리더도 아닌 참여자는 팀을 구성할 수 없다")
+    void 권한없는_참여자가_플레이어를_추가하면_예외가_발생한다() {
+        Session session = TestFixtures.session(SESSION_ID, TestFixtures.user(HOST_ID));
+        Team team = teamWithLeader(session, TEAM_ID, LEADER_ID);
+
+        given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
+        given(teamRepository.findByIdAndSessionId(TEAM_ID, SESSION_ID)).willReturn(Optional.of(team));
+
+        assertThatThrownBy(() -> teamConfigureService.addPlayer(SESSION_ID, TEAM_ID, STRANGER_ID, "Player1"))
+                .isInstanceOf(KillnagiException.class);
+    }
+
+    @Test
+    @DisplayName("팀 리더는 본인 팀 플레이어의 닉네임을 수정할 수 있다")
+    void 팀_리더가_본인_팀_플레이어를_수정하면_성공한다() {
+        Session session = TestFixtures.session(SESSION_ID, TestFixtures.user(HOST_ID));
+        Team team = teamWithLeader(session, TEAM_ID, LEADER_ID);
+        TeamPlayer player = playerWithId(team, PLAYER_ID, "Before");
+
+        given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
+        given(teamRepository.findByIdAndSessionId(TEAM_ID, SESSION_ID)).willReturn(Optional.of(team));
+        given(teamPlayerRepository.findById(PLAYER_ID)).willReturn(Optional.of(player));
+        given(teamPlayerRepository.existsByTeam_IdAndPlayerNickname(TEAM_ID, "After")).willReturn(false);
+
+        teamConfigureService.updatePlayer(SESSION_ID, TEAM_ID, PLAYER_ID, LEADER_ID, "After");
+
+        assertThat(player.getPlayerNickname()).isEqualTo("After");
+    }
+
+    @Test
+    @DisplayName("팀 리더는 본인 팀 플레이어를 삭제할 수 있다")
+    void 팀_리더가_본인_팀_플레이어를_삭제하면_성공한다() {
+        Session session = TestFixtures.session(SESSION_ID, TestFixtures.user(HOST_ID));
+        Team team = teamWithLeader(session, TEAM_ID, LEADER_ID);
+        TeamPlayer player = playerWithId(team, PLAYER_ID, "Player1");
+
+        given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
+        given(teamRepository.findByIdAndSessionId(TEAM_ID, SESSION_ID)).willReturn(Optional.of(team));
+        given(teamPlayerRepository.findById(PLAYER_ID)).willReturn(Optional.of(player));
+
+        teamConfigureService.removePlayer(SESSION_ID, TEAM_ID, PLAYER_ID, LEADER_ID);
+
+        then(teamPlayerRepository).should().delete(player);
+    }
+
+    @Test
+    @DisplayName("팀 리더는 리더 지정을 할 수 없다 — 팀 구조 변경은 Host 전용(T3)")
+    void 팀_리더가_리더를_지정하면_예외가_발생한다() {
+        Session session = TestFixtures.session(SESSION_ID, TestFixtures.user(HOST_ID));
+        Team team = teamWithLeader(session, TEAM_ID, LEADER_ID);
+
+        given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
+
+        assertThatThrownBy(() -> teamConfigureService.assignLeader(SESSION_ID, TEAM_ID, LEADER_ID, STRANGER_ID))
+                .isInstanceOf(KillnagiException.class);
+    }
+
+    @Test
+    @DisplayName("팀 리더는 리더 해제를 할 수 없다 — 팀 구조 변경은 Host 전용(T3)")
+    void 팀_리더가_리더를_해제하면_예외가_발생한다() {
+        Session session = TestFixtures.session(SESSION_ID, TestFixtures.user(HOST_ID));
+        teamWithLeader(session, TEAM_ID, LEADER_ID);
+
+        given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
+
+        assertThatThrownBy(() -> teamConfigureService.unassignLeader(SESSION_ID, TEAM_ID, LEADER_ID))
+                .isInstanceOf(KillnagiException.class);
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private Team teamWithLeader(Session session, Long teamId, Long leaderId) {
+        Team team = teamWithId(session, teamId);
+        team.assignLeader(TestFixtures.user(leaderId));
+        return team;
+    }
 
     private Team teamWithId(Session session, Long id) {
         Team team = TestFixtures.team(session);

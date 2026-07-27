@@ -34,11 +34,10 @@ public class TeamConfigureService {
     private final SessionParticipantRegistry registry;
 
     @Transactional
-    public void addPlayer(Long sessionId, Long teamId, Long hostUserId, String playerNickname) {
+    public void addPlayer(Long sessionId, Long teamId, Long userId, String playerNickname) {
         Session session = findWaitingSession(sessionId);
-        validateHost(session, hostUserId);
-
         Team team = findTeamInSession(teamId, sessionId);
+        validateHostOrTeamLeader(session, team, userId);
 
         if (teamPlayerRepository.countByTeam_Id(teamId) >= MAX_PLAYERS_PER_TEAM) {
             throw KillnagiException.badRequest("팀에 최대 " + MAX_PLAYERS_PER_TEAM + "명까지 추가할 수 있습니다.");
@@ -55,11 +54,10 @@ public class TeamConfigureService {
     }
 
     @Transactional
-    public void updatePlayer(Long sessionId, Long teamId, Long playerId, Long hostUserId, String playerNickname) {
+    public void updatePlayer(Long sessionId, Long teamId, Long playerId, Long userId, String playerNickname) {
         Session session = findWaitingSession(sessionId);
-        validateHost(session, hostUserId);
-
-        findTeamInSession(teamId, sessionId);
+        Team team = findTeamInSession(teamId, sessionId);
+        validateHostOrTeamLeader(session, team, userId);
 
         TeamPlayer player = teamPlayerRepository.findById(playerId)
                 .filter(p -> p.getTeamId().equals(teamId))
@@ -73,11 +71,10 @@ public class TeamConfigureService {
     }
 
     @Transactional
-    public void removePlayer(Long sessionId, Long teamId, Long playerId, Long hostUserId) {
+    public void removePlayer(Long sessionId, Long teamId, Long playerId, Long userId) {
         Session session = findWaitingSession(sessionId);
-        validateHost(session, hostUserId);
-
-        findTeamInSession(teamId, sessionId);
+        Team team = findTeamInSession(teamId, sessionId);
+        validateHostOrTeamLeader(session, team, userId);
 
         TeamPlayer player = teamPlayerRepository.findById(playerId)
                 .filter(p -> p.getTeamId().equals(teamId))
@@ -180,6 +177,17 @@ public class TeamConfigureService {
         if (!session.isHostedBy(userId)) {
             throw KillnagiException.forbidden("호스트만 팀을 구성할 수 있습니다.");
         }
+    }
+
+    /**
+     * 팀원(닉네임) 관리 권한 — Host 또는 해당 팀의 Leader.
+     * 팀 구조 자체를 바꾸는 조작(리더 지정·해제)은 Host 전용이므로 validateHost를 그대로 쓴다.
+     */
+    private void validateHostOrTeamLeader(Session session, Team team, Long userId) {
+        if (session.isHostedBy(userId) || team.isLedBy(userId)) {
+            return;
+        }
+        throw KillnagiException.forbidden("호스트 또는 해당 팀의 리더만 팀원을 관리할 수 있습니다.");
     }
 
     private Team findTeamInSession(Long teamId, Long sessionId) {
