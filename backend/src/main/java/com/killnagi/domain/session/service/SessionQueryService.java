@@ -15,8 +15,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -48,9 +50,26 @@ public class SessionQueryService {
         List<Session> sessions = sessionRepository.findSessionsByUserId(userId);
         Set<Long> leaderSessionIds = teamRepository.findSessionIdsByLeaderUserId(userId);
 
-        return sessions.stream()
+        List<Session> allSessions = withMissingLeaderSessions(sessions, leaderSessionIds);
+
+        return allSessions.stream()
                 .map(session -> MySessionResponse.of(session, resolveRole(session, userId, leaderSessionIds)))
                 .toList();
+    }
+
+    private List<Session> withMissingLeaderSessions(List<Session> sessions, Set<Long> leaderSessionIds) {
+        Set<Long> coveredIds = sessions.stream().map(Session::getId).collect(Collectors.toSet());
+        List<Long> missingIds = leaderSessionIds.stream()
+                .filter(id -> !coveredIds.contains(id))
+                .toList();
+
+        if (missingIds.isEmpty()) {
+            return sessions;
+        }
+
+        List<Session> allSessions = new ArrayList<>(sessions);
+        allSessions.addAll(sessionRepository.findAllById(missingIds));
+        return allSessions;
     }
 
     private SessionRole resolveRole(Session session, Long userId, Set<Long> leaderSessionIds) {
