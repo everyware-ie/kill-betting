@@ -3,9 +3,11 @@ package com.killnagi.domain.session.service;
 import com.killnagi.common.exception.KillnagiException;
 import com.killnagi.domain.rule.entity.Rule;
 import com.killnagi.domain.rule.entity.RuleSet;
+import com.killnagi.domain.rule.entity.RuleType;
 import com.killnagi.domain.rule.repository.RuleRepository;
 import com.killnagi.domain.rule.repository.RuleSetRepository;
 import com.killnagi.domain.session.dto.request.CreateRequest;
+import com.killnagi.domain.session.dto.request.RuleRequest;
 import com.killnagi.domain.session.dto.response.SessionResponse;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.session.entity.SessionUser;
@@ -44,6 +46,8 @@ public class SessionService {
 
     @Transactional
     public SessionResponse createSession(Long hostUserId, CreateRequest request) {
+        validatePenaltyRules(request.rules());
+
         User host = userRepository.findById(hostUserId)
                 .orElseThrow(() -> KillnagiException.notFound("사용자를 찾을 수 없습니다."));
 
@@ -134,6 +138,20 @@ public class SessionService {
         }
 
         rule.updateValue(newValue);
+    }
+
+    private void validatePenaltyRules(List<RuleRequest> rules) {
+        if (rules == null) {
+            return;
+        }
+        long penaltyTypeCount = rules.stream()
+                .map(RuleRequest::ruleType)
+                .filter(RuleType::isSurvivalPenalty)
+                .distinct()
+                .count();
+        if (penaltyTypeCount > 1) {
+            throw KillnagiException.badRequest("생존 패널티는 인당/팀 방식 중 하나만 사용할 수 있습니다.");
+        }
     }
 
     private Session getSessionOrThrow(Long sessionId) {

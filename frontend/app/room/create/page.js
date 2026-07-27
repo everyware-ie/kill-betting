@@ -117,7 +117,12 @@ const getPlaceholderName = () => PLACEHOLDER_NAMES[Math.floor(Math.random() * PL
 
 const RULE_LIST = [
   { k: 'chickenBonus', onK: 'chickenBonusOn', label: '치킨 보너스', icon: 'trophy', sign: '+' },
-  { k: 'survivalPenalty', onK: 'survivalPenaltyOn', label: '생존 패널티', icon: 'flame', sign: '-' },
+];
+
+const PENALTY_OPTIONS = [
+  { mode: 'NONE', label: '없음' },
+  { mode: 'PER_PLAYER', label: '인당 감점', valKey: 'survivalPenalty', desc: 'TOP10 실패 인당 감점' },
+  { mode: 'TEAM_ONCE', label: '팀 전체 1회', valKey: 'teamSurvivalPenalty', desc: '실패자 있으면 팀 전체 1회 감점' },
 ];
 
 export default function CreateRoomPage() {
@@ -262,6 +267,38 @@ export default function CreateRoomPage() {
                 </div>
               );
             })}
+
+            {/* 생존 패널티: 인당/팀전체 중 택일 */}
+            <div style={{ padding: '12px 16px', borderTop: '1px solid var(--kn-border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+                <Icon name="flame" size={18} color="var(--kn-danger)" />
+                <div style={{ fontSize: 13, fontWeight: 'var(--kn-w-semi)' }}>생존 패널티 <span style={{ fontSize: 11, color: 'var(--kn-text-dim)' }}>(방식 택일)</span></div>
+              </div>
+              <div style={{ display: 'flex', gap: 6, marginLeft: 30 }}>
+                {PENALTY_OPTIONS.map((o) => {
+                  const active = rule.penaltyMode === o.mode;
+                  return (
+                    <button key={o.mode} type="button" onClick={() => setRuleField('penaltyMode', o.mode)}
+                      style={{ flex: 1, padding: '7px 4px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                        background: active ? 'var(--kn-danger)' : 'var(--kn-surface-2)',
+                        color: active ? '#fff' : 'var(--kn-text-muted)',
+                        border: `1px solid ${active ? 'var(--kn-danger)' : 'var(--kn-border-strong)'}`,
+                        borderRadius: 'var(--kn-r-md)' }}>
+                      {o.label}
+                    </button>
+                  );
+                })}
+              </div>
+              {PENALTY_OPTIONS.filter((o) => o.mode === rule.penaltyMode && o.valKey).map((o) => (
+                <div key={o.valKey} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginLeft: 30, marginTop: 10 }}>
+                  <span style={{ fontSize: 12, color: 'var(--kn-text-muted)' }}>{o.desc}</span>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--kn-danger)', fontWeight: 'var(--kn-w-semi)' }}>
+                    <span>-</span>
+                    <KnStepper value={rule[o.valKey]} onChange={(v) => setRuleField(o.valKey, v)} min={1} max={20} />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </KnSection>
 

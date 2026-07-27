@@ -182,14 +182,13 @@ API가 주고받는 주요 데이터의 생김새입니다.
 | `noTimeLimit` | boolean | `true`이면 시간 제한 없음 |
 | `chickenBonusOn` | boolean | 치킨(1등) 보너스 적용 여부 |
 | `chickenBonus` | number | 치킨 시 추가 점수 |
-| `headShotBonusOn` | boolean | 헤드샷 보너스 적용 여부 |
-| `headShotBonus` | number | 헤드샷 1회당 추가 점수 |
-| `assistBonusOn` | boolean | 어시스트 보너스 적용 여부 |
-| `assistBonus` | number | 어시스트 1회당 추가 점수 |
-| `teamKillPenaltyOn` | boolean | 팀킬 패널티 적용 여부 |
-| `teamKillPenalty` | number | 팀킬 1회당 감점 |
-| `deathPenaltyOn` | boolean | 조기 사망 패널티 적용 여부 |
-| `deathPenalty` | number | 조기 사망 1회당 감점 |
+| `penaltyMode` | string | 생존 패널티 방식 (택일): `"NONE"` / `"PER_PLAYER"`(인당 감점) / `"TEAM_ONCE"`(팀 전체 1회) |
+| `survivalPenalty` | number | `PER_PLAYER`: TOP10 실패 인원 수 × 이 값만큼 팀 감점 |
+| `teamSurvivalPenalty` | number | `TEAM_ONCE`: TOP10 실패자가 1명이라도 있으면 팀 전체 -이 값 (1회) |
+
+> 백엔드 매핑 — `penaltyMode='PER_PLAYER'` → RuleType `SURVIVAL_PENALTY`, `penaltyMode='TEAM_ONCE'` → RuleType `TEAM_SURVIVAL_PENALTY`. 두 패널티는 세션당 하나만 등록 가능(백엔드에서 강제).
+>
+> `headShotBonus`, `assistBonus`, `teamKillPenalty`, `deathPenalty` 등은 아직 미구현(기획 예정).
 
 ---
 
