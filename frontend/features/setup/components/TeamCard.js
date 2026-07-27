@@ -16,7 +16,8 @@ export default function TeamCard({
   team, teamIndex = 0, isHost, userId, hostUserId,
   inputs, setInputs,
   onAddPlayer, onRemovePlayer, onUnassignLeader, onDeleteTeam,
-  favorites = [], recentUnfavorited = [], onPickNickname, onSaveFavorite,
+  favorites = [], recentUnfavorited = [], usedNicknames = [],
+  onPickNickname, onSaveFavorite,
 }) {
   const players = team.players || [];
   const dotColor = TEAM_COLORS[teamIndex % TEAM_COLORS.length];
@@ -155,7 +156,7 @@ export default function TeamCard({
         <NicknamePicker
           favorites={favorites}
           recentUnfavorited={recentUnfavorited}
-          usedNicknames={players.map((p) => p.nickname)}
+          usedNicknames={usedNicknames}
           onPick={(nickname) => onPickNickname?.(team.id, nickname)}
           onSaveFavorite={onSaveFavorite}
         />

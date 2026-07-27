@@ -75,6 +75,10 @@ export default function SetupPage() {
 
   const rule = room?.rule;
   const teams = room?.teams || [];
+
+  // 같은 사람이 두 팀에 동시에 있을 수는 없으므로, 세션 안에서 이미 쓰인 닉네임은
+  // 어느 팀의 선택 목록에서도 감춘다 (팀 단위가 아니라 세션 단위로 판단)
+  const usedNicknames = teams.flatMap((t) => (t.players || []).map((p) => p.nickname));
   const teamCount = teams.length;
 
   return (
@@ -274,6 +278,7 @@ export default function SetupPage() {
                   onRemovePlayer={removePlayer}
                   favorites={favorites}
                   recentUnfavorited={recentUnfavorited}
+                  usedNicknames={usedNicknames}
                   onPickNickname={addPlayerByNickname}
                   onSaveFavorite={addFavorite}
                   onUnassignLeader={handleUnassignLeader}
