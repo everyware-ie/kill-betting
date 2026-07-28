@@ -20,15 +20,21 @@ public class SessionLifecycleScheduler {
 
     private final SessionRepository sessionRepository;
     private final SessionEndService sessionEndService;
+    private final SessionService sessionService;
     private final long inactivityTimeoutHours;
+    private final long staleWaitingTimeoutHours;
 
     public SessionLifecycleScheduler(
             SessionRepository sessionRepository,
             SessionEndService sessionEndService,
-            @Value("${killnagi.session.lifecycle.inactivity-timeout-hours:6}") long inactivityTimeoutHours) {
+            SessionService sessionService,
+            @Value("${killnagi.session.lifecycle.inactivity-timeout-hours:6}") long inactivityTimeoutHours,
+            @Value("${killnagi.session.lifecycle.stale-waiting-timeout-hours:3}") long staleWaitingTimeoutHours) {
         this.sessionRepository = sessionRepository;
         this.sessionEndService = sessionEndService;
+        this.sessionService = sessionService;
         this.inactivityTimeoutHours = inactivityTimeoutHours;
+        this.staleWaitingTimeoutHours = staleWaitingTimeoutHours;
     }
 
     @Scheduled(
@@ -38,6 +44,7 @@ public class SessionLifecycleScheduler {
         LocalDateTime now = LocalDateTime.now();
         endExpiredSessions(now);
         endInactiveSessions(now);
+        deleteStaleWaitingSessions(now);
     }
 
     private void endExpiredSessions(LocalDateTime now) {
@@ -60,5 +67,16 @@ public class SessionLifecycleScheduler {
     private void endByInactivity(Session session) {
         log.info("무응답 세션 자동 종료: sessionId={}", session.getId());
         sessionEndService.endByInactivity(session.getId());
+    }
+
+    private void deleteStaleWaitingSessions(LocalDateTime now) {
+        sessionRepository.findByStatus(SessionStatus.WAITING).stream()
+                .filter(session -> session.isStaleWaiting(now, staleWaitingTimeoutHours))
+                .forEach(this::deleteStaleWaiting);
+    }
+
+    private void deleteStaleWaiting(Session session) {
+        log.info("미시작 대기 세션 자동 삭제: sessionId={}", session.getId());
+        sessionService.deleteStaleWaiting(session.getId());
     }
 }

@@ -3,7 +3,10 @@ package com.killnagi.domain.session.entity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.time.LocalDateTime;
+
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.killnagi.domain.rule.entity.RuleSet;
 import com.killnagi.domain.user.entity.User;
@@ -151,6 +154,60 @@ class SessionTest {
         session.start();
 
         assertThat(session.isInactive(session.getStartedAt().plusHours(7), 6)).isTrue();
+    }
+
+    @Test
+    void 소프트삭제하면_isDeleted가_true가_된다() {
+        Session session = createSession();
+
+        session.softDelete();
+
+        assertThat(session.isDeleted()).isTrue();
+    }
+
+    @Test
+    void 생성직후_세션은_삭제되지_않은_상태다() {
+        Session session = createSession();
+
+        assertThat(session.isDeleted()).isFalse();
+    }
+
+    @Test
+    void 진행중_세션도_소프트삭제할_수_있다() {
+        Session session = createSession();
+        session.start();
+
+        session.softDelete();
+
+        assertThat(session.isDeleted()).isTrue();
+    }
+
+    @Test
+    void 생성후_지정시간이_지난_대기세션은_미시작삭제_대상이다() {
+        Session session = createSession();
+        LocalDateTime now = LocalDateTime.now();
+        ReflectionTestUtils.setField(session, "createdAt", now.minusHours(4));
+
+        assertThat(session.isStaleWaiting(now, 3)).isTrue();
+    }
+
+    @Test
+    void 지정시간이_지나지_않은_대기세션은_미시작삭제_대상이_아니다() {
+        Session session = createSession();
+        LocalDateTime now = LocalDateTime.now();
+        ReflectionTestUtils.setField(session, "createdAt", now.minusHours(1));
+
+        assertThat(session.isStaleWaiting(now, 3)).isFalse();
+    }
+
+    @Test
+    void 시작된_세션은_미시작삭제_대상이_아니다() {
+        Session session = createSession();
+        LocalDateTime now = LocalDateTime.now();
+        ReflectionTestUtils.setField(session, "createdAt", now.minusHours(4));
+        session.start();
+
+        assertThat(session.isStaleWaiting(now, 3)).isFalse();
     }
 
     private User hostUser() {
