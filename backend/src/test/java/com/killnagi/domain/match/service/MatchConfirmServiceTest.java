@@ -215,6 +215,19 @@ class MatchConfirmServiceTest {
         assertThat(pendingMatch.isConfirmed()).isTrue();
     }
 
+    @Test
+    void 확정_성공시_세션의_무응답_기준시각이_갱신된다() {
+        given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
+        given(teamRepository.existsBySessionIdAndLeader_Id(SESSION_ID, USER_ID)).willReturn(true);
+        given(teamPlayerRepository.findByTeam_Id(TEAM_ID)).willReturn(List.of(player));
+        given(matchResultRepository.saveAll(any())).willAnswer(inv -> inv.getArgument(0));
+        given(ruleRepository.findByRuleSetSessionIdAndEnabled(SESSION_ID, true)).willReturn(List.of());
+
+        matchConfirmService.confirm(MATCH_ID, USER_ID, confirmRequest("PlayerOne", 3, 5, true));
+
+        assertThat(pendingMatch.getSession().getLastMatchAt()).isNotNull();
+    }
+
     private ConfirmRequest confirmRequest(String nickname, int kills, int placement, boolean isTop10) {
         return new ConfirmRequest("에란겔", placement, "25:30",
                 List.of(new PlayerResult(nickname, kills, 100, 0, isTop10)), false);

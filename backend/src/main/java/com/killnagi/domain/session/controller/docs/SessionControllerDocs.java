@@ -55,4 +55,7 @@ public interface SessionControllerDocs {
 
     @Operation(summary = "세션 설정 수정", description = "목표킬·제한시간을 수정합니다. WAITING·진행중에서 호스트만 가능하며, 이전 확정 매치 점수는 불변입니다.")
     ResponseEntity<ApiResponse<Void>> updateSettings(UserDetails userDetails, Long sessionId, UpdateSettingsRequest request);
+
+    @Operation(summary = "세션 삭제", description = "방을 삭제(soft delete)합니다. 상태와 무관하게 호스트만 가능합니다.")
+    ResponseEntity<Void> deleteSession(UserDetails userDetails, Long sessionId);
 }

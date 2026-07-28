@@ -40,7 +40,6 @@ public class SessionService {
     private final RuleRepository ruleRepository;
     private final RuleSetRepository ruleSetRepository;
     private final SessionParticipantRegistry registry;
-    private final SessionTimerService sessionTimerService;
     private final SessionCodeGenerator sessionCodeGenerator;
     private final SessionBroadcaster sessionBroadcaster;
     private final MeterRegistry meterRegistry;
@@ -118,10 +117,6 @@ public class SessionService {
         session.start();
         meterRegistry.counter("session.started").increment();
         sessionBroadcaster.broadcastSessionStarted(sessionId);
-
-        if (session.hasTimeLimit()) {
-            sessionTimerService.scheduleExpiry(session.getId(), session.getExpiresAt());
-        }
     }
 
     @Transactional
@@ -148,6 +143,22 @@ public class SessionService {
             throw KillnagiException.forbidden("세션 호스트만 설정을 수정할 수 있습니다.");
         }
         session.updateSettings(request.targetKills(), request.timeLimitMinutes());
+    }
+
+    @Transactional
+    public void deleteByHost(Long sessionId, Long userId) {
+        Session session = getSessionOrThrow(sessionId);
+        if (!session.isHostedBy(userId)) {
+            throw KillnagiException.forbidden("세션 호스트만 삭제할 수 있습니다.");
+        }
+        session.softDelete();
+    }
+
+    @Transactional
+    public void deleteStaleWaiting(Long sessionId) {
+        sessionRepository.findById(sessionId)
+                .filter(Session::isWaiting)
+                .ifPresent(Session::softDelete);
     }
 
     private void validatePenaltyRules(List<RuleRequest> rules) {

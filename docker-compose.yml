@@ -1,4 +1,13 @@
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: killnagi-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - killnagi-net
+    restart: on-failure:3
+
   backend:
     build:
       context: ./backend
@@ -6,6 +15,8 @@ services:
     container_name: killnagi-backend
     env_file:
       - .env
+    environment:
+      - REDIS_HOST=redis
     ports:
       - "8080:8080"
     networks:
@@ -13,6 +24,8 @@ services:
       - killnagi-net
     volumes:
       - upload-data:/app/uploads
+    depends_on:
+      - redis
     restart: on-failure:3
 
   frontend:

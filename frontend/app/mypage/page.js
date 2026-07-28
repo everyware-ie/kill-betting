@@ -10,6 +10,8 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Icon from '@/components/ui/Icon';
 import Navbar from '@/components/layout/Navbar';
+import FavoriteNicknameSection from '@/features/favorite/components/FavoriteNicknameSection';
+import { MAX_FAVORITES } from '@/features/favorite/hooks/useFavoriteNicknames';
 
 function calcTeamTotal(teamId, matches, rule, adjustments = []) {
   let kills = 0, bonus = 0, penalty = 0;
@@ -309,6 +311,11 @@ export default function MyPage() {
               <div style={{ fontSize: 13, fontWeight: 'var(--kn-w-semi)', color: 'var(--kn-text)' }}>업데이트 예정</div>
               <div style={{ fontSize: 11, color: 'var(--kn-text-muted)' }}>전적 기능은 곧 오픈될 예정입니다</div>
             </div>
+          </KnSection>
+
+          {/* 닉네임 즐겨찾기 */}
+          <KnSection title="닉네임 즐겨찾기" hint={`최대 ${MAX_FAVORITES}개`}>
+            <FavoriteNicknameSection />
           </KnSection>
 
           {/* account settings */}

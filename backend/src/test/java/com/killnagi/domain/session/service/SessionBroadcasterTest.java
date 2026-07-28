@@ -14,7 +14,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import com.killnagi.domain.match.event.MatchConfirmedEvent;
 import com.killnagi.domain.match.event.MemberSnapshot;
@@ -24,12 +23,13 @@ import com.killnagi.domain.scoreboard.dto.ScoreBoardUpdateMessage;
 import com.killnagi.domain.scoreboard.dto.TeamUpdate;
 import com.killnagi.domain.session.dto.response.SessionMessage;
 import com.killnagi.domain.session.dto.response.SessionMessage.Type;
+import com.killnagi.infra.redis.RedisMessagePublisher;
 
 @ExtendWith(MockitoExtension.class)
 class SessionBroadcasterTest {
 
     @Mock
-    private SimpMessagingTemplate messagingTemplate;
+    private RedisMessagePublisher messagePublisher;
 
     @InjectMocks
     private SessionBroadcaster sessionBroadcaster;
@@ -41,8 +41,8 @@ class SessionBroadcasterTest {
         sessionBroadcaster.handleMatchConfirmed(event);
 
         ArgumentCaptor<SessionMessage> captor = ArgumentCaptor.forClass(SessionMessage.class);
-        then(messagingTemplate).should()
-                .convertAndSend(eq("/topic/sessions/5"), captor.capture());
+        then(messagePublisher).should()
+                .publish(eq("/topic/sessions/5"), captor.capture());
         assertThat(captor.getValue().type()).isEqualTo(Type.SCORE_UPDATED);
     }
 
@@ -53,8 +53,8 @@ class SessionBroadcasterTest {
         sessionBroadcaster.handleMatchConfirmed(event);
 
         ArgumentCaptor<SessionMessage> captor = ArgumentCaptor.forClass(SessionMessage.class);
-        then(messagingTemplate).should()
-                .convertAndSend(eq("/topic/sessions/3"), captor.capture());
+        then(messagePublisher).should()
+                .publish(eq("/topic/sessions/3"), captor.capture());
         ScoreBoardUpdateMessage message = (ScoreBoardUpdateMessage) captor.getValue().data();
         assertThat(message.matchId()).isEqualTo(10L);
         assertThat(message.sessionId()).isEqualTo(3L);
@@ -67,8 +67,8 @@ class SessionBroadcasterTest {
         sessionBroadcaster.handleMatchConfirmed(event);
 
         ArgumentCaptor<SessionMessage> captor = ArgumentCaptor.forClass(SessionMessage.class);
-        then(messagingTemplate).should()
-                .convertAndSend(eq("/topic/sessions/1"), captor.capture());
+        then(messagePublisher).should()
+                .publish(eq("/topic/sessions/1"), captor.capture());
         ScoreBoardUpdateMessage msg = (ScoreBoardUpdateMessage) captor.getValue().data();
         TeamUpdate teamUpdate = msg.teamUpdate();
         assertThat(teamUpdate.teamId()).isEqualTo(7L);
@@ -86,8 +86,8 @@ class SessionBroadcasterTest {
         sessionBroadcaster.handleMatchConfirmed(event);
 
         ArgumentCaptor<SessionMessage> captor = ArgumentCaptor.forClass(SessionMessage.class);
-        then(messagingTemplate).should()
-                .convertAndSend(eq("/topic/sessions/1"), captor.capture());
+        then(messagePublisher).should()
+                .publish(eq("/topic/sessions/1"), captor.capture());
         ScoreBoardUpdateMessage msg = (ScoreBoardUpdateMessage) captor.getValue().data();
         List<MemberResult> memberResults = msg.memberResults();
         assertThat(memberResults).hasSize(2);
@@ -109,8 +109,8 @@ class SessionBroadcasterTest {
         sessionBroadcaster.handleMatchConfirmed(event);
 
         ArgumentCaptor<SessionMessage> captor = ArgumentCaptor.forClass(SessionMessage.class);
-        then(messagingTemplate).should()
-                .convertAndSend(eq("/topic/sessions/1"), captor.capture());
+        then(messagePublisher).should()
+                .publish(eq("/topic/sessions/1"), captor.capture());
         ScoreBoardUpdateMessage msg = (ScoreBoardUpdateMessage) captor.getValue().data();
         assertThat(msg.mapName()).isEqualTo("에란겔");
         assertThat(msg.matchNumber()).isEqualTo(3);

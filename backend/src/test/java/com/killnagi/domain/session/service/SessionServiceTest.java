@@ -51,7 +51,6 @@ class SessionServiceTest {
     @Mock private RuleRepository ruleRepository;
     @Mock private RuleSetRepository ruleSetRepository;
     @Mock private SessionParticipantRegistry registry;
-    @Mock private SessionTimerService sessionTimerService;
     @Mock private SessionCodeGenerator sessionCodeGenerator;
     @Mock private SessionBroadcaster sessionBroadcaster;
     @Spy MeterRegistry meterRegistry = new SimpleMeterRegistry();
@@ -305,6 +304,17 @@ class SessionServiceTest {
     }
 
     @Test
+    void 호스트가_방을_삭제하면_소프트삭제된다() {
+        User host = TestFixtures.user(HOST_ID);
+        Session session = TestFixtures.session(SESSION_ID, host);
+        given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
+
+        sessionService.deleteByHost(SESSION_ID, HOST_ID);
+
+        assertThat(session.isDeleted()).isTrue();
+    }
+
+    @Test
     void 호스트가_아니면_세션_설정_수정시_예외가_발생한다() {
         Long otherUserId = 99L;
         User host = TestFixtures.user(HOST_ID);
@@ -314,5 +324,41 @@ class SessionServiceTest {
         assertThatThrownBy(() -> sessionService.updateSettings(SESSION_ID, otherUserId, new UpdateSettingsRequest(70, 30)))
                 .isInstanceOf(KillnagiException.class)
                 .hasMessage("세션 호스트만 설정을 수정할 수 있습니다.");
+    }
+
+    @Test
+    void 호스트가_아니면_방_삭제시_예외가_발생한다() {
+        Long otherUserId = 99L;
+        User host = TestFixtures.user(HOST_ID);
+        Session session = TestFixtures.session(SESSION_ID, host);
+        given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
+
+        assertThatThrownBy(() -> sessionService.deleteByHost(SESSION_ID, otherUserId))
+                .isInstanceOf(KillnagiException.class)
+                .hasMessage("세션 호스트만 삭제할 수 있습니다.");
+        assertThat(session.isDeleted()).isFalse();
+    }
+
+    @Test
+    void 시스템이_미시작_대기세션을_삭제하면_소프트삭제된다() {
+        User host = TestFixtures.user(HOST_ID);
+        Session waiting = TestFixtures.session(SESSION_ID, host);
+        given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(waiting));
+
+        sessionService.deleteStaleWaiting(SESSION_ID);
+
+        assertThat(waiting.isDeleted()).isTrue();
+    }
+
+    @Test
+    void 이미_시작된_세션은_미시작삭제_대상이_아니어서_삭제되지_않는다() {
+        User host = TestFixtures.user(HOST_ID);
+        Session started = TestFixtures.session(SESSION_ID, host);
+        started.start();
+        given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(started));
+
+        sessionService.deleteStaleWaiting(SESSION_ID);
+
+        assertThat(started.isDeleted()).isFalse();
     }
 }
