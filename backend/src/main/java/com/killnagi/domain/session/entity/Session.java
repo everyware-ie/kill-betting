@@ -59,6 +59,10 @@ public class Session {
     @Column(name = "started_at")
     private LocalDateTime startedAt;
 
+    // 무응답 자동종료 판정 기준: 마지막 매치 확정 시각(매치 0건이면 시작 시각)
+    @Column(name = "last_match_at")
+    private LocalDateTime lastMatchAt;
+
     @Column(name = "ended_at")
     private LocalDateTime endedAt;
 
@@ -102,6 +106,18 @@ public class Session {
     public void start() {
         this.status = SessionStatus.IN_PROGRESS;
         this.startedAt = LocalDateTime.now();
+        this.lastMatchAt = this.startedAt;
+    }
+
+    public void touchLastMatch(LocalDateTime at) {
+        this.lastMatchAt = at;
+    }
+
+    public boolean isInactive(LocalDateTime now, long inactivityHours) {
+        if (lastMatchAt == null) {
+            return false;
+        }
+        return lastMatchAt.plusHours(inactivityHours).isBefore(now);
     }
 
     public void end(Team winnerTeam) {
