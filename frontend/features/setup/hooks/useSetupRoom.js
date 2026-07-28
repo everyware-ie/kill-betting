@@ -56,6 +56,8 @@ export default function useSetupRoom() {
         teams: teams.map((t) => ({
           id: t.id,
           name: t.name,
+          // 리더 판별에 필요 — 누락 시 WebSocket 갱신 전까지 리더에게 팀원 관리 UI가 보이지 않는다
+          leaderUserId: t.leaderUserId,
           players: (t.players || []).map((nick, idx) => ({ id: idx, nickname: nick })),
           members: t.members || [],
         })),
