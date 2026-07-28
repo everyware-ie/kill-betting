@@ -3,7 +3,10 @@ package com.killnagi.domain.session.entity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.time.LocalDateTime;
+
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.killnagi.domain.rule.entity.RuleSet;
 import com.killnagi.domain.user.entity.User;
@@ -114,6 +117,97 @@ class SessionTest {
                 .name("세션").host(hostUser()).timeLimitMinutes(60).build();
 
         assertThat(session.isExpired(java.time.LocalDateTime.now().plusYears(1))).isFalse();
+    }
+
+    @Test
+    void 세션_시작시_lastMatchAt이_시작시각으로_초기화된다() {
+        Session session = createSession();
+
+        session.start();
+
+        assertThat(session.getLastMatchAt()).isEqualTo(session.getStartedAt());
+    }
+
+    @Test
+    void 마지막_매치_확정후_지정시간이_지나면_무응답이다() {
+        Session session = createSession();
+        session.start();
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        session.touchLastMatch(now.minusHours(7));
+
+        assertThat(session.isInactive(now, 6)).isTrue();
+    }
+
+    @Test
+    void 지정시간이_지나지_않았으면_무응답이_아니다() {
+        Session session = createSession();
+        session.start();
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        session.touchLastMatch(now.minusHours(1));
+
+        assertThat(session.isInactive(now, 6)).isFalse();
+    }
+
+    @Test
+    void 매치가_없어도_시작시각_기준으로_무응답_판정된다() {
+        Session session = createSession();
+        session.start();
+
+        assertThat(session.isInactive(session.getStartedAt().plusHours(7), 6)).isTrue();
+    }
+
+    @Test
+    void 소프트삭제하면_isDeleted가_true가_된다() {
+        Session session = createSession();
+
+        session.softDelete();
+
+        assertThat(session.isDeleted()).isTrue();
+    }
+
+    @Test
+    void 생성직후_세션은_삭제되지_않은_상태다() {
+        Session session = createSession();
+
+        assertThat(session.isDeleted()).isFalse();
+    }
+
+    @Test
+    void 진행중_세션도_소프트삭제할_수_있다() {
+        Session session = createSession();
+        session.start();
+
+        session.softDelete();
+
+        assertThat(session.isDeleted()).isTrue();
+    }
+
+    @Test
+    void 생성후_지정시간이_지난_대기세션은_미시작삭제_대상이다() {
+        Session session = createSession();
+        LocalDateTime now = LocalDateTime.now();
+        ReflectionTestUtils.setField(session, "createdAt", now.minusHours(4));
+
+        assertThat(session.isStaleWaiting(now, 3)).isTrue();
+    }
+
+    @Test
+    void 지정시간이_지나지_않은_대기세션은_미시작삭제_대상이_아니다() {
+        Session session = createSession();
+        LocalDateTime now = LocalDateTime.now();
+        ReflectionTestUtils.setField(session, "createdAt", now.minusHours(1));
+
+        assertThat(session.isStaleWaiting(now, 3)).isFalse();
+    }
+
+    @Test
+    void 시작된_세션은_미시작삭제_대상이_아니다() {
+        Session session = createSession();
+        LocalDateTime now = LocalDateTime.now();
+        ReflectionTestUtils.setField(session, "createdAt", now.minusHours(4));
+        session.start();
+
+        assertThat(session.isStaleWaiting(now, 3)).isFalse();
     }
 
     private User hostUser() {
