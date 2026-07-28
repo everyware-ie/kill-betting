@@ -6,6 +6,7 @@ import com.killnagi.domain.team.entity.Team;
 import com.killnagi.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.SQLRestriction;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -17,6 +18,7 @@ import java.time.LocalDateTime;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @EntityListeners(AuditingEntityListener.class)
+@SQLRestriction("deleted_at IS NULL") // soft delete: 삭제분은 모든 조회에서 자동 제외 (ADR 0002)
 public class Session {
 
     @Id
@@ -70,6 +72,9 @@ public class Session {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
     private static final int MIN_TARGET_KILLS = 1;
     private static final int MIN_TIME_LIMIT_MINUTES = 1;
 
@@ -120,6 +125,14 @@ public class Session {
 
     public boolean isEnded() {
         return this.status == SessionStatus.ENDED;
+    }
+
+    public void softDelete() {
+        this.deletedAt = LocalDateTime.now();
+    }
+
+    public boolean isDeleted() {
+        return this.deletedAt != null;
     }
 
     public boolean hasRenewedSession() {
