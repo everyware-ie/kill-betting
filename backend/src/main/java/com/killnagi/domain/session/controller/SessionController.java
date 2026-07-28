@@ -16,6 +16,7 @@ import com.killnagi.domain.session.service.SessionMatchService;
 import com.killnagi.domain.session.service.SessionQueryService;
 import com.killnagi.domain.session.service.SessionRenewService;
 import com.killnagi.domain.session.service.SessionService;
+import com.killnagi.domain.session.service.SessionVisibilityService;
 import com.killnagi.domain.session.controller.docs.SessionControllerDocs;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -47,6 +48,7 @@ public class SessionController implements SessionControllerDocs {
     private final SessionQueryService sessionQueryService;
     private final SessionMatchService sessionMatchService;
     private final SessionRenewService sessionRenewService;
+    private final SessionVisibilityService sessionVisibilityService;
 
     @PostMapping
     public ResponseEntity<ApiResponse<SessionResponse>> createSession(
@@ -68,8 +70,13 @@ public class SessionController implements SessionControllerDocs {
 
     @GetMapping("/join/{roomCode}")
     public ResponseEntity<ApiResponse<SessionDetailResponse>> getSessionByRoomCode(
+            @AuthenticationPrincipal(errorOnInvalidType = false) UserDetails userDetails,
             @PathVariable String roomCode) {
-        return ResponseEntity.ok(ApiResponse.ok(sessionQueryService.getSessionDetailByRoomCode(roomCode)));
+        SessionDetailResponse response = sessionQueryService.getSessionDetailByRoomCode(roomCode);
+        if (userDetails != null) {
+            sessionVisibilityService.restore(response.id(), Long.parseLong(userDetails.getUsername()));
+        }
+        return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
     @PostMapping("/{sessionId}/start")
@@ -126,6 +133,15 @@ public class SessionController implements SessionControllerDocs {
         Long userId = Long.parseLong(userDetails.getUsername());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok("새 세션이 생성되었습니다.", sessionRenewService.renew(sessionId, userId)));
+    }
+
+    @DeleteMapping("/{sessionId}/my")
+    public ResponseEntity<ApiResponse<Void>> hideMySession(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long sessionId) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+        sessionVisibilityService.hide(sessionId, userId);
+        return ResponseEntity.ok(ApiResponse.ok("세션을 목록에서 삭제했습니다.", null));
     }
 
     @PatchMapping("/{sessionId}/settings")

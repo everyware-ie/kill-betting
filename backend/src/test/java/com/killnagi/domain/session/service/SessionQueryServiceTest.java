@@ -17,6 +17,7 @@ import com.killnagi.domain.rule.repository.RuleRepository;
 import com.killnagi.domain.session.dto.response.MySessionResponse;
 import com.killnagi.domain.session.dto.response.MySessionResponse.SessionRole;
 import com.killnagi.domain.session.entity.Session;
+import com.killnagi.domain.session.repository.HiddenSessionRepository;
 import com.killnagi.domain.session.repository.SessionRepository;
 import com.killnagi.domain.team.repository.TeamRepository;
 import com.killnagi.support.TestFixtures;
@@ -28,6 +29,7 @@ class SessionQueryServiceTest {
     @Mock private SessionRepository sessionRepository;
     @Mock private RuleRepository ruleRepository;
     @Mock private TeamRepository teamRepository;
+    @Mock private HiddenSessionRepository hiddenSessionRepository;
 
     @InjectMocks private SessionQueryService sessionQueryService;
 
@@ -65,5 +67,24 @@ class SessionQueryServiceTest {
 
         // then
         assertThat(result).extracting(MySessionResponse::id).containsExactly(20L);
+    }
+
+    @Test
+    @DisplayName("숨김 처리된 세션은 내 세션 목록에서 제외된다")
+    void 숨김_처리된_세션은_목록에서_제외된다() {
+        // given
+        Long userId = 1L;
+        Session visibleSession = TestFixtures.session(30L, TestFixtures.user(userId));
+        Session hiddenSession = TestFixtures.session(31L, TestFixtures.user(userId));
+
+        given(sessionRepository.findSessionsByUserId(userId)).willReturn(List.of(visibleSession, hiddenSession));
+        given(teamRepository.findSessionIdsByLeaderUserId(userId)).willReturn(Set.of());
+        given(hiddenSessionRepository.findSessionIdsByUserId(userId)).willReturn(Set.of(31L));
+
+        // when
+        List<MySessionResponse> result = sessionQueryService.getMySessions(userId);
+
+        // then
+        assertThat(result).extracting(MySessionResponse::id).containsExactly(30L);
     }
 }

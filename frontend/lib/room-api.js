@@ -345,6 +345,29 @@ export const RoomAPI = {
   },
 
   /**
+   * 내 세션 목록에서 삭제(숨김)
+   *
+   * [실제 API]
+   *   DELETE /sessions/{sessionId}/my
+   *   Response 200: { success, data: null }
+   *
+   * [동작]
+   *   - 요청한 사용자의 "내 세션 목록"에서만 안 보이게 됨
+   *   - 실제 세션/팀/참여 데이터는 변경되지 않음
+   *   - 방에 재입장하면(RoomAPI.get) 목록에 다시 나타남
+   */
+  removeFromMyList: async (sessionId) => {
+    if (USE_MOCK) {
+      await delay(200);
+      const idx = _runtimeRooms.findIndex((r) => r.id === sessionId);
+      if (idx === -1) return err('방을 찾을 수 없습니다');
+      _runtimeRooms.splice(idx, 1);
+      return ok(null);
+    }
+    return apiFetch(`/sessions/${sessionId}/my`, { method: 'DELETE' });
+  },
+
+  /**
    * 초대 코드로 방 참여
    *
    * [실제 API]

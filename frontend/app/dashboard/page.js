@@ -8,6 +8,7 @@ import { RoomAPI } from '@/lib/room-api';
 import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
 import Navbar from '@/components/layout/Navbar';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 
 function RoleBadge({ role }) {
   const map = {
@@ -60,7 +61,7 @@ function StatusBadge({ status }) {
   );
 }
 
-function RoomCard({ room, onClick }) {
+function RoomCard({ room, onClick, onDelete }) {
   const [hovered, setHovered] = useState(false);
 
   const createdAt = new Date(room.createdAt).toLocaleString('ko', {
@@ -115,6 +116,20 @@ function RoomCard({ room, onClick }) {
         </div>
       </div>
 
+      <button
+        onClick={(e) => { e.stopPropagation(); onDelete(room); }}
+        title="목록에서 삭제"
+        style={{
+          background: 'none', border: 'none', cursor: 'pointer',
+          padding: 6, borderRadius: 'var(--kn-r-sm)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          opacity: hovered ? 1 : 0.4, transition: 'opacity .15s',
+          flexShrink: 0,
+        }}
+      >
+        <Icon name="trash" size={15} color="var(--kn-text-muted)" />
+      </button>
+
       <Icon name="chevron" size={16} color="var(--kn-text-dim)" />
     </div>
   );
@@ -130,6 +145,8 @@ export default function DashboardPage() {
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState('');
   const joinInputRef = useRef(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) router.push('/auth/login');
@@ -144,6 +161,16 @@ export default function DashboardPage() {
   }, [user]);
 
   if (authLoading || !user) return null;
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    const res = await RoomAPI.removeFromMyList(deleteTarget.id);
+    setDeleting(false);
+    if (!res.success) return;
+    setRooms((prev) => prev.filter((r) => r.id !== deleteTarget.id));
+    setDeleteTarget(null);
+  };
 
   const handleRoomClick = (room) => {
     const code = room.roomCode || room.code;
@@ -305,12 +332,28 @@ export default function DashboardPage() {
           {!roomLoading && rooms.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {rooms.map((room) => (
-                <RoomCard key={room.id} room={room} onClick={() => handleRoomClick(room)} />
+                <RoomCard
+                  key={room.id}
+                  room={room}
+                  onClick={() => handleRoomClick(room)}
+                  onDelete={setDeleteTarget}
+                />
               ))}
             </div>
           )}
         </section>
       </div>
+
+      {deleteTarget && (
+        <ConfirmDialog
+          title="정말 삭제하시겠습니까?"
+          description={`"${deleteTarget.name || deleteTarget.title}"이(가) 내 목록에서 사라집니다. 방에 재입장하면 다시 나타납니다.`}
+          confirmLabel="삭제"
+          loading={deleting}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
     </div>
   );
 }
