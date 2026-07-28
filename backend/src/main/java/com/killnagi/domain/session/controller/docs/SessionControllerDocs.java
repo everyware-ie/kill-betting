@@ -3,6 +3,7 @@ package com.killnagi.domain.session.controller.docs;
 import com.killnagi.common.response.ApiResponse;
 import com.killnagi.domain.match.dto.response.ScreenshotUploadResponse;
 import com.killnagi.domain.session.dto.request.CreateRequest;
+import com.killnagi.domain.session.dto.request.UpdateSettingsRequest;
 import com.killnagi.domain.session.dto.response.MatchHistoryResponse;
 import com.killnagi.domain.session.dto.response.ScoreboardResponse;
 import com.killnagi.domain.session.dto.response.MySessionResponse;
@@ -51,6 +52,9 @@ public interface SessionControllerDocs {
 
     @Operation(summary = "세션 종료", description = "세션을 강제 종료합니다. 호스트만 가능합니다.")
     ResponseEntity<ApiResponse<Void>> endSession(UserDetails userDetails, Long sessionId);
+
+    @Operation(summary = "세션 설정 수정", description = "목표킬·제한시간을 수정합니다. WAITING·진행중에서 호스트만 가능하며, 이전 확정 매치 점수는 불변입니다.")
+    ResponseEntity<ApiResponse<Void>> updateSettings(UserDetails userDetails, Long sessionId, UpdateSettingsRequest request);
 
     @Operation(summary = "세션 삭제", description = "방을 삭제(soft delete)합니다. 상태와 무관하게 호스트만 가능합니다.")
     ResponseEntity<Void> deleteSession(UserDetails userDetails, Long sessionId);

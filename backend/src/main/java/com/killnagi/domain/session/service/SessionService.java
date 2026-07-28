@@ -8,6 +8,7 @@ import com.killnagi.domain.rule.repository.RuleRepository;
 import com.killnagi.domain.rule.repository.RuleSetRepository;
 import com.killnagi.domain.session.dto.request.CreateRequest;
 import com.killnagi.domain.session.dto.request.RuleRequest;
+import com.killnagi.domain.session.dto.request.UpdateSettingsRequest;
 import com.killnagi.domain.session.dto.response.SessionResponse;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.session.entity.SessionUser;
@@ -133,6 +134,15 @@ public class SessionService {
         }
 
         rule.updateValue(newValue);
+    }
+
+    @Transactional
+    public void updateSettings(Long sessionId, Long userId, UpdateSettingsRequest request) {
+        Session session = getSessionOrThrow(sessionId);
+        if (!session.isHostedBy(userId)) {
+            throw KillnagiException.forbidden("세션 호스트만 설정을 수정할 수 있습니다.");
+        }
+        session.updateSettings(request.targetKills(), request.timeLimitMinutes());
     }
 
     @Transactional

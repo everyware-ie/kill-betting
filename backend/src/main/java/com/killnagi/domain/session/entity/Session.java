@@ -96,12 +96,25 @@ public class Session {
         if (name == null || name.isBlank()) {
             throw KillnagiException.badRequest("세션 이름은 비어있을 수 없습니다.");
         }
+        validateSettings(targetKills, timeLimitMinutes);
+    }
+
+    private void validateSettings(Integer targetKills, Integer timeLimitMinutes) {
         if (targetKills != null && targetKills < MIN_TARGET_KILLS) {
             throw KillnagiException.badRequest("목표 킬 수는 1 이상이어야 합니다.");
         }
         if (timeLimitMinutes != null && timeLimitMinutes < MIN_TIME_LIMIT_MINUTES) {
             throw KillnagiException.badRequest("제한 시간은 1분 이상이어야 합니다.");
         }
+    }
+
+    public void updateSettings(Integer targetKills, Integer timeLimitMinutes) {
+        if (isEnded()) {
+            throw KillnagiException.badRequest("종료된 세션은 설정을 수정할 수 없습니다.");
+        }
+        validateSettings(targetKills, timeLimitMinutes);
+        this.targetKills = targetKills;
+        this.timeLimitMinutes = timeLimitMinutes;
     }
 
     public void assignCurrentRuleSet(RuleSet ruleSet) {
