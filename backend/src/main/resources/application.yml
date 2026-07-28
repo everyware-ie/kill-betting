@@ -21,6 +21,11 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.MySQLDialect
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
   jackson:
     time-zone: Asia/Seoul
     deserialization:
@@ -40,6 +45,13 @@ jwt:
 
 admin:
   email: ${ADMIN_EMAIL:}  # 어드민 지표 대시보드 접근 허용 단일 이메일
+
+killnagi:
+  session:
+    lifecycle:
+      poll-rate-ms: ${SESSION_LIFECYCLE_POLL_RATE_MS:60000}  # 세션 자동 정리 배치 폴링 주기 (ADR 0002)
+      inactivity-timeout-hours: ${SESSION_INACTIVITY_TIMEOUT_HOURS:6}  # 진행중 무응답 자동종료 임계 (InactivityTimeout)
+      stale-waiting-timeout-hours: ${SESSION_STALE_WAITING_TIMEOUT_HOURS:3}  # 대기중 미시작 자동삭제 임계 (StaleWaitingRoom)
 
 storage:
   type: ${STORAGE_TYPE:local}

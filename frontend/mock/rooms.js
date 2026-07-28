@@ -30,11 +30,14 @@ export const DEFAULT_RULE = {
   timeLimitMin: 60,           // 제한 시간 (분)
   noTimeLimit: true,          // 시간 제한 없음
 
-  // 보너스 / 패널티 (백엔드 RuleType: CHICKEN_BONUS, SURVIVAL_PENALTY만 지원)
+  // 보너스 / 패널티 (백엔드 RuleType: CHICKEN_BONUS, SURVIVAL_PENALTY, TEAM_SURVIVAL_PENALTY)
   chickenBonusOn: true,
   chickenBonus: 5,
-  survivalPenaltyOn: false,
-  survivalPenalty: 1,         // 탑 10 못 들면 감점
+
+  // 생존 패널티는 방식 택일: 'NONE'(없음) | 'PER_PLAYER'(인당 감점) | 'TEAM_ONCE'(팀 전체 1회)
+  penaltyMode: 'NONE',
+  survivalPenalty: 1,         // PER_PLAYER: TOP10 실패 인원 수 × value
+  teamSurvivalPenalty: 3,     // TEAM_ONCE: TOP10 실패자가 1명이라도 있으면 팀 전체 -value (1회)
 };
 
 /** 기본 팀 구조 생성 */

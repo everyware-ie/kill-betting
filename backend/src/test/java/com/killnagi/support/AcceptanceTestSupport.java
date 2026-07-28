@@ -9,11 +9,13 @@ import com.killnagi.domain.team.dto.request.CreateTeamRequest;
 import com.killnagi.domain.team.service.TeamConfigureService;
 import com.killnagi.domain.team.service.TeamService;
 import com.killnagi.infra.ocr.OcrClient;
+import com.killnagi.infra.redis.RedisMessagePublisher;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
@@ -53,6 +55,12 @@ public abstract class AcceptanceTestSupport {
 
     @MockBean
     protected FileStorageService fileStorageService;
+
+    @MockBean
+    private RedisMessageListenerContainer redisMessageListenerContainer;
+
+    @MockBean
+    private RedisMessagePublisher redisMessagePublisher;
 
     @Autowired
     private DatabaseCleanup databaseCleanup;

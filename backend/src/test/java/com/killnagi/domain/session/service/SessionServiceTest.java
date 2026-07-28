@@ -50,7 +50,6 @@ class SessionServiceTest {
     @Mock private RuleRepository ruleRepository;
     @Mock private RuleSetRepository ruleSetRepository;
     @Mock private SessionParticipantRegistry registry;
-    @Mock private SessionTimerService sessionTimerService;
     @Mock private SessionCodeGenerator sessionCodeGenerator;
     @Mock private SessionBroadcaster sessionBroadcaster;
     @Spy MeterRegistry meterRegistry = new SimpleMeterRegistry();
@@ -111,6 +110,21 @@ class SessionServiceTest {
         sessionService.createSession(HOST_ID, request);
 
         then(ruleRepository).shouldHaveNoInteractions();
+    }
+
+    @Test
+    void 인당_패널티와_팀_패널티를_함께_등록하면_예외가_발생한다() {
+        CreateRequest request = new CreateRequest(
+                "킬내기 세션", 50, 60,
+                List.of(
+                        new RuleRequest(RuleType.SURVIVAL_PENALTY, Operator.MINUS, 2),
+                        new RuleRequest(RuleType.TEAM_SURVIVAL_PENALTY, Operator.MINUS, 3)
+                )
+        );
+
+        assertThatThrownBy(() -> sessionService.createSession(HOST_ID, request))
+                .isInstanceOf(KillnagiException.class)
+                .hasMessage("생존 패널티는 인당/팀 방식 중 하나만 사용할 수 있습니다.");
     }
 
     @Test
@@ -274,5 +288,52 @@ class SessionServiceTest {
         assertThatThrownBy(() -> sessionService.updateRule(SESSION_ID, rule.getId(), 0, HOST_ID))
                 .isInstanceOf(KillnagiException.class)
                 .hasMessage("룰 값은 1 이상이어야 합니다.");
+    }
+
+    @Test
+    void 호스트가_방을_삭제하면_소프트삭제된다() {
+        User host = TestFixtures.user(HOST_ID);
+        Session session = TestFixtures.session(SESSION_ID, host);
+        given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
+
+        sessionService.deleteByHost(SESSION_ID, HOST_ID);
+
+        assertThat(session.isDeleted()).isTrue();
+    }
+
+    @Test
+    void 호스트가_아니면_방_삭제시_예외가_발생한다() {
+        Long otherUserId = 99L;
+        User host = TestFixtures.user(HOST_ID);
+        Session session = TestFixtures.session(SESSION_ID, host);
+        given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
+
+        assertThatThrownBy(() -> sessionService.deleteByHost(SESSION_ID, otherUserId))
+                .isInstanceOf(KillnagiException.class)
+                .hasMessage("세션 호스트만 삭제할 수 있습니다.");
+        assertThat(session.isDeleted()).isFalse();
+    }
+
+    @Test
+    void 시스템이_미시작_대기세션을_삭제하면_소프트삭제된다() {
+        User host = TestFixtures.user(HOST_ID);
+        Session waiting = TestFixtures.session(SESSION_ID, host);
+        given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(waiting));
+
+        sessionService.deleteStaleWaiting(SESSION_ID);
+
+        assertThat(waiting.isDeleted()).isTrue();
+    }
+
+    @Test
+    void 이미_시작된_세션은_미시작삭제_대상이_아니어서_삭제되지_않는다() {
+        User host = TestFixtures.user(HOST_ID);
+        Session started = TestFixtures.session(SESSION_ID, host);
+        started.start();
+        given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(started));
+
+        sessionService.deleteStaleWaiting(SESSION_ID);
+
+        assertThat(started.isDeleted()).isFalse();
     }
 }

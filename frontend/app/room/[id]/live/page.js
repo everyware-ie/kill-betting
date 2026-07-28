@@ -21,6 +21,18 @@ import RoleGuideModal from '@/components/ui/RoleGuideModal';
 //  점수 계산 유틸
 // ─────────────────────────────────────────
 
+/**
+ * 한 매치에서 팀에 적용되는 생존 패널티 감점(양수).
+ * PER_PLAYER: TOP10 실패 인원 수 × value
+ * TEAM_ONCE : TOP10 실패자가 1명이라도 있으면 value 1회
+ */
+function matchSurvivalPenalty(rule, failedCount) {
+  if (failedCount <= 0) return 0;
+  if (rule.penaltyMode === 'PER_PLAYER') return failedCount * rule.survivalPenalty;
+  if (rule.penaltyMode === 'TEAM_ONCE') return rule.teamSurvivalPenalty;
+  return 0;
+}
+
 function calcTeamScore(teamId, matches, rule, adjustments = []) {
   let kills = 0, bonus = 0, penalty = 0;
   for (const m of matches) {
@@ -28,10 +40,8 @@ function calcTeamScore(teamId, matches, rule, adjustments = []) {
     if (teamResults.length === 0) continue;
     const hasChicken = teamResults.some((r) => r.isChicken);
     if (rule.chickenBonusOn && hasChicken) bonus += rule.chickenBonus;
-    for (const r of teamResults) {
-      kills += r.kills;
-      if (rule.survivalPenaltyOn && !r.isTop10) penalty += rule.survivalPenalty;
-    }
+    kills += teamResults.reduce((s, r) => s + r.kills, 0);
+    penalty += matchSurvivalPenalty(rule, teamResults.filter((r) => !r.isTop10).length);
   }
   const adj = adjustments
     .filter((a) => a.teamId === teamId)
@@ -46,7 +56,8 @@ function calcPlayerStats(nick, matches, rule) {
       if (r.playerNickname !== nick) continue;
       kills  += r.kills;
       damage += r.damage || 0;
-      if (rule.survivalPenaltyOn && !r.isTop10) penalty += rule.survivalPenalty;
+      // 팀 전체 1회 감점(TEAM_ONCE)은 개인에 귀속시키지 않는다 — 인당 감점만 표기
+      if (rule.penaltyMode === 'PER_PLAYER' && !r.isTop10) penalty += rule.survivalPenalty;
     }
   }
   return { kills, bonus, penalty, damage, total: kills + bonus - penalty };
@@ -182,9 +193,8 @@ function TeamResultModal({ room, teamId, matchNumber, sessionId, onConfirmed, on
 
   const previewKills = results.reduce((s, r) => s + r.kills, 0);
   const previewBonus = claimsChicken && rule.chickenBonusOn ? rule.chickenBonus : 0;
-  const previewPenalty = rule.survivalPenaltyOn
-    ? results.filter((r) => !r.isTop10).length * rule.survivalPenalty
-    : 0;
+  const previewFailedCount = results.filter((r) => !r.isTop10).length;
+  const previewPenalty = matchSurvivalPenalty(rule, previewFailedCount);
   const previewTotal = previewKills + previewBonus - previewPenalty;
 
   const handleSubmit = async () => {
@@ -390,6 +400,13 @@ function TeamResultModal({ room, teamId, matchNumber, sessionId, onConfirmed, on
                 &nbsp;-<b style={{ color: 'var(--kn-danger)' }}>{previewPenalty}</b>
               </div>
             </div>
+            {previewPenalty > 0 && (
+              <div style={{ fontSize: 11, color: 'var(--kn-danger)', marginTop: 6 }}>
+                {rule.penaltyMode === 'TEAM_ONCE'
+                  ? `팀 생존 패널티 −${rule.teamSurvivalPenalty} (TOP10 실패자 ${previewFailedCount}명 → 팀 전체 1회)`
+                  : `인당 생존 패널티 −${rule.survivalPenalty} × ${previewFailedCount}명`}
+              </div>
+            )}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10 }}>
@@ -465,6 +482,45 @@ const NumberStepper = ({ val, min = 0, max = 99, onChange, color = 'var(--kn-acc
 );
 
 const rBtnStyle = { width: 26, height: 28, background: 'var(--kn-surface-3)', border: '1px solid var(--kn-border-strong)', color: 'var(--kn-text-muted)', cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: 'inherit', borderRadius: 'var(--kn-r-sm)' };
+
+const PENALTY_OPTIONS = [
+  { mode: 'NONE', label: '없음' },
+  { mode: 'PER_PLAYER', label: '인당 감점' },
+  { mode: 'TEAM_ONCE', label: '팀 전체 1회' },
+];
+
+// 생존 패널티 방식 택일 (없음 / 인당 감점 / 팀 전체 1회)
+const PenaltyModeSelector = ({ mode, perValue, teamValue, onModeChange, onPerChange, onTeamChange }) => (
+  <div style={{ padding: '9px 0', borderBottom: '1px solid var(--kn-border)' }}>
+    <div style={{ display: 'flex', gap: 6, marginBottom: mode === 'NONE' ? 0 : 10 }}>
+      {PENALTY_OPTIONS.map((o) => {
+        const active = mode === o.mode;
+        return (
+          <button key={o.mode} onClick={() => onModeChange(o.mode)}
+            style={{ flex: 1, padding: '7px 4px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+              background: active ? 'var(--kn-danger)' : 'var(--kn-surface-3)',
+              color: active ? '#fff' : 'var(--kn-text-muted)',
+              border: `1px solid ${active ? 'var(--kn-danger)' : 'var(--kn-border-strong)'}`,
+              borderRadius: 'var(--kn-r-md)' }}>
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+    {mode === 'PER_PLAYER' && (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 12, color: 'var(--kn-text-muted)' }}>TOP10 실패 인당 감점</span>
+        <NumberStepper val={perValue} min={1} onChange={onPerChange} color="var(--kn-danger)" />
+      </div>
+    )}
+    {mode === 'TEAM_ONCE' && (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 12, color: 'var(--kn-text-muted)' }}>실패자 있으면 팀 전체 1회 감점</span>
+        <NumberStepper val={teamValue} min={1} onChange={onTeamChange} color="var(--kn-danger)" />
+      </div>
+    )}
+  </div>
+);
 
 // ─────────────────────────────────────────
 //  운영 메뉴 모달
@@ -595,10 +651,15 @@ function AdminModal({ room, onAdjust, onEnd, onRuleUpdate, onClose }) {
               </RuleBonusRow>
 
               <div style={{ borderTop: '1px solid var(--kn-border)', margin: '12px 0' }} />
-              <span data-label="" style={{ marginBottom: 10, display: 'block' }}>패널티</span>
-              <RuleBonusRow label="조기사망 패널티" on={rule.survivalPenaltyOn} onToggle={() => setR('survivalPenaltyOn', !rule.survivalPenaltyOn)}>
-                <NumberStepper val={rule.survivalPenalty} min={1} disabled={!rule.survivalPenaltyOn} onChange={(v) => setR('survivalPenalty', v)} color="var(--kn-danger)" />
-              </RuleBonusRow>
+              <span data-label="" style={{ marginBottom: 10, display: 'block' }}>생존 패널티 (택일)</span>
+              <PenaltyModeSelector
+                mode={rule.penaltyMode}
+                perValue={rule.survivalPenalty}
+                teamValue={rule.teamSurvivalPenalty}
+                onModeChange={(m) => setR('penaltyMode', m)}
+                onPerChange={(v) => setR('survivalPenalty', v)}
+                onTeamChange={(v) => setR('teamSurvivalPenalty', v)}
+              />
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10, marginTop: 18 }}>
                 <Button variant="secondary" onClick={() => setView('menu')}>취소</Button>

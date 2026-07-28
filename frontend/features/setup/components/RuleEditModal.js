@@ -8,7 +8,12 @@ import Stepper from './Stepper';
 
 const RULES = [
   { label: '치킨 보너스', onKey: 'chickenBonusOn', valKey: 'chickenBonus', sign: '+', color: 'var(--kn-success)' },
-  { label: '생존 패널티', onKey: 'survivalPenaltyOn', valKey: 'survivalPenalty', sign: '-', color: 'var(--kn-danger)' },
+];
+
+const PENALTY_OPTIONS = [
+  { mode: 'NONE', label: '없음' },
+  { mode: 'PER_PLAYER', label: '인당 감점', valKey: 'survivalPenalty', desc: 'TOP10 실패 인당 감점' },
+  { mode: 'TEAM_ONCE', label: '팀 전체 1회', valKey: 'teamSurvivalPenalty', desc: '실패자 있으면 팀 전체 1회 감점' },
 ];
 
 export default function RuleEditModal({ rule, onSave, onClose }) {
@@ -52,8 +57,8 @@ export default function RuleEditModal({ rule, onSave, onClose }) {
           <div style={{ marginBottom: 24 }}>
             <span data-label="" style={{ marginBottom: 10, display: 'block' }}>보너스 / 패널티</span>
             <div style={{ background: 'var(--kn-surface-2)', border: '1px solid var(--kn-border)', borderRadius: 'var(--kn-r-lg)', overflow: 'hidden' }}>
-              {RULES.map((item, idx) => (
-                <div key={item.onKey} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: idx < RULES.length - 1 ? '1px solid var(--kn-border)' : 'none', opacity: local[item.onKey] ? 1 : 0.45 }}>
+              {RULES.map((item) => (
+                <div key={item.onKey} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid var(--kn-border)', opacity: local[item.onKey] ? 1 : 0.45 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <Toggle on={local[item.onKey]} onChange={() => set(item.onKey, !local[item.onKey])} />
                     <span style={{ fontSize: 13 }}>{item.label}</span>
@@ -64,6 +69,34 @@ export default function RuleEditModal({ rule, onSave, onClose }) {
                   </div>
                 </div>
               ))}
+              {/* 생존 패널티: 인당/팀전체 중 택일 */}
+              <div style={{ padding: '12px 16px' }}>
+                <div style={{ fontSize: 13, marginBottom: 10 }}>생존 패널티 <span style={{ fontSize: 11, color: 'var(--kn-text-dim)' }}>(방식 택일)</span></div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {PENALTY_OPTIONS.map((o) => {
+                    const active = local.penaltyMode === o.mode;
+                    return (
+                      <button key={o.mode} type="button" onClick={() => set('penaltyMode', o.mode)}
+                        style={{ flex: 1, padding: '7px 4px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                          background: active ? 'var(--kn-danger)' : 'var(--kn-surface-3)',
+                          color: active ? '#fff' : 'var(--kn-text-muted)',
+                          border: `1px solid ${active ? 'var(--kn-danger)' : 'var(--kn-border-strong)'}`,
+                          borderRadius: 'var(--kn-r-md)' }}>
+                        {o.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {PENALTY_OPTIONS.filter((o) => o.mode === local.penaltyMode && o.valKey).map((o) => (
+                  <div key={o.valKey} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
+                    <span style={{ fontSize: 12, color: 'var(--kn-text-muted)' }}>{o.desc}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ color: 'var(--kn-danger)', fontSize: 14, fontWeight: 700, width: 12, textAlign: 'center' }}>-</span>
+                      <Stepper value={local[o.valKey]} onChange={(v) => set(o.valKey, v)} />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10 }}>

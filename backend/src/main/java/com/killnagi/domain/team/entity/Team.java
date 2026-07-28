@@ -67,6 +67,10 @@ public class Team {
         return this.leader != null;
     }
 
+    public boolean isLedBy(Long userId) {
+        return userId != null && userId.equals(getLeaderUserId());
+    }
+
     public Long getLeaderUserId() {
         return this.leader != null ? this.leader.getId() : null;
     }
