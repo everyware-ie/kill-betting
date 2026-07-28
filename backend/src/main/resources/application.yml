@@ -45,6 +45,7 @@ killnagi:
   session:
     lifecycle:
       poll-rate-ms: ${SESSION_LIFECYCLE_POLL_RATE_MS:60000}  # 세션 자동 정리 배치 폴링 주기 (ADR 0002)
+      inactivity-timeout-hours: ${SESSION_INACTIVITY_TIMEOUT_HOURS:6}  # 진행중 무응답 자동종료 임계 (InactivityTimeout)
 
 storage:
   type: ${STORAGE_TYPE:local}

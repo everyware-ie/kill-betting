@@ -116,6 +116,43 @@ class SessionTest {
         assertThat(session.isExpired(java.time.LocalDateTime.now().plusYears(1))).isFalse();
     }
 
+    @Test
+    void 세션_시작시_lastMatchAt이_시작시각으로_초기화된다() {
+        Session session = createSession();
+
+        session.start();
+
+        assertThat(session.getLastMatchAt()).isEqualTo(session.getStartedAt());
+    }
+
+    @Test
+    void 마지막_매치_확정후_지정시간이_지나면_무응답이다() {
+        Session session = createSession();
+        session.start();
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        session.touchLastMatch(now.minusHours(7));
+
+        assertThat(session.isInactive(now, 6)).isTrue();
+    }
+
+    @Test
+    void 지정시간이_지나지_않았으면_무응답이_아니다() {
+        Session session = createSession();
+        session.start();
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        session.touchLastMatch(now.minusHours(1));
+
+        assertThat(session.isInactive(now, 6)).isFalse();
+    }
+
+    @Test
+    void 매치가_없어도_시작시각_기준으로_무응답_판정된다() {
+        Session session = createSession();
+        session.start();
+
+        assertThat(session.isInactive(session.getStartedAt().plusHours(7), 6)).isTrue();
+    }
+
     private User hostUser() {
         return User.builder().nickname("host").email("host@test.com").password("pw").build();
     }
