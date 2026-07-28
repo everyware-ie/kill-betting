@@ -4,6 +4,7 @@ import com.killnagi.common.response.ApiResponse;
 import com.killnagi.domain.match.dto.response.ScreenshotUploadResponse;
 import com.killnagi.domain.rule.dto.request.UpdateRuleRequest;
 import com.killnagi.domain.session.dto.request.CreateRequest;
+import com.killnagi.domain.session.dto.request.UpdateSettingsRequest;
 import com.killnagi.domain.session.dto.response.MatchHistoryResponse;
 import com.killnagi.domain.session.dto.response.ScoreboardResponse;
 import com.killnagi.domain.session.dto.response.MySessionResponse;
@@ -24,6 +25,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -123,6 +125,16 @@ public class SessionController implements SessionControllerDocs {
         Long userId = Long.parseLong(userDetails.getUsername());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok("새 세션이 생성되었습니다.", sessionRenewService.renew(sessionId, userId)));
+    }
+
+    @PatchMapping("/{sessionId}/settings")
+    public ResponseEntity<ApiResponse<Void>> updateSettings(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long sessionId,
+            @Valid @RequestBody UpdateSettingsRequest request) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+        sessionService.updateSettings(sessionId, userId, request);
+        return ResponseEntity.ok(ApiResponse.ok("세션 설정이 수정되었습니다.", null));
     }
 
     @PutMapping("/{sessionId}/rules/{ruleId}")

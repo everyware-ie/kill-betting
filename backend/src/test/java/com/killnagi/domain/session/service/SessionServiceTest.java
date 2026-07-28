@@ -29,6 +29,7 @@ import com.killnagi.domain.rule.repository.RuleRepository;
 import com.killnagi.domain.rule.repository.RuleSetRepository;
 import com.killnagi.domain.session.dto.request.CreateRequest;
 import com.killnagi.domain.session.dto.request.RuleRequest;
+import com.killnagi.domain.session.dto.request.UpdateSettingsRequest;
 import com.killnagi.domain.session.dto.response.SessionResponse;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.session.repository.SessionRepository;
@@ -289,5 +290,29 @@ class SessionServiceTest {
         assertThatThrownBy(() -> sessionService.updateRule(SESSION_ID, rule.getId(), 0, HOST_ID))
                 .isInstanceOf(KillnagiException.class)
                 .hasMessage("룰 값은 1 이상이어야 합니다.");
+    }
+
+    @Test
+    void 호스트가_세션_설정을_수정하면_반영된다() {
+        User host = TestFixtures.user(HOST_ID);
+        Session session = TestFixtures.session(SESSION_ID, host);
+        given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
+
+        sessionService.updateSettings(SESSION_ID, HOST_ID, new UpdateSettingsRequest(70, 30));
+
+        assertThat(session.getTargetKills()).isEqualTo(70);
+        assertThat(session.getTimeLimitMinutes()).isEqualTo(30);
+    }
+
+    @Test
+    void 호스트가_아니면_세션_설정_수정시_예외가_발생한다() {
+        Long otherUserId = 99L;
+        User host = TestFixtures.user(HOST_ID);
+        Session session = TestFixtures.session(SESSION_ID, host);
+        given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
+
+        assertThatThrownBy(() -> sessionService.updateSettings(SESSION_ID, otherUserId, new UpdateSettingsRequest(70, 30)))
+                .isInstanceOf(KillnagiException.class)
+                .hasMessage("세션 호스트만 설정을 수정할 수 있습니다.");
     }
 }

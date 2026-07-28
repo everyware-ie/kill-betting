@@ -81,6 +81,62 @@ class SessionTest {
         assertThat(session.isHostedBy(1L)).isFalse();
     }
 
+    @Test
+    void 설정을_수정하면_목표킬과_제한시간이_반영된다() {
+        Session session = createSession();
+
+        session.updateSettings(50, 30);
+
+        assertThat(session.getTargetKills()).isEqualTo(50);
+        assertThat(session.getTimeLimitMinutes()).isEqualTo(30);
+    }
+
+    @Test
+    void 제한시간을_null로_수정하면_제거된다() {
+        Session session = Session.builder()
+                .name("세션").host(hostUser()).targetKills(50).timeLimitMinutes(60).build();
+
+        session.updateSettings(50, null);
+
+        assertThat(session.getTimeLimitMinutes()).isNull();
+    }
+
+    @Test
+    void 진행중_세션도_설정을_수정할_수_있다() {
+        Session session = createSession();
+        session.start();
+
+        session.updateSettings(80, 45);
+
+        assertThat(session.getTargetKills()).isEqualTo(80);
+        assertThat(session.getTimeLimitMinutes()).isEqualTo(45);
+    }
+
+    @Test
+    void 종료된_세션은_설정을_수정할_수_없다() {
+        Session session = createSession();
+        session.end(null);
+
+        assertThatThrownBy(() -> session.updateSettings(50, 30))
+                .isInstanceOf(RuntimeException.class);
+    }
+
+    @Test
+    void 목표킬을_1미만으로_수정하면_예외가_발생한다() {
+        Session session = createSession();
+
+        assertThatThrownBy(() -> session.updateSettings(0, 30))
+                .isInstanceOf(RuntimeException.class);
+    }
+
+    @Test
+    void 제한시간을_1분미만으로_수정하면_예외가_발생한다() {
+        Session session = createSession();
+
+        assertThatThrownBy(() -> session.updateSettings(50, 0))
+                .isInstanceOf(RuntimeException.class);
+    }
+
     private User hostUser() {
         return User.builder().nickname("host").email("host@test.com").password("pw").build();
     }
