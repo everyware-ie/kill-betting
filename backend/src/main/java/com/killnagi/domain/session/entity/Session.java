@@ -161,10 +161,6 @@ public class Session {
         return winnerTeam != null ? winnerTeam.getName() : null;
     }
 
-    public LocalDateTime getExpiresAt() {
-        return startedAt.plusMinutes(timeLimitMinutes);
-    }
-
     public boolean isHostedBy(Long userId) {
         return this.host.hasId(userId);
     }
