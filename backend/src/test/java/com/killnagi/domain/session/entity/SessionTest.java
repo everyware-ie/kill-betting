@@ -153,6 +153,32 @@ class SessionTest {
         assertThat(session.isInactive(session.getStartedAt().plusHours(7), 6)).isTrue();
     }
 
+    @Test
+    void 소프트삭제하면_isDeleted가_true가_된다() {
+        Session session = createSession();
+
+        session.softDelete();
+
+        assertThat(session.isDeleted()).isTrue();
+    }
+
+    @Test
+    void 생성직후_세션은_삭제되지_않은_상태다() {
+        Session session = createSession();
+
+        assertThat(session.isDeleted()).isFalse();
+    }
+
+    @Test
+    void 진행중_세션도_소프트삭제할_수_있다() {
+        Session session = createSession();
+        session.start();
+
+        session.softDelete();
+
+        assertThat(session.isDeleted()).isTrue();
+    }
+
     private User hostUser() {
         return User.builder().nickname("host").email("host@test.com").password("pw").build();
     }

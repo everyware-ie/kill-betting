@@ -51,4 +51,7 @@ public interface SessionControllerDocs {
 
     @Operation(summary = "세션 종료", description = "세션을 강제 종료합니다. 호스트만 가능합니다.")
     ResponseEntity<ApiResponse<Void>> endSession(UserDetails userDetails, Long sessionId);
+
+    @Operation(summary = "세션 삭제", description = "방을 삭제(soft delete)합니다. 상태와 무관하게 호스트만 가능합니다.")
+    ResponseEntity<Void> deleteSession(UserDetails userDetails, Long sessionId);
 }

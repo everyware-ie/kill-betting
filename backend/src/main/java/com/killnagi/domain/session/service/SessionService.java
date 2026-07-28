@@ -135,6 +135,15 @@ public class SessionService {
         rule.updateValue(newValue);
     }
 
+    @Transactional
+    public void deleteByHost(Long sessionId, Long userId) {
+        Session session = getSessionOrThrow(sessionId);
+        if (!session.isHostedBy(userId)) {
+            throw KillnagiException.forbidden("세션 호스트만 삭제할 수 있습니다.");
+        }
+        session.softDelete();
+    }
+
     private void validatePenaltyRules(List<RuleRequest> rules) {
         if (rules == null) {
             return;
