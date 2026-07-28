@@ -81,6 +81,41 @@ class SessionTest {
         assertThat(session.isHostedBy(1L)).isFalse();
     }
 
+    @Test
+    void 시작시각에_제한시간을_더한_시점이_지나면_만료다() {
+        Session session = Session.builder()
+                .name("세션").host(hostUser()).timeLimitMinutes(60).build();
+        session.start();
+
+        assertThat(session.isExpired(session.getStartedAt().plusMinutes(61))).isTrue();
+    }
+
+    @Test
+    void 시작시각에_제한시간을_더한_시점_전이면_만료되지_않는다() {
+        Session session = Session.builder()
+                .name("세션").host(hostUser()).timeLimitMinutes(60).build();
+        session.start();
+
+        assertThat(session.isExpired(session.getStartedAt().plusMinutes(30))).isFalse();
+    }
+
+    @Test
+    void 제한시간이_없으면_만료되지_않는다() {
+        Session session = Session.builder()
+                .name("세션").host(hostUser()).targetKills(10).timeLimitMinutes(null).build();
+        session.start();
+
+        assertThat(session.isExpired(session.getStartedAt().plusYears(1))).isFalse();
+    }
+
+    @Test
+    void 시작하지_않은_세션은_만료되지_않는다() {
+        Session session = Session.builder()
+                .name("세션").host(hostUser()).timeLimitMinutes(60).build();
+
+        assertThat(session.isExpired(java.time.LocalDateTime.now().plusYears(1))).isFalse();
+    }
+
     private User hostUser() {
         return User.builder().nickname("host").email("host@test.com").password("pw").build();
     }

@@ -37,3 +37,8 @@ management:
     export:
       prometheus:
         enabled: false
+
+killnagi:
+  session:
+    lifecycle:
+      poll-rate-ms: 3600000  # 테스트 중 자동 정리 배치가 실행되지 않도록 크게 설정

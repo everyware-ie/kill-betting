@@ -41,6 +41,11 @@ jwt:
 admin:
   email: ${ADMIN_EMAIL:}  # 어드민 지표 대시보드 접근 허용 단일 이메일
 
+killnagi:
+  session:
+    lifecycle:
+      poll-rate-ms: ${SESSION_LIFECYCLE_POLL_RATE_MS:60000}  # 세션 자동 정리 배치 폴링 주기 (ADR 0002)
+
 storage:
   type: ${STORAGE_TYPE:local}
 

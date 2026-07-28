@@ -50,7 +50,6 @@ class SessionServiceTest {
     @Mock private RuleRepository ruleRepository;
     @Mock private RuleSetRepository ruleSetRepository;
     @Mock private SessionParticipantRegistry registry;
-    @Mock private SessionTimerService sessionTimerService;
     @Mock private SessionCodeGenerator sessionCodeGenerator;
     @Mock private SessionBroadcaster sessionBroadcaster;
     @Spy MeterRegistry meterRegistry = new SimpleMeterRegistry();

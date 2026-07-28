@@ -39,7 +39,6 @@ public class SessionService {
     private final RuleRepository ruleRepository;
     private final RuleSetRepository ruleSetRepository;
     private final SessionParticipantRegistry registry;
-    private final SessionTimerService sessionTimerService;
     private final SessionCodeGenerator sessionCodeGenerator;
     private final SessionBroadcaster sessionBroadcaster;
     private final MeterRegistry meterRegistry;
@@ -117,10 +116,6 @@ public class SessionService {
         session.start();
         meterRegistry.counter("session.started").increment();
         sessionBroadcaster.broadcastSessionStarted(sessionId);
-
-        if (session.hasTimeLimit()) {
-            sessionTimerService.scheduleExpiry(session.getId(), session.getExpiresAt());
-        }
     }
 
     @Transactional
