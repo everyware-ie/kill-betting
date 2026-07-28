@@ -144,6 +144,13 @@ public class SessionService {
         session.softDelete();
     }
 
+    @Transactional
+    public void deleteStaleWaiting(Long sessionId) {
+        sessionRepository.findById(sessionId)
+                .filter(Session::isWaiting)
+                .ifPresent(Session::softDelete);
+    }
+
     private void validatePenaltyRules(List<RuleRequest> rules) {
         if (rules == null) {
             return;

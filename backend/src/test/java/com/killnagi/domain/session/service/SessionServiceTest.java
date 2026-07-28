@@ -313,4 +313,27 @@ class SessionServiceTest {
                 .hasMessage("세션 호스트만 삭제할 수 있습니다.");
         assertThat(session.isDeleted()).isFalse();
     }
+
+    @Test
+    void 시스템이_미시작_대기세션을_삭제하면_소프트삭제된다() {
+        User host = TestFixtures.user(HOST_ID);
+        Session waiting = TestFixtures.session(SESSION_ID, host);
+        given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(waiting));
+
+        sessionService.deleteStaleWaiting(SESSION_ID);
+
+        assertThat(waiting.isDeleted()).isTrue();
+    }
+
+    @Test
+    void 이미_시작된_세션은_미시작삭제_대상이_아니어서_삭제되지_않는다() {
+        User host = TestFixtures.user(HOST_ID);
+        Session started = TestFixtures.session(SESSION_ID, host);
+        started.start();
+        given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(started));
+
+        sessionService.deleteStaleWaiting(SESSION_ID);
+
+        assertThat(started.isDeleted()).isFalse();
+    }
 }

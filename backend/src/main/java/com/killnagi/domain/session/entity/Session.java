@@ -151,6 +151,13 @@ public class Session {
         return this.deletedAt != null;
     }
 
+    public boolean isStaleWaiting(LocalDateTime now, long staleWaitingHours) {
+        if (status != SessionStatus.WAITING || createdAt == null) {
+            return false;
+        }
+        return createdAt.plusHours(staleWaitingHours).isBefore(now);
+    }
+
     public boolean hasRenewedSession() {
         return this.renewedSessionId != null;
     }
