@@ -3,9 +3,12 @@ package com.killnagi.domain.session.service;
 import com.killnagi.common.exception.KillnagiException;
 import com.killnagi.domain.rule.entity.Rule;
 import com.killnagi.domain.rule.entity.RuleSet;
+import com.killnagi.domain.rule.entity.RuleType;
 import com.killnagi.domain.rule.repository.RuleRepository;
 import com.killnagi.domain.rule.repository.RuleSetRepository;
 import com.killnagi.domain.session.dto.request.CreateRequest;
+import com.killnagi.domain.session.dto.request.RuleRequest;
+import com.killnagi.domain.session.dto.request.UpdateSettingsRequest;
 import com.killnagi.domain.session.dto.response.SessionResponse;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.session.entity.SessionUser;
@@ -37,13 +40,14 @@ public class SessionService {
     private final RuleRepository ruleRepository;
     private final RuleSetRepository ruleSetRepository;
     private final SessionParticipantRegistry registry;
-    private final SessionTimerService sessionTimerService;
     private final SessionCodeGenerator sessionCodeGenerator;
     private final SessionBroadcaster sessionBroadcaster;
     private final MeterRegistry meterRegistry;
 
     @Transactional
     public SessionResponse createSession(Long hostUserId, CreateRequest request) {
+        validatePenaltyRules(request.rules());
+
         User host = userRepository.findById(hostUserId)
                 .orElseThrow(() -> KillnagiException.notFound("사용자를 찾을 수 없습니다."));
 
@@ -113,10 +117,6 @@ public class SessionService {
         session.start();
         meterRegistry.counter("session.started").increment();
         sessionBroadcaster.broadcastSessionStarted(sessionId);
-
-        if (session.hasTimeLimit()) {
-            sessionTimerService.scheduleExpiry(session.getId(), session.getExpiresAt());
-        }
     }
 
     @Transactional
@@ -134,6 +134,45 @@ public class SessionService {
         }
 
         rule.updateValue(newValue);
+    }
+
+    @Transactional
+    public void updateSettings(Long sessionId, Long userId, UpdateSettingsRequest request) {
+        Session session = getSessionOrThrow(sessionId);
+        if (!session.isHostedBy(userId)) {
+            throw KillnagiException.forbidden("세션 호스트만 설정을 수정할 수 있습니다.");
+        }
+        session.updateSettings(request.targetKills(), request.timeLimitMinutes());
+    }
+
+    @Transactional
+    public void deleteByHost(Long sessionId, Long userId) {
+        Session session = getSessionOrThrow(sessionId);
+        if (!session.isHostedBy(userId)) {
+            throw KillnagiException.forbidden("세션 호스트만 삭제할 수 있습니다.");
+        }
+        session.softDelete();
+    }
+
+    @Transactional
+    public void deleteStaleWaiting(Long sessionId) {
+        sessionRepository.findById(sessionId)
+                .filter(Session::isWaiting)
+                .ifPresent(Session::softDelete);
+    }
+
+    private void validatePenaltyRules(List<RuleRequest> rules) {
+        if (rules == null) {
+            return;
+        }
+        long penaltyTypeCount = rules.stream()
+                .map(RuleRequest::ruleType)
+                .filter(RuleType::isSurvivalPenalty)
+                .distinct()
+                .count();
+        if (penaltyTypeCount > 1) {
+            throw KillnagiException.badRequest("생존 패널티는 인당/팀 방식 중 하나만 사용할 수 있습니다.");
+        }
     }
 
     private Session getSessionOrThrow(Long sessionId) {

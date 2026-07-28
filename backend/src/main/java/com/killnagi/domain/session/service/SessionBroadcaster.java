@@ -6,9 +6,9 @@ import com.killnagi.domain.session.dto.response.SessionEndMessage;
 import com.killnagi.domain.session.dto.response.SessionMessage;
 import com.killnagi.domain.session.dto.response.SessionMessage.Type;
 import com.killnagi.domain.session.event.SessionEndEvent;
+import com.killnagi.infra.redis.RedisMessagePublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -20,7 +20,7 @@ public class SessionBroadcaster {
 
     private static final String TOPIC_PREFIX = "/topic/sessions/";
 
-    private final SimpMessagingTemplate messagingTemplate;
+    private final RedisMessagePublisher messagePublisher;
 
     public void broadcastSessionStarted(Long sessionId) {
         send(sessionId, Type.SESSION_STARTED, null);
@@ -56,9 +56,6 @@ public class SessionBroadcaster {
     }
 
     private void send(Long sessionId, Type type, Object data) {
-        messagingTemplate.convertAndSend(
-                TOPIC_PREFIX + sessionId,
-                new SessionMessage(type, data)
-        );
+        messagePublisher.publish(TOPIC_PREFIX + sessionId, new SessionMessage(type, data));
     }
 }

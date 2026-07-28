@@ -20,6 +20,10 @@ export default function TeamCard({
   const dotColor = TEAM_COLORS[teamIndex % TEAM_COLORS.length];
   const maxPlayers = team.maxPlayers;
 
+  // 팀원(닉네임) 관리는 Host 또는 이 팀의 리더가 할 수 있다.
+  // 팀 삭제·리더 해제처럼 팀 구조를 바꾸는 조작은 Host 전용으로 유지한다.
+  const canManagePlayers = isHost || (userId != null && userId === team.leaderUserId);
+
   return (
     <div style={{
       background: 'var(--kn-surface-1)',
@@ -90,7 +94,7 @@ export default function TeamCard({
           >
             <Icon name="user" size={11} color="var(--kn-text-muted)" />
             {player.nickname}
-            {isHost && (
+            {canManagePlayers && (
               <button
                 onClick={() => onRemovePlayer(team.id, player.id)}
                 style={{ background: 'none', border: 'none', color: 'var(--kn-text-dim)', cursor: 'pointer', padding: 0, display: 'flex', marginLeft: 2 }}
@@ -106,8 +110,8 @@ export default function TeamCard({
         )}
       </div>
 
-      {/* 닉네임 입력 (호스트만) */}
-      {isHost && (
+      {/* 닉네임 입력 (호스트 또는 이 팀의 리더) */}
+      {canManagePlayers && (
         <div style={{ display: 'flex', gap: 6, marginTop: 'auto' }}>
           <input
             value={inputs[team.id] || ''}

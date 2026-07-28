@@ -46,6 +46,16 @@ public class SessionEndService {
     }
 
     @Transactional
+    public void endByInactivity(Long sessionId) {
+        Session session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> KillnagiException.notFound("세션을 찾을 수 없습니다."));
+        if (!session.isInProgress()) {
+            return;
+        }
+        endWithWinnerDetermination(session, SessionEndReason.INACTIVITY);
+    }
+
+    @Transactional
     public void endByHost(Long sessionId, Long hostId) {
         Session session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> KillnagiException.notFound("세션을 찾을 수 없습니다."));
@@ -69,6 +79,7 @@ public class SessionEndService {
         return switch (reason) {
             case TIME_EXPIRED -> "time_expiry";
             case HOST_TERMINATED -> "host";
+            case INACTIVITY -> "inactivity";
             default -> reason.name().toLowerCase();
         };
     }

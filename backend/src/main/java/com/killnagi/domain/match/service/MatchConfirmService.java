@@ -53,6 +53,7 @@ public class MatchConfirmService {
         MatchConfirmData confirmData = new MatchConfirmData(
                 request.isChicken(), request.mapName(), request.placement(), request.playTime());
         match.confirm(results, rules, confirmData);
+        match.getSession().touchLastMatch(LocalDateTime.now());
 
         meterRegistry.counter("match.confirmed").increment();
         eventPublisher.publishEvent(buildEvent(match, results));

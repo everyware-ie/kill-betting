@@ -95,6 +95,76 @@ class SessionAcceptanceTest extends AcceptanceTestSupport {
     }
 
     @Test
+    void 호스트가_세션_설정을_수정하면_반영된다() {
+        // Given
+        String hostToken = 회원가입하고_토큰을_반환한다("host", "host@test.com");
+        JsonNode created = parseBody(post("/api/sessions",
+                toJson(Map.of("name", "킬내기 세션", "targetKills", 50, "timeLimitMinutes", 60, "rules", List.of())),
+                hostToken));
+        long sessionId = created.at("/data/id").asLong();
+        String roomCode = created.at("/data/roomCode").asText();
+
+        // When
+        ResponseEntity<String> response = patch("/api/sessions/" + sessionId + "/settings",
+                toJson(Map.of("targetKills", 70, "timeLimitMinutes", 30)), hostToken);
+
+        // Then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        JsonNode detail = parseBody(get("/api/sessions/join/" + roomCode, hostToken));
+        assertThat(detail.at("/data/targetKills").asInt()).isEqualTo(70);
+        assertThat(detail.at("/data/timeLimitMinutes").asInt()).isEqualTo(30);
+    }
+
+    @Test
+    void 호스트가_방을_삭제하면_이후_조회에서_사라진다() {
+        // Given
+        String hostToken = 회원가입하고_토큰을_반환한다("host", "host@test.com");
+        JsonNode created = parseBody(post("/api/sessions",
+                toJson(Map.of("name", "삭제할 세션", "targetKills", 50, "timeLimitMinutes", 60, "rules", List.of())),
+                hostToken));
+        long sessionId = created.at("/data/id").asLong();
+        String roomCode = created.at("/data/roomCode").asText();
+
+        // When
+        ResponseEntity<String> response = delete("/api/sessions/" + sessionId, hostToken);
+
+        // Then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        assertThat(get("/api/sessions/join/" + roomCode, hostToken).getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(parseBody(get("/api/sessions/my", hostToken)).get("data").size()).isZero();
+    }
+
+    @Test
+    void 호스트가_아닌_사용자는_세션_설정을_수정할_수_없다() {
+        // Given
+        String hostToken = 회원가입하고_토큰을_반환한다("host", "host@test.com");
+        long sessionId = 세션을_생성한다(hostToken);
+        String otherToken = 회원가입하고_토큰을_반환한다("other", "other@test.com");
+
+        // When
+        ResponseEntity<String> response = patch("/api/sessions/" + sessionId + "/settings",
+                toJson(Map.of("targetKills", 70, "timeLimitMinutes", 30)), otherToken);
+
+        // Then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    void 호스트가_아닌_사용자는_방을_삭제할_수_없다() {
+        // Given
+        String hostToken = 회원가입하고_토큰을_반환한다("host", "host@test.com");
+        long sessionId = 세션을_생성한다(hostToken);
+        String otherToken = 회원가입하고_토큰을_반환한다("other", "other@test.com");
+
+        // When
+        ResponseEntity<String> response = delete("/api/sessions/" + sessionId, otherToken);
+
+        // Then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(parseBody(get("/api/sessions/my", hostToken)).get("data").size()).isEqualTo(1);
+    }
+
+    @Test
     void 세션의_매치_히스토리를_조회할_수_있다() {
         // Given
         String hostToken = 회원가입하고_토큰을_반환한다("host", "host@test.com");
