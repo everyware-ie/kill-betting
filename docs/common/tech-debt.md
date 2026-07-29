@@ -28,6 +28,9 @@
 - **발견 경위**: 머지 후 EC2 배포 액션은 성공으로 뜨는데 `docker ps`엔 backend가 안 보이고, job을 재실행하면 뜨는 현상 조사. `docker logs`에서 `Schema-validation: missing table [favorite_nicknames]`로 부팅 자체가 실패하고 있었음 (`restart: on-failure:3` 소진 후 컨테이너가 조용히 Exited로 멈춤 → 배포 액션은 이미 성공 처리된 뒤라 겉으론 성공으로 보임).
 - **원인**: 이 프로젝트엔 스키마 마이그레이션 도구가 없었고, 로컬은 `ddl-auto: update`로 Hibernate가 새 엔티티/컬럼을 알아서 만들어줘서 문제를 못 느꼈지만, 운영은 `ddl-auto: validate`라 테이블이 미리 없으면 부팅이 막힘. 엔티티와 운영 DB(mysqldump로 실제 스키마 확인)를 전수 대조한 결과 `favorite_nicknames`(PR #109) 테이블 누락 외에 `hidden_sessions` 테이블 누락, `rules.rule_type` enum에 `TEAM_SURVIVAL_PENALTY`(PR #93, 2026-07-21) 미반영도 함께 발견— 후자는 부팅은 통과하지만 해당 룰 타입 저장 시 런타임에서 조용히 실패하는 상태였음.
 - **조치**: Flyway 도입 (`jieung/chore/flyway-migration-setup`). 운영 DB의 현재 상태를 `V1__baseline.sql`로 baseline 처리하고, 누락분을 `V2`(favorite_nicknames) · `V3`(rule_type enum 확장) · `V4`(hidden_sessions)로 순서대로 적용. 로컬 개발 환경도 `ddl-auto: validate` + Flyway로 통일해 앞으로 같은 종류의 드리프트가 재발하지 않도록 함 (엔티티 변경 시 마이그레이션 파일 작성이 강제됨).
+- **후속 발견 1**: Flyway 도입 직후 운영 재배포에서 `Circular depends-on relationship between 'flyway' and 'entityManagerFactory'`로 또 부팅 크래시. 원인은 `spring.jpa.defer-datasource-initialization: true`(Hibernate ddl-auto가 스키마를 만들던 시절, data.sql을 그 뒤에 실행시키기 위한 설정)가 Flyway와 함께 있으면 순환 의존이 생기는 Spring Boot의 알려진 제약. 이제 스키마는 Flyway가 만들고 Hibernate는 validate만 하므로 이 설정 자체가 불필요해져 제거.
+- **후속 발견 2**: 위 수정 후 실제 MySQL 컨테이너에 앱을 직접 부팅시켜 재검증하는 과정(H2 테스트는 Flyway를 꺼놔서 이 클래스의 문제를 못 잡음)에서 `sessions` 테이블에 `last_match_at`(InactivityTimeout), `deleted_at`(SoftDelete) 컬럼도 운영에 없는 것을 추가로 발견 — 테이블 유무만 대조하고 컬럼 단위까지 안 본 게 원인. 전체 11개 엔티티를 컬럼 단위로 재대조해 이 두 개 외엔 드리프트 없음을 확인했고, `V5`로 추가.
+- **검증**: 임시 MySQL 8 컨테이너에 빈 스키마 상태로 `./gradlew bootRun --spring.profiles.active=prod`를 직접 실행해 `V1~V5` 마이그레이션 + JPA 검증 + Spring Security까지 전부 통과하고 `Started KillnagiApplication`까지 확인.
 
 ---
 
@@ -42,7 +45,9 @@
 
 ### Flyway 마이그레이션 도입 (2026-07-29)
 
-- `flyway-core` + `flyway-mysql` 의존성 추가, `db/migration/`에 `V1__baseline`(운영 DB mysqldump 기반) ~ `V4` 작성
+- `flyway-core` + `flyway-mysql` 의존성 추가, `db/migration/`에 `V1__baseline`(운영 DB mysqldump 기반) ~ `V5` 작성
 - `spring.flyway.baseline-on-migrate=true` + `baseline-version=1`로 기존 운영/로컬 DB는 V1을 재실행하지 않고 baseline 처리, 신규(빈) DB는 V1부터 전체 적용
 - local/prod 공통 `ddl-auto: validate`로 통일 (local 전용 `ddl-auto: update` 제거), test(H2)는 `spring.flyway.enabled=false`로 기존 `create-drop` 유지
-- 누락돼있던 `favorite_nicknames`, `hidden_sessions` 테이블 생성 및 `rules.rule_type` enum에 `TEAM_SURVIVAL_PENALTY` 반영
+- `spring.jpa.defer-datasource-initialization: true` 제거 (Flyway와 결합 시 순환 의존 발생, 더 이상 필요 없는 설정)
+- 누락돼있던 `favorite_nicknames`, `hidden_sessions`, `sessions.last_match_at`, `sessions.deleted_at` 반영 및 `rules.rule_type` enum에 `TEAM_SURVIVAL_PENALTY` 반영
+- 임시 MySQL 컨테이너에 빈 스키마로 실제 부팅시켜 `V1~V5` + JPA + Security까지 정상 기동 검증
