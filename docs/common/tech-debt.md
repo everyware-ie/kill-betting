@@ -23,6 +23,12 @@
 - **해결 방향**: 룰 컬렉션을 통째로 교체하는 `PUT /sessions/{id}/rules` (rules 배열 전체 replace) 또는
   룰 활성/비활성 토글 엔드포인트 도입.
 
+### deploy.yml의 backend/frontend/infra 배포 job이 EC2에 동시 접속 (해결됨)
+
+- **발견 경위**: 배포 장애(스키마 드리프트로 인한 부팅 크래시, 별도 기록) 조사 중 `deploy.yml` 구조를 보다가 발견.
+- **원인**: `deploy-backend` / `deploy-frontend` / `deploy-infra`가 서로 독립된 job이라 같은 커밋에 backend/frontend가 둘 다 바뀌면 (혹은 infra 경로까지 겹치면) 두 개 이상의 job이 동시에 같은 EC2 호스트에 SSH로 붙어 `docker compose up -d`를 실행한다. 셋 다 `prometheus`, `loki`, `grafana`, `killnagi-net` 네트워크를 공통으로 건드리기 때문에, 동시 실행 시 같은 컨테이너를 서로 재생성하려고 경쟁하거나 네트워크 생성이 겹칠 수 있다.
+- **영향**: 배포가 간헐적으로 실패(또는 일부만 반영)할 수 있는 잠재 위험. 이번 스키마 드리프트 사고의 직접 원인은 아니었지만, 같은 "액션은 성공, 실제 배포 상태는 불확실" 계열의 증상을 만들 수 있는 별개의 버그.
+- **조치**: `deploy-backend` / `deploy-frontend` / `deploy-infra` job에 동일한 `concurrency.group: deploy-ec2`를 부여해 세 job이 절대 동시에 EC2에 붙지 않도록 직렬화 (`cancel-in-progress: false`로 취소 대신 대기).
 ### 로컬 `ddl-auto: update`가 운영 스키마 드리프트를 가림 (해결됨)
 
 - **발견 경위**: 머지 후 EC2 배포 액션은 성공으로 뜨는데 `docker ps`엔 backend가 안 보이고, job을 재실행하면 뜨는 현상 조사. `docker logs`에서 `Schema-validation: missing table [favorite_nicknames]`로 부팅 자체가 실패하고 있었음 (`restart: on-failure:3` 소진 후 컨테이너가 조용히 Exited로 멈춤 → 배포 액션은 이미 성공 처리된 뒤라 겉으론 성공으로 보임).
@@ -43,6 +49,10 @@
 - FE: 룰 설정을 `penaltyMode`('NONE'|'PER_PLAYER'|'TEAM_ONCE') 세그먼트 선택으로 변경, 매치 등록 미리보기에 적용 패널티 표기
 - glossary.md에 `SurvivalPenalty`/`TeamSurvivalPenalty` 용어 추가
 
+### EC2 배포 job 동시 실행 방지 (2026-07-29)
+
+- `deploy-backend` / `deploy-frontend` / `deploy-infra`에 공통 `concurrency: group: deploy-ec2, cancel-in-progress: false` 추가
+- 세 job이 공유하는 EC2 호스트에 동시에 `docker compose up -d`를 실행하지 못하도록 직렬화
 ### Flyway 마이그레이션 도입 (2026-07-29)
 
 - `flyway-core` + `flyway-mysql` 의존성 추가, `db/migration/`에 `V1__baseline`(운영 DB mysqldump 기반) ~ `V5` 작성
