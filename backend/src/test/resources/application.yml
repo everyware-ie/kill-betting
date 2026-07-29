@@ -18,6 +18,8 @@ spring:
   h2:
     console:
       enabled: false
+  flyway:
+    enabled: false
 
 jwt:
   secret: test-secret-key-that-is-minimum-256-bits-long-for-hmac-sha256
