@@ -3,8 +3,19 @@
 - FRD: https://github.com/everyware-ie/mechuri-docs/blob/main/products/kill-betting/specs/frd/match-history-v2.md
 - 참조 시점: 2026-08-03 / 허브 커밋 `836284a` / status: **review**
   (README 규칙 #2 "approved만 착수" 예외 — FRD가 "신규 개발 항목, 구현 후 approved 전환" 명시, 담당자 본인(JiEung2) 진행)
-- 구현 상태: 진행 중
+- 구현 상태: 완료 (#130, #131, #132 — 브랜치 `jieung/feature/match-history-team-split`)
 - 관련: [match-confirm.md](https://github.com/everyware-ie/mechuri-docs/blob/main/products/kill-betting/specs/frd/match-confirm.md)(상위, approved — 점수 누적/룰 적용 로직의 원본 근거)
+
+## 구현 노트
+
+- **#130 표시 분리**: `MatchSummaryResponse`에 top-level `teamId`/`teamName` 추가. 프론트 `frontend/features/room/helpers/matchGrouping.js`(순수 함수) + `components/TeamMatchHistory.js`로 `live/page.js` 매치 히스토리 블록 교체.
+- **#131 삭제+역산**: `MatchStatus.DELETED`(논리 삭제, matchNumber는 `countBySessionId`가 그대로 세므로 자동 보존). `Team.subtractKills/subtractRuleScore`, `TeamPlayer.subtractKills` 신규. `Match.delete(matchResults)`가 `confirm()`과 대칭으로 스냅샷 값을 역산. `MatchDeleteService`는 confirm의 느슨한 "세션 아무 리더" 검증과 분리해 `team.isLedBy(requesterId)`로 엄격 검증. `DELETE /api/matches/{matchId}` + `MatchDeletedEvent` → 기존과 동일한 `SCORE_UPDATED` 브로드캐스트 채널 재사용.
+- **#132 삭제 이력**: `MatchDeletionLog`(matchId/teamId/deletedByUserId/revertedKills/revertedRuleScore, plain Long 컬럼 — HiddenSession처럼 엔티티 연관관계로 하지 않고 감사 로그 성격상 단순 ID 저장으로 결정) + `V6__create_match_deletion_logs.sql`. `MatchDeleteService.delete()`의 같은 트랜잭션 안에서 저장(별도 이벤트 리스너로 분리하지 않아 롤백 시 자동으로 함께 롤백 — 별도 롤백 테스트는 프레임워크 보장이라 생략).
+
+## 어긋남 기록
+
+- FRD H1은 "`MatchSummaryResponse`에 teamId 없음"만 지적했는데, 실제로 프론트 `room-api.js`의 기존 주석은 top-level teamId가 있다고 잘못 서술하고 있었음(백엔드엔 없었음) — 이번 DTO 변경으로 프론트 주석과 실제 응답이 처음으로 일치하게 됨.
+- FRD 미결 2건(ENDED 삭제 허용 여부, 이력 저장 여부)은 PRD 작성 시점에 담당자가 확정(본문 "경위 메모" 참고) — 허브 FRD §7에도 반영 필요(아직 미반영, 후속 조치).
 
 ## 경위 메모
 

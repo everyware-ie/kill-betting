@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class DatabaseCleanup {
 
     private static final List<String> TABLES = List.of(
+            "match_deletion_logs",
             "match_results",
             "matches",
             "team_players",

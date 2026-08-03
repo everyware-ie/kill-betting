@@ -23,10 +23,14 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.killnagi.common.exception.KillnagiException;
 import com.killnagi.domain.match.entity.Match;
 import com.killnagi.domain.match.entity.Match.MatchConfirmData;
+import com.killnagi.domain.match.entity.MatchDeletionLog;
 import com.killnagi.domain.match.entity.MatchResult;
 import com.killnagi.domain.match.event.MatchDeletedEvent;
+import com.killnagi.domain.match.repository.MatchDeletionLogRepository;
 import com.killnagi.domain.match.repository.MatchRepository;
 import com.killnagi.domain.match.repository.MatchResultRepository;
+import com.killnagi.domain.rule.entity.Rule;
+import com.killnagi.domain.rule.entity.RuleType;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.team.entity.Team;
 import com.killnagi.domain.team.entity.TeamPlayer;
@@ -39,6 +43,7 @@ class MatchDeleteServiceTest {
 
     @Mock private MatchRepository matchRepository;
     @Mock private MatchResultRepository matchResultRepository;
+    @Mock private MatchDeletionLogRepository matchDeletionLogRepository;
     @Mock private ApplicationEventPublisher eventPublisher;
     @InjectMocks private MatchDeleteService matchDeleteService;
 
@@ -123,5 +128,31 @@ class MatchDeleteServiceTest {
         ArgumentCaptor<MatchDeletedEvent> captor = ArgumentCaptor.forClass(MatchDeletedEvent.class);
         verify(eventPublisher).publishEvent(captor.capture());
         assertThat(captor.getValue().matchId()).isEqualTo(MATCH_ID);
+    }
+
+    @Test
+    void 삭제_성공시_이력이_저장된다() {
+        ReflectionTestUtils.setField(team, "id", 100L);
+        TeamPlayer player = TestFixtures.player(team, "PlayerOne");
+        MatchResult result = TestFixtures.matchResult(confirmedMatch, player, 5);
+        Rule chickenBonus = TestFixtures.rule(confirmedMatch.getSession(), RuleType.CHICKEN_BONUS, 3);
+
+        Match pendingMatch = TestFixtures.match(2L, confirmedMatch.getSession());
+        ReflectionTestUtils.setField(pendingMatch, "team", team);
+        pendingMatch.confirm(List.of(result), List.of(chickenBonus), new MatchConfirmData(true, "에란겔", 1, "20:00"));
+
+        given(matchRepository.findById(2L)).willReturn(Optional.of(pendingMatch));
+        given(matchResultRepository.findByMatch(pendingMatch)).willReturn(List.of(result));
+
+        matchDeleteService.delete(2L, LEADER_ID);
+
+        ArgumentCaptor<MatchDeletionLog> captor = ArgumentCaptor.forClass(MatchDeletionLog.class);
+        verify(matchDeletionLogRepository).save(captor.capture());
+        MatchDeletionLog log = captor.getValue();
+        assertThat(log.getMatchId()).isEqualTo(2L);
+        assertThat(log.getTeamId()).isEqualTo(100L);
+        assertThat(log.getDeletedByUserId()).isEqualTo(LEADER_ID);
+        assertThat(log.getRevertedKills()).isEqualTo(5);
+        assertThat(log.getRevertedRuleScore()).isEqualTo(3);
     }
 }

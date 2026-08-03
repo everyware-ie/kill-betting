@@ -2,10 +2,12 @@ package com.killnagi.domain.match.service;
 
 import com.killnagi.common.exception.KillnagiException;
 import com.killnagi.domain.match.entity.Match;
+import com.killnagi.domain.match.entity.MatchDeletionLog;
 import com.killnagi.domain.match.entity.MatchResult;
 import com.killnagi.domain.match.event.MatchDeletedEvent;
 import com.killnagi.domain.match.event.MemberSnapshot;
 import com.killnagi.domain.match.event.TeamSnapshot;
+import com.killnagi.domain.match.repository.MatchDeletionLogRepository;
 import com.killnagi.domain.match.repository.MatchRepository;
 import com.killnagi.domain.match.repository.MatchResultRepository;
 import com.killnagi.domain.team.entity.TeamPlayer;
@@ -23,6 +25,7 @@ public class MatchDeleteService {
 
     private final MatchRepository matchRepository;
     private final MatchResultRepository matchResultRepository;
+    private final MatchDeletionLogRepository matchDeletionLogRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
@@ -34,7 +37,18 @@ public class MatchDeleteService {
         List<MatchResult> results = matchResultRepository.findByMatch(match);
         match.delete(results);
 
+        matchDeletionLogRepository.save(buildDeletionLog(match, requesterId));
         eventPublisher.publishEvent(buildEvent(match, results));
+    }
+
+    private MatchDeletionLog buildDeletionLog(Match match, Long requesterId) {
+        return MatchDeletionLog.builder()
+                .matchId(match.getId())
+                .teamId(match.getTeam().getId())
+                .deletedByUserId(requesterId)
+                .revertedKills(match.getMatchKillCount())
+                .revertedRuleScore(match.getMatchBonusScore() - match.getMatchPenaltyScore())
+                .build();
     }
 
     private Match findValidMatch(Long matchId) {

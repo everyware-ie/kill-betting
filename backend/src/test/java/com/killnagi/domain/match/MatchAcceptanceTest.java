@@ -10,14 +10,20 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import com.killnagi.domain.match.entity.MatchDeletionLog;
+import com.killnagi.domain.match.repository.MatchDeletionLogRepository;
 import com.killnagi.infra.ocr.MatchOcrResult;
 import com.killnagi.support.AcceptanceTestSupport;
 
 @DisplayName("Match 인수 테스트")
 class MatchAcceptanceTest extends AcceptanceTestSupport {
+
+    @Autowired
+    private MatchDeletionLogRepository matchDeletionLogRepository;
 
     @Test
     void 리더가_경기_스크린샷을_업로드하면_OCR_결과와_함께_매치가_등록된다() {
@@ -137,6 +143,45 @@ class MatchAcceptanceTest extends AcceptanceTestSupport {
         // Then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
         assertThat(팀의_유효킬을_조회한다(sessionId, teamId, hostToken)).isZero();
+    }
+
+    @Test
+    void 매치_삭제시_삭제_이력이_저장된다() {
+        // Given
+        given(fileStorageService.store(any(), any())).willReturn("http://test-url/screenshots/test.jpg");
+        given(ocrClient.parseMatchScreenshot(any(), any())).willReturn(MatchOcrResult.builder()
+                .placement(5).mapName("에란겔").playTime("20:00").playerStats(List.of()).build());
+
+        String hostToken = 회원가입하고_토큰을_반환한다("host", "host@test.com");
+        long sessionId = 세션을_생성한다(hostToken);
+        long teamId = 팀을_생성한다(sessionId, "팀A", hostToken);
+        플레이어를_추가한다(sessionId, teamId, "PlayerOne", hostToken);
+
+        String leaderToken = 회원가입하고_토큰을_반환한다("leader", "leader@test.com");
+        long leaderUserId = 사용자_ID를_조회한다(leaderToken);
+        세션에_참가한다(sessionId, leaderToken);
+        리더를_배정한다(sessionId, teamId, leaderUserId, hostToken);
+        기본_팀에_리더와_팀원을_배정한다(sessionId, hostToken);
+        post("/api/sessions/" + sessionId + "/start", toJson(Map.of()), hostToken);
+
+        long matchId = 매치_이미지를_업로드한다(sessionId, leaderToken);
+        post("/api/matches/" + matchId + "/confirm",
+                toJson(Map.of(
+                        "playerResults", List.of(Map.of("nickname", "PlayerOne", "kills", 3, "placement", 5, "isTop10", true)),
+                        "isChicken", false)),
+                leaderToken);
+
+        // When
+        delete("/api/matches/" + matchId, leaderToken);
+
+        // Then
+        List<MatchDeletionLog> logs = matchDeletionLogRepository.findAll();
+        assertThat(logs).hasSize(1);
+        MatchDeletionLog log = logs.get(0);
+        assertThat(log.getMatchId()).isEqualTo(matchId);
+        assertThat(log.getTeamId()).isEqualTo(teamId);
+        assertThat(log.getDeletedByUserId()).isEqualTo(leaderUserId);
+        assertThat(log.getRevertedKills()).isEqualTo(3);
     }
 
     private int 팀의_유효킬을_조회한다(long sessionId, long teamId, String token) {
