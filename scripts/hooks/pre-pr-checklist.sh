@@ -62,13 +62,21 @@ EOF
 fi
 
 # ── FRD 참조 (ref, path) 추출 — 링크의 ref(브랜치/태그/커밋)를 보존 ──
+# 2026-08-03 이관: FRD 정본이 이 레포 docs/specs/frd/ 로 이동.
+#   ref="local" → 로컬 파일에서 status 확인
+#   ref=<브랜치> → 이관 전 형식(허브 URL), 하위호환으로 gh api 조회
 FRD_REFS=$(CORPUS="$CORPUS" python3 <<'PYEOF' 2>/dev/null
 import os, re
 corpus = os.environ.get("CORPUS", "")
 seen = set()
-pattern = r'mechuri-docs/blob/([^/\s]+)/(products/\S+?/specs/frd/[^\s]+?\.md)'
-for m in re.finditer(pattern, corpus):
-    ref, path = m.group(1), m.group(2)
+out = []
+# 로컬 상대경로 (예: ../../specs/frd/session.md, docs/specs/frd/session.md)
+for m in re.finditer(r'(?:\.{1,2}/)*(?:docs/)?specs/frd/([A-Za-z0-9._-]+\.md)', corpus):
+    out.append(("local", "docs/specs/frd/" + m.group(1)))
+# 하위호환: 이관 전 허브 절대 URL
+for m in re.finditer(r'mechuri-docs/blob/([^/\s]+)/(products/\S+?/specs/frd/[^\s]+?\.md)', corpus):
+    out.append((m.group(1), m.group(2)))
+for ref, path in out:
     if (ref, path) in seen:
         continue
     seen.add((ref, path))
@@ -82,10 +90,19 @@ if [ -n "$FRD_REFS" ]; then
 
     while IFS=$'\t' read -r ref path; do
         [ -z "$path" ] && continue
-        RAW=$(gh api "repos/everyware-ie/mechuri-docs/contents/$path?ref=$ref" -H "Accept: application/vnd.github.raw" 2>/dev/null)
-        if [ -z "$RAW" ]; then
-            UNVERIFIED="${UNVERIFIED}  - $path @${ref} (허브 접근 실패 — 네트워크 또는 권한 확인)\n"
-            continue
+        if [ "$ref" = "local" ]; then
+            if [ -f "$ROOT/$path" ]; then
+                RAW=$(cat "$ROOT/$path")
+            else
+                UNVERIFIED="${UNVERIFIED}  - $path (이 레포에 해당 FRD 파일이 없음 — 경로 확인)\n"
+                continue
+            fi
+        else
+            RAW=$(gh api "repos/everyware-ie/mechuri-docs/contents/$path?ref=$ref" -H "Accept: application/vnd.github.raw" 2>/dev/null)
+            if [ -z "$RAW" ]; then
+                UNVERIFIED="${UNVERIFIED}  - $path @${ref} (허브 접근 실패 — 네트워크 또는 권한 확인)\n"
+                continue
+            fi
         fi
         STATUS=$(echo "$RAW" | grep -m1 -E "^status:" | sed -E 's/^status:[[:space:]]*//')
         if [ "$STATUS" != "approved" ]; then
