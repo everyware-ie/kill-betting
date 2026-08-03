@@ -81,6 +81,20 @@ class TeamTest {
     }
 
     @Test
+    void 킬_차감시_totalKills가_감소한다() {
+        team.addKills(5);
+        team.subtractKills(2);
+        assertThat(team.getTotalKills()).isEqualTo(3);
+    }
+
+    @Test
+    void 룰_점수_차감시_ruleScore가_감소한다() {
+        team.addRuleScore(5);
+        team.subtractRuleScore(2);
+        assertThat(team.getRuleScore()).isEqualTo(3);
+    }
+
+    @Test
     void 조정_적용시_adjustmentScore가_증가한다() {
         team.applyAdjustment(3);
         assertThat(team.getAdjustmentScore()).isEqualTo(3);

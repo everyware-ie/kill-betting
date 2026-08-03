@@ -12,6 +12,7 @@ import { useAuth }  from '@/lib/auth-context';
 import { RoomAPI }  from '@/lib/room-api';
 import { useWebSocket } from '@/lib/useWebSocket';
 import { mapSessionRule } from '@/features/setup/helpers/mappers';
+import TeamMatchHistory from '@/features/room/components/TeamMatchHistory';
 import { useTheme } from '@/lib/theme-context';
 import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
@@ -774,6 +775,14 @@ export default function LivePage() {
 
   const handleMatchConfirmed = () => { setShowTeamModal(false); setMatchError(''); };
 
+  const handleDeleteMatch = async (matchId) => {
+    setMatchError('');
+    const res = await RoomAPI.deleteMatch(matchId);
+    if (!res.success) { setMatchError(res.error); return; }
+    const matchRes = await RoomAPI.getMatches(sessionId);
+    if (matchRes.success) setMatches(matchRes.data?.matches || []);
+  };
+
   const handleAdjust = async (teamId, amount, reason) => {
     await RoomAPI.addAdjustment(sessionId, teamId, amount, reason);
   };
@@ -1028,44 +1037,13 @@ export default function LivePage() {
 
           {/* 매치 히스토리 */}
           <section>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <span data-label="">매치 히스토리</span>
-              {matches.length > 30 && <span style={{ fontSize: 10, color: 'var(--kn-text-dim)' }}>{matches.length}게임 중 최근 30개</span>}
-            </div>
-            <div style={{ background: 'var(--kn-surface-1)', border: '1px solid var(--kn-border)', borderRadius: 'var(--kn-r-lg)', padding: '12px 14px', maxHeight: 340, overflowY: 'auto' }}>
-              {matches.length === 0 ? (
-                <div style={{ color: 'var(--kn-text-dim)', fontSize: 12, textAlign: 'center', padding: '20px 0' }}>아직 결과 없음</div>
-              ) : (
-                [...matches].reverse().slice(0, 30).map((m) => {
-                  const results = m.memberResults || [];
-                  const totalKills = results.reduce((s, r) => s + r.kills, 0);
-                  const hasChicken = results.some((r) => r.isChicken);
-                  const hasShot = !!m.screenshotUrl;
-                  return (
-                    <div
-                      key={m.matchId}
-                      onClick={() => hasShot && setScreenshotModal({ url: m.screenshotUrl, match: m })}
-                      style={{ padding: '9px 0', borderBottom: '1px solid var(--kn-border)', cursor: hasShot ? 'pointer' : 'default', borderRadius: 'var(--kn-r-sm)' }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--kn-accent)' }}>매치 #{m.matchNumber}</span>
-                          {hasChicken && <Icon name="trophy" size={10} color="var(--kn-accent)" />}
-                          {hasShot && <Icon name="image" size={10} color="var(--kn-text-muted)" />}
-                        </div>
-                        <span style={{ fontSize: 10, color: 'var(--kn-text-dim)' }}>{m.playedAt ? new Date(m.playedAt).toLocaleTimeString('ko') : ''}</span>
-                      </div>
-                      <div style={{ fontSize: 11, color: 'var(--kn-text-muted)' }}>
-                        킬: <b style={{ color: 'var(--kn-text)' }}>{totalKills}</b>
-                        {results.map((r) => (
-                          <span key={r.playerId} style={{ marginLeft: 6 }}>{r.playerNickname} {r.kills}킬</span>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
+            <TeamMatchHistory
+              matches={matches}
+              teams={teams}
+              onMatchClick={setScreenshotModal}
+              myTeamId={myTeam?.id}
+              onDeleteMatch={handleDeleteMatch}
+            />
 
             {adjs.length > 0 && (
               <div style={{ marginTop: 12 }}>

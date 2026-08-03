@@ -234,6 +234,29 @@ export const RoomAPI = {
     });
   },
 
+  /**
+   * 확정 매치 삭제 (본인 팀 리더만)
+   *
+   * [실제 API]
+   *   DELETE /matches/:matchId
+   *   Response 204: (본문 없음)
+   */
+  deleteMatch: async (matchId) => {
+    if (USE_MOCK) {
+      await delay(200);
+      return ok(null);
+    }
+    const token = getStoredToken();
+    const res = await fetch(`${API_BASE_URL}/matches/${matchId}`, {
+      method: 'DELETE',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      credentials: 'include',
+    });
+    if (res.status === 204) return ok(null);
+    const body = await res.json().catch(() => ({}));
+    return err(body.message || '매치를 삭제할 수 없습니다');
+  },
+
   addAdjustment: async (sessionId, teamId, amount, reason) => {
     if (USE_MOCK) {
       await delay(200);

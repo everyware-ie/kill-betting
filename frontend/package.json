@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test": "vitest run"
   },
   "dependencies": {
     "@stomp/stompjs": "^7.3.0",
@@ -13,5 +14,8 @@
     "react": "^18",
     "react-dom": "^18",
     "sockjs-client": "^1.6.1"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.10"
   }
 }

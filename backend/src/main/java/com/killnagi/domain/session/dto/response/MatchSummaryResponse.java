@@ -11,15 +11,19 @@ public record MatchSummaryResponse(
         String mapName,
         String screenshotUrl,
         LocalDateTime playedAt,
+        Long teamId,
+        String teamName,
         List<MemberMatchResultResponse> memberResults
 ) {
     public static MatchSummaryResponse from(Match match, List<MemberMatchResultResponse> memberResults) {
         return new MatchSummaryResponse(
-                match.getId(), 
-                match.getMatchNumber(), 
+                match.getId(),
+                match.getMatchNumber(),
                 match.getMapName(),
-                match.getScreenshotUrl(), 
-                match.getCreatedAt(), 
+                match.getScreenshotUrl(),
+                match.getCreatedAt(),
+                match.getTeam().getId(),
+                match.getTeam().getName(),
                 memberResults
         );
     }

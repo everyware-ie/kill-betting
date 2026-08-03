@@ -32,6 +32,16 @@ class TeamPlayerTest {
     }
 
     @Test
+    void 킬_차감시_totalKills가_감소한다() {
+        TeamPlayer player = playerFixture();
+
+        player.addKills(5);
+        player.subtractKills(2);
+
+        assertThat(player.getTotalKills()).isEqualTo(3);
+    }
+
+    @Test
     void 초기_상태의_킬_수치는_모두_0이다() {
         TeamPlayer player = playerFixture();
 

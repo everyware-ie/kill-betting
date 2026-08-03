@@ -125,6 +125,17 @@ public class Match {
         });
     }
 
+    public void delete(List<MatchResult> matchResults) {
+        if (!isConfirmed()) {
+            throw KillnagiException.badRequest("확정된 매치만 삭제할 수 있습니다.");
+        }
+
+        this.team.subtractKills(this.matchKillCount);
+        matchResults.forEach(matchResult -> matchResult.getTeamPlayer().subtractKills(matchResult.getKills()));
+        this.team.subtractRuleScore(this.matchBonusScore - this.matchPenaltyScore);
+        this.status = MatchStatus.DELETED;
+    }
+
     public void updateScreenshotUrl(String screenshotUrl) {
         this.screenshotUrl = screenshotUrl;
     }

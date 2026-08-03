@@ -1,6 +1,7 @@
 package com.killnagi.domain.scoreboard.dto;
 
 import com.killnagi.domain.match.event.MatchConfirmedEvent;
+import com.killnagi.domain.match.event.MatchDeletedEvent;
 import com.killnagi.domain.match.event.MemberSnapshot;
 import com.killnagi.domain.match.event.TeamSnapshot;
 
@@ -29,6 +30,23 @@ public record ScoreBoardUpdateMessage(
                 event.matchNumber(),
                 event.mapName(),
                 event.registeredAt(),
+                teamUpdate,
+                memberResults
+        );
+    }
+
+    public static ScoreBoardUpdateMessage from(MatchDeletedEvent event) {
+        TeamUpdate teamUpdate = toTeamUpdate(event.teamSnapshot());
+        List<MemberResult> memberResults = event.memberSnapshots().stream()
+                .map(ScoreBoardUpdateMessage::toMemberResult)
+                .toList();
+
+        return new ScoreBoardUpdateMessage(
+                event.matchId(),
+                event.sessionId(),
+                event.matchNumber(),
+                event.mapName(),
+                event.deletedAt(),
                 teamUpdate,
                 memberResults
         );

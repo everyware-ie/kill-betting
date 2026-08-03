@@ -1,6 +1,7 @@
 package com.killnagi.domain.session.service;
 
 import com.killnagi.domain.match.event.MatchConfirmedEvent;
+import com.killnagi.domain.match.event.MatchDeletedEvent;
 import com.killnagi.domain.scoreboard.dto.ScoreBoardUpdateMessage;
 import com.killnagi.domain.session.dto.response.SessionEndMessage;
 import com.killnagi.domain.session.dto.response.SessionMessage;
@@ -31,6 +32,16 @@ public class SessionBroadcaster {
         ScoreBoardUpdateMessage message = ScoreBoardUpdateMessage.from(event);
 
         log.info("스코어보드 브로드캐스트: sessionId={}, matchNumber={}, team={}",
+                event.sessionId(), event.matchNumber(), event.teamSnapshot().teamName());
+
+        send(event.sessionId(), Type.SCORE_UPDATED, message);
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleMatchDeleted(MatchDeletedEvent event) {
+        ScoreBoardUpdateMessage message = ScoreBoardUpdateMessage.from(event);
+
+        log.info("매치 삭제 브로드캐스트: sessionId={}, matchNumber={}, team={}",
                 event.sessionId(), event.matchNumber(), event.teamSnapshot().teamName());
 
         send(event.sessionId(), Type.SCORE_UPDATED, message);
