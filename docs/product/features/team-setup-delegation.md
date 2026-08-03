@@ -1,6 +1,6 @@
 # 팀 구성 권한 위임 & 닉네임 즐겨찾기
 
-- FRD: https://github.com/everyware-ie/mechuri-docs/blob/main/products/kill-betting/specs/frd/team-setup-delegation.md
+- FRD: ../../specs/frd/team-setup-delegation.md
 - 이슈: #104, #105, #106
 - 참조 시점: 2026-07-25 / 허브 커밋 5ca2134 / status: approved
 - 구현 상태: 진행 중 (#104)

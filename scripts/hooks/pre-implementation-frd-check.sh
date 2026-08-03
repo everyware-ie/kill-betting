@@ -128,7 +128,9 @@ done
 BASE_STUBS=$(git -C "$ROOT" ls-tree -r --name-only "$BASE_REF" -- docs/product/features/ 2>/dev/null \
     | grep -E '\.md$' | grep -v 'README.md')
 
-# 워킹트리의 스텁 중 기준 ref에 없고 허브 FRD 링크를 담은 것이 하나라도 있으면 통과
+# 워킹트리의 구현 노트 중 기준 ref에 없고 FRD 링크를 담은 것이 하나라도 있으면 통과
+# (2026-08-03 이관: FRD가 이 레포 docs/specs/frd/ 로 이동. 로컬 상대경로를 우선 인정하고,
+#  이관 전 작성된 허브 URL 형식도 하위호환으로 계속 인정한다)
 CONFIRMED=0
 while IFS= read -r stub; do
     [ -z "$stub" ] && continue
@@ -136,7 +138,7 @@ while IFS= read -r stub; do
     [ "$base" = "README.md" ] && continue
     relstub="docs/product/features/$base"
     echo "$BASE_STUBS" | grep -qx "$relstub" && continue
-    if grep -q "mechuri-docs.*specs/frd" "$stub" 2>/dev/null; then
+    if grep -qE "(specs/frd/[A-Za-z0-9._-]+\.md|mechuri-docs.*specs/frd)" "$stub" 2>/dev/null; then
         CONFIRMED=1
         break
     fi

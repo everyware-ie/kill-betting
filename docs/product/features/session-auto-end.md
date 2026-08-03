@@ -1,6 +1,6 @@
 # 세션 자동종료 (제한시간 만료 + 무응답) & 폴링 배치 전환
 
-- FRD: https://github.com/everyware-ie/mechuri-docs/blob/main/products/kill-betting/specs/frd/session-settings-and-lifecycle.md
+- FRD: ../../specs/frd/session-settings-editable.md
   ⚠️ 정확한 파일명·URL은 허브에서 확인 후 확정
 - 참조 시점: 2026-07-28 / 허브 커밋 `<sha 7자리 확인 필요>` / status: **review**
   (README 규칙 #2 "approved만 착수" 예외 — FRD가 "신규 개발 항목, 구현 후 approved 전환" 명시, 담당자 본인 진행)

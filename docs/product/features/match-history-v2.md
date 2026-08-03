@@ -1,10 +1,10 @@
 # 매치 히스토리 v2 (팀별 분리 + 삭제/재업로드)
 
-- FRD: https://github.com/everyware-ie/mechuri-docs/blob/main/products/kill-betting/specs/frd/match-history-v2.md
+- FRD: ../../specs/frd/match-history-v2.md
 - 참조 시점: 2026-08-03 / 허브 커밋 `836284a` / status: **review**
   (README 규칙 #2 "approved만 착수" 예외 — FRD가 "신규 개발 항목, 구현 후 approved 전환" 명시, 담당자 본인(JiEung2) 진행)
 - 구현 상태: 완료 (#130, #131, #132 — 브랜치 `jieung/feature/match-history-team-split`)
-- 관련: [match-confirm.md](https://github.com/everyware-ie/mechuri-docs/blob/main/products/kill-betting/specs/frd/match-confirm.md)(상위, approved — 점수 누적/룰 적용 로직의 원본 근거)
+- 관련: [match-confirm.md](../../specs/frd/match-confirm.md)(상위, approved — 점수 누적/룰 적용 로직의 원본 근거)
 
 ## 구현 노트
 

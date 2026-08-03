@@ -4,20 +4,37 @@
 배틀그라운드 킬내기 세션 점수 자동 계산 서비스.
 팀들이 매치 결과 이미지를 업로드하면 세션 룰에 따라 점수를 자동 집계한다.
 
-## 기획 문서의 상류 (mechuri-docs)
+## 기획 문서의 정본 (이 레포)
 
-기능의 **무엇·왜**(정책·기능정의·요구사항)는 팀 문서 허브 [mechuri-docs](https://github.com/everyware-ie/mechuri-docs)의 `products/kill-betting/specs/`가 유일한 진실이다.
+기능의 **무엇·왜**(정책·기능정의·요구사항)는 이 레포의 `docs/specs/frd/`가 유일한 진실이다.
+아이디에이션 → 회의 → 결정 → 스펙 → 구현이 **한 레포 안에서** 이어진다.
 
-- 이 레포의 `docs/product/features/`는 허브 **approved FRD의 스텁**(링크 + 구현 노트)만 담는다. 규칙 원문을 여기에 복사하지 않는다.
-- 구현 중 스텁과 허브 FRD가 어긋난 것을 발견하면 **허브가 우선** — 즉시 이슈를 만들고 진행 여부를 확인한다.
-- approved 아닌(draft/review) FRD는 구현 근거가 아니다.
+- `docs/specs/frd/` — 기능정의서(FRD). **approved만 구현 근거**다. draft/review는 아니다
+- `docs/specs/prd/` — 제품 요구 문서(PRD)
+- `docs/product/features/` — 기능별 **구현 노트**(FRD 링크 + 코드 구조·기술 선택). 규칙 원문을 복사하지 않는다
+- `docs/decisions/`, `docs/meetings/`, `docs/topics/`, `docs/ideation/<닉네임>/` — 결정·회의·주제 종합·개인 raw
+
+스펙과 구현이 같은 레포에 있으므로, **불일치를 발견하면 같은 PR에서 함께 고치는 것을 기본**으로 한다(이전에는 별도 repo라 이슈를 만들어 넘겨야 했다).
+
+> **2026-08-03 이관**: 이전에는 허브 [mechuri-docs](https://github.com/everyware-ie/mechuri-docs)의 `products/kill-betting/specs/`가 정본이고 이 레포는 스텁만 뒀다. 그 교차 repo 링크 4건이 전부 조용히 깨져 있었던 것이 확인되어 구조를 바꿨다. 배경·근거: [2026-08-03 결정](https://github.com/everyware-ie/mechuri-docs/blob/main/team/decisions/2026-08-03-ideation-pipeline-location.md)
+
+### 허브에 남는 것
+
+- **제품 대장**(어느 제품이 어느 repo인지) · **팀 공통 프로세스 결정·컨벤션** · **여러 제품 통합 회의 기록** · 노션 이관 아카이브
+
+### 아이디에이션 규약
+
+- 브랜치 **`idea/<닉네임>`**(개인 상시, 머지 후 재사용), 경로 **`docs/ideation/<본인 닉네임>/`**
+- raw는 불변 — 고쳐 쓰지 않고 새 노트로 보완. 타인 폴더는 읽기 전용
 
 ### 강제 게이트 (훅으로 자동 적용)
 
 approved FRD라도 착수 전 확인 단계를 건너뛰지 못하도록 두 지점에서 훅이 강제한다:
 
-1. **구현 착수 시점** (`pre-implementation-frd-check.sh`): 구현 메인 소스(`backend/src/main`·`frontend/{app,components,features,lib}`)를 편집할 때, **이 브랜치에** 확인 스텁(`docs/product/features/<기능>.md`, 허브 FRD 링크 포함)이 하나도 없으면 편집이 차단된다. 테스트 파일(`*.test.js`·`*.spec.js`·`backend/src/test`)은 대상 아님(TDD test-first 허용), 브랜치 타입 `chore`·`docs`는 면제. 스텁을 만들려면 허브 FRD를 가져와 사용자에게 보여주고 확인받는 단계를 거쳐야 한다. **"바로 진행"으로도 이 단계는 건너뛸 수 없다.**
-2. **PR 생성 시점** (`pre-pr-checklist.sh`): PR이 참조하는 허브 FRD(본문·`--body-file`·이 브랜치의 스텁 링크에서 수집)의 `status`가 `approved`가 아니면 PR 생성이 차단된다.
+1. **구현 착수 시점** (`pre-implementation-frd-check.sh`): 구현 메인 소스(`backend/src/main`·`frontend/{app,components,features,lib}`)를 편집할 때, **이 브랜치에** 확인 노트(`docs/product/features/<기능>.md`, FRD 링크 포함)가 하나도 없으면 편집이 차단된다. 테스트 파일(`*.test.js`·`*.spec.js`·`backend/src/test`)은 대상 아님(TDD test-first 허용), 브랜치 타입 `chore`·`docs`는 면제. 노트를 만들려면 `docs/specs/frd/`의 FRD를 가져와 사용자에게 보여주고 확인받는 단계를 거쳐야 한다. **"바로 진행"으로도 이 단계는 건너뛸 수 없다.**
+2. **PR 생성 시점** (`pre-pr-checklist.sh`): PR이 참조하는 FRD(본문·`--body-file`·이 브랜치의 구현 노트 링크에서 수집)의 `status`가 `approved`가 아니면 PR 생성이 차단된다.
+
+> 두 훅은 2026-08-03 이관에 맞춰 **로컬 `docs/specs/frd/` 경로를 인식**하도록 갱신됐다. 이관 전 형식(허브 절대 URL)도 하위호환으로 계속 인정한다.
 
 훅이 강제하는 수준은 정직하게 다음까지다:
 - 강제함: "이 브랜치에서 FRD 확인 체크포인트가 최소 1회 실행됐다"
@@ -35,6 +52,15 @@ approved FRD라도 착수 전 확인 단계를 건너뛰지 못하도록 두 지
 ├── backend/
 ├── frontend/
 ├── docs/
+│   ├── ideation/<닉네임>/    # 개인 아이디어 원문 (raw, 불변)
+│   ├── meetings/             # 회의 종합
+│   ├── decisions/            # 의사결정
+│   ├── specs/
+│   │   ├── frd/              # 기능정의서 — 구현 근거 (approved만 유효)
+│   │   └── prd/              # 제품 요구 문서
+│   ├── topics/               # 주제별 종합
+│   ├── ops/                  # 운영 (어드민·도구·거버넌스)
+│   ├── marketing/
 │   ├── architecture/
 │   │   ├── erd/              # ERD (current.mermaid, v1.mermaid)
 │   │   └── adr/              # 아키텍처 결정 기록
@@ -93,7 +119,11 @@ approved FRD라도 착수 전 확인 단계를 건너뛰지 못하도록 두 지
 | 프론트엔드 코드 작성 / 리뷰 | @docs/frontend/conventions.md            |
 | 도메인 용어가 불명확할 때 | @.claude/domain/glossary.md              |
 | 현재 개발 상태 파악 | @.claude/status.md                       |
-| 기능 명세 확인 (FRD) | @docs/product/features/                  |
+| 기능 명세 확인 (FRD) | @docs/specs/frd/                         |
+| 제품 요구 문서 (PRD) | @docs/specs/prd/                         |
+| 기능별 구현 노트 | @docs/product/features/                      |
+| 지금까지의 결정 확인 | @docs/decisions/index.md                 |
+| 회의 기록 확인 | @docs/meetings/                                |
 | 현재 ERD 확인 | @docs/architecture/erd/current.mermaid   |
 | 기술 부채 / PR 변경 이력 확인 | @docs/common/tech-debt.md           |
 | 문서 업데이트 기준 확인 | @docs/common/docs-convention.md      |
@@ -130,12 +160,12 @@ approved FRD라도 착수 전 확인 단계를 건너뛰지 못하도록 두 지
 4. `tdd` — 이슈 단위로 구현
 
 **PRD 없이 구현 시작 금지.**
-PRD는 `docs/product/features/`에 저장한다.
+PRD는 `docs/specs/prd/`에, FRD는 `docs/specs/frd/`에 저장한다. `docs/product/features/`는 **구현 노트** 전용이다.
 
 ### AI 구현 가이드
 
 코드 작성 전:
-- 해당 기능의 PRD 확인 (`docs/product/features/`)
+- 해당 기능의 FRD/PRD 확인 (`docs/specs/frd/`, `docs/specs/prd/`) + 기존 구현 노트 (`docs/product/features/`)
 - `.claude/domain/glossary.md`에서 도메인 용어 확인
 - `docs/architecture/adr/`에서 관련 아키텍처 결정 확인
 
