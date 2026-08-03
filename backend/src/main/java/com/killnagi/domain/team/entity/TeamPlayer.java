@@ -69,6 +69,10 @@ public class TeamPlayer {
         this.totalKills += kills;
     }
 
+    public void subtractKills(int kills) {
+        this.totalKills -= kills;
+    }
+
     public int getEffectiveKills() {
         return totalKills + bonusKills - penaltyKills;
     }

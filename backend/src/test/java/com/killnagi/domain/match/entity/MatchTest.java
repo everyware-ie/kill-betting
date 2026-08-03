@@ -11,8 +11,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.killnagi.domain.match.entity.Match.MatchConfirmData;
+import com.killnagi.domain.rule.entity.Rule;
+import com.killnagi.domain.rule.entity.RuleType;
 import com.killnagi.domain.session.entity.Session;
 import com.killnagi.domain.team.entity.Team;
+import com.killnagi.domain.team.entity.TeamPlayer;
 import com.killnagi.domain.user.entity.User;
 import com.killnagi.support.TestFixtures;
 
@@ -66,5 +69,44 @@ class MatchTest {
         match.confirm(List.of(), List.of(), new MatchConfirmData(false, null, 0, null));
         assertThatThrownBy(() -> match.confirm(List.of(), List.of(), new MatchConfirmData(false, null, 0, null)))
                 .isInstanceOf(RuntimeException.class);
+    }
+
+    @Test
+    void 확정되지_않은_매치는_삭제할_수_없다() {
+        assertThatThrownBy(() -> match.delete(List.of()))
+                .isInstanceOf(RuntimeException.class);
+    }
+
+    @Test
+    void delete_호출시_상태가_DELETED로_변경된다() {
+        match.confirm(List.of(), List.of(), new MatchConfirmData(false, null, 0, null));
+
+        match.delete(List.of());
+
+        assertThat(match.getStatus()).isEqualTo(MatchStatus.DELETED);
+    }
+
+    @Test
+    void delete_호출시_팀의_누적_킬수와_룰점수가_역산된다() {
+        Rule chickenBonus = TestFixtures.rule(match.getSession(), RuleType.CHICKEN_BONUS, 3);
+        TeamPlayer player = TestFixtures.player(match.getTeam(), "PlayerOne");
+        MatchResult result = TestFixtures.matchResult(match, player, 5);
+        match.confirm(List.of(result), List.of(chickenBonus), new MatchConfirmData(true, "에란겔", 1, "20:00"));
+
+        match.delete(List.of(result));
+
+        assertThat(match.getTeam().getTotalKills()).isZero();
+        assertThat(match.getTeam().getRuleScore()).isZero();
+    }
+
+    @Test
+    void delete_호출시_팀원의_누적_킬수가_역산된다() {
+        TeamPlayer player = TestFixtures.player(match.getTeam(), "PlayerOne");
+        MatchResult result = TestFixtures.matchResult(match, player, 5);
+        match.confirm(List.of(result), List.of(), new MatchConfirmData(false, null, 0, null));
+
+        match.delete(List.of(result));
+
+        assertThat(player.getTotalKills()).isZero();
     }
 }

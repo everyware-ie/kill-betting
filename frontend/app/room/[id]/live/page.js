@@ -775,6 +775,14 @@ export default function LivePage() {
 
   const handleMatchConfirmed = () => { setShowTeamModal(false); setMatchError(''); };
 
+  const handleDeleteMatch = async (matchId) => {
+    setMatchError('');
+    const res = await RoomAPI.deleteMatch(matchId);
+    if (!res.success) { setMatchError(res.error); return; }
+    const matchRes = await RoomAPI.getMatches(sessionId);
+    if (matchRes.success) setMatches(matchRes.data?.matches || []);
+  };
+
   const handleAdjust = async (teamId, amount, reason) => {
     await RoomAPI.addAdjustment(sessionId, teamId, amount, reason);
   };
@@ -1029,7 +1037,13 @@ export default function LivePage() {
 
           {/* 매치 히스토리 */}
           <section>
-            <TeamMatchHistory matches={matches} teams={teams} onMatchClick={setScreenshotModal} />
+            <TeamMatchHistory
+              matches={matches}
+              teams={teams}
+              onMatchClick={setScreenshotModal}
+              myTeamId={myTeam?.id}
+              onDeleteMatch={handleDeleteMatch}
+            />
 
             {adjs.length > 0 && (
               <div style={{ marginTop: 12 }}>

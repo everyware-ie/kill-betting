@@ -87,8 +87,16 @@ public class Team {
         this.totalKills += kills;
     }
 
+    public void subtractKills(int kills) {
+        this.totalKills -= kills;
+    }
+
     public void addRuleScore(int score) {
         this.ruleScore += score;
+    }
+
+    public void subtractRuleScore(int score) {
+        this.ruleScore -= score;
     }
 
     public void applyAdjustment(int amount) {
