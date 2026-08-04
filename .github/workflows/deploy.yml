@@ -151,7 +151,7 @@ jobs:
 
             BACKEND_IMAGE_TAG=${{ github.sha }} docker compose up -d --no-build backend prometheus loki grafana
 
-            docker image prune -f
+            docker image prune -a -f --filter "until=720h"
 
   deploy-frontend:
     name: Deploy Frontend to EC2
@@ -191,7 +191,7 @@ jobs:
 
             FRONTEND_IMAGE_TAG=${{ github.sha }} docker compose up -d --no-build frontend prometheus loki grafana
 
-            docker image prune -f
+            docker image prune -a -f --filter "until=720h"
 
   deploy-infra:
     name: Deploy Infra (Monitoring) to EC2
@@ -235,4 +235,4 @@ jobs:
 
             docker compose up -d prometheus loki grafana
 
-            docker image prune -f
+            docker image prune -a -f --filter "until=720h"
