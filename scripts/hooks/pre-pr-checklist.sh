@@ -133,7 +133,8 @@ msg = '''[PR 생성 전 체크리스트]
 - [ ] 단일 목적 PR인가? (스코프 오염 없나)
 - [ ] 관련 docs 업데이트 필요한 변경 완료하였는가?
 - [ ] 세션 중 발견한 범위 외 내용들을 별도 깃허브 이슈로 기록해두었는가
-- [ ] 관련 mechuri-docs FRD가 있다면 status: approved인가? (본문·스텁 링크로 자동 검증됨)'''
+- [ ] 관련 mechuri-docs FRD가 있다면 status: approved인가? (본문·스텁 링크로 자동 검증됨)
+- [ ] 구현이 FRD 핵심 값과 일치하는가? (구현 노트의 FRD 핵심 값 표 대비 — 다르면 /sync-frd로 FRD·decision 최신화)'''
 print(json.dumps({'systemMessage': msg}))
 "
 
