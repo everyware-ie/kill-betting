@@ -1,7 +1,7 @@
 #!/bin/bash
 # PreToolUse 훅 — gh pr create 감지 시 PR 체크리스트 자동 주입 + FRD 승인 상태 게이트
 #
-# 게이트: 이 PR이 참조하는 mechuri-docs FRD의 status가 approved가 아니면 PR
+# 게이트: 이 PR이 참조하는 FRD(docs/specs/frd/ 정본 · 레거시 허브 링크)의 status가 approved가 아니면 PR
 # 생성을 차단한다(exit 2). FRD 참조는 아래 세 경로에서 모은다:
 #   1) gh pr create 커맨드라인의 인라인 본문(--body "..." 등)
 #   2) --body-file / -F 로 지정한 파일 내용
@@ -133,8 +133,8 @@ msg = '''[PR 생성 전 체크리스트]
 - [ ] 단일 목적 PR인가? (스코프 오염 없나)
 - [ ] 관련 docs 업데이트 필요한 변경 완료하였는가?
 - [ ] 세션 중 발견한 범위 외 내용들을 별도 깃허브 이슈로 기록해두었는가
-- [ ] 관련 mechuri-docs FRD가 있다면 status: approved인가? (본문·스텁 링크로 자동 검증됨)
-- [ ] 구현이 FRD 핵심 값과 일치하는가? (구현 노트의 FRD 핵심 값 표 대비 — 다르면 /sync-frd로 FRD·decision 최신화)'''
+- [ ] 관련 FRD(docs/specs/frd/ 정본, 레거시 허브 링크도 인정)가 있다면 status: approved인가? (본문·구현 노트 링크로 자동 검증됨)
+- [ ] 구현이 FRD 핵심 값과 일치하는가? (구현 노트의 FRD 핵심 값 표 대비 — 다르면 어느 쪽이 맞는지 확정 후, 구현/새 결정이 맞으면 /sync-frd로 FRD·decision 최신화, FRD가 맞으면 구현을 같은 PR에서 수정)'''
 print(json.dumps({'systemMessage': msg}))
 "
 

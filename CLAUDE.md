@@ -193,7 +193,7 @@ approved FRD가 있어도 실제 구현·논의가 그와 다른 값·규칙으�
 
 **안내 포맷 예시:**
 
-```
+```text
 ⚠️ 스펙-구현 불일치 감지 (확신도 5/5)
 - FRD: session-settings-editable.md S1 — "설정 수정은 WAITING일 때만"
 - 지금 구현/논의: WAITING·IN_PROGRESS 둘 다 허용
