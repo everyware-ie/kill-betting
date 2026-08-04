@@ -29,6 +29,15 @@
 - **원인**: `deploy-backend` / `deploy-frontend` / `deploy-infra`가 서로 독립된 job이라 같은 커밋에 backend/frontend가 둘 다 바뀌면 (혹은 infra 경로까지 겹치면) 두 개 이상의 job이 동시에 같은 EC2 호스트에 SSH로 붙어 `docker compose up -d`를 실행한다. 셋 다 `prometheus`, `loki`, `grafana`, `killnagi-net` 네트워크를 공통으로 건드리기 때문에, 동시 실행 시 같은 컨테이너를 서로 재생성하려고 경쟁하거나 네트워크 생성이 겹칠 수 있다.
 - **영향**: 배포가 간헐적으로 실패(또는 일부만 반영)할 수 있는 잠재 위험. 이번 스키마 드리프트 사고의 직접 원인은 아니었지만, 같은 "액션은 성공, 실제 배포 상태는 불확실" 계열의 증상을 만들 수 있는 별개의 버그.
 - **조치**: `deploy-backend` / `deploy-frontend` / `deploy-infra` job에 동일한 `concurrency.group: deploy-ec2`를 부여해 세 job이 절대 동시에 EC2에 붙지 않도록 직렬화 (`cancel-in-progress: false`로 취소 대신 대기).
+
+### 배포 스크립트의 `docker image prune -f`가 커밋 SHA 태그 이미지를 못 지움 (해결됨)
+
+- **발견 경위**: Grafana 접속 시 "failed to load its application files" 에러 조사 중 `df -h` 결과 EC2 루트 디스크(29G)가 100% 사용 중임을 발견. `docker system df -v`로 원인 추적.
+- **원인**: `deploy.yml`의 빌드 스텝이 이미지에 태그를 두 개 붙임 — `latest`(배포마다 재사용됨)와 커밋 SHA(`github.sha`, 배포마다 유일함). `docker image prune -f`(옵션 `-a` 없음)는 태그를 잃은 dangling 이미지만 지우는데, SHA 태그는 한 번도 재사용되지 않으므로 dangling이 될 일이 없어 배포할 때마다 새 이미지가 태그된 채로 무기한 쌓였음. backend 이미지 하나가 ~600MB, frontend ~240MB씩 수개월치가 누적되어 디스크를 채움.
+- **영향**: Grafana의 내부 SQLite가 디스크 풀(SQLITE_FULL, errno 13)로 쓰기 실패 → "application files 로드 실패" 화면. 같은 디스크를 쓰는 backend/frontend 컨테이너도 잠재적으로 영향권.
+- **조치**: 세 배포 job의 정리 스텝을 `docker image prune -f` → `docker image prune -a -f --filter "until=720h"`로 변경. `-a`로 dangling 여부와 무관하게 미사용 이미지를 대상에 포함시키되, `until=720h`(30일) 필터로 최근 한 달 이내 이미지는 롤백 대비용으로 보존하고 그보다 오래된 것만 정리. 현재 실행 중인 컨테이너가 쓰는 이미지는 `-a` 옵션에서도 항상 보존됨.
+- **후속**: EC2에 이미 쌓인 기존 이미지·3.75GB build cache·미사용 `mysql:8.0`(로컬 개발 초기 잔재, 현재는 RDS 사용)은 수동 정리 필요 (`docker image prune -a -f`, `docker builder prune -a -f`로 1회성 정리 진행).
+
 ### 로컬 `ddl-auto: update`가 운영 스키마 드리프트를 가림 (해결됨)
 
 - **발견 경위**: 머지 후 EC2 배포 액션은 성공으로 뜨는데 `docker ps`엔 backend가 안 보이고, job을 재실행하면 뜨는 현상 조사. `docker logs`에서 `Schema-validation: missing table [favorite_nicknames]`로 부팅 자체가 실패하고 있었음 (`restart: on-failure:3` 소진 후 컨테이너가 조용히 Exited로 멈춤 → 배포 액션은 이미 성공 처리된 뒤라 겉으론 성공으로 보임).
@@ -53,6 +62,12 @@
 
 - `deploy-backend` / `deploy-frontend` / `deploy-infra`에 공통 `concurrency: group: deploy-ec2, cancel-in-progress: false` 추가
 - 세 job이 공유하는 EC2 호스트에 동시에 `docker compose up -d`를 실행하지 못하도록 직렬화
+
+### EC2 배포 이미지 정리 정책 도입 (2026-08-04)
+
+- 세 배포 job의 `docker image prune -f` → `docker image prune -a -f --filter "until=720h"`로 변경
+- 커밋 SHA로 태그된 이미지는 dangling이 되지 않아 무기한 쌓이던 문제 수정 — 30일(720h) 지난 미사용 이미지만 정리, 최근 이미지는 롤백 대비용으로 보존
+- 현재 실행 중인 컨테이너가 참조하는 이미지는 기간과 무관하게 항상 보존됨
 ### Flyway 마이그레이션 도입 (2026-07-29)
 
 - `flyway-core` + `flyway-mysql` 의존성 추가, `db/migration/`에 `V1__baseline`(운영 DB mysqldump 기반) ~ `V5` 작성
