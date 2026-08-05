@@ -1,0 +1,2 @@
+ALTER TABLE `matches`
+  MODIFY COLUMN `status` enum('CONFIRMED','PENDING','DELETED') COLLATE utf8mb4_unicode_ci NOT NULL;

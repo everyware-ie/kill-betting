@@ -23,6 +23,18 @@
 - **해결 방향**: 룰 컬렉션을 통째로 교체하는 `PUT /sessions/{id}/rules` (rules 배열 전체 replace) 또는
   룰 활성/비활성 토글 엔드포인트 도입.
 
+### `matches.status` DB enum에 `DELETED` 값 누락 (해결됨)
+
+- **발견 경위**: 매치 삭제(`DELETE /api/matches/{id}`) 요청이 500으로 실패, 로그에서
+  `Data truncated for column 'status' at row 1` 확인.
+- **원인**: `MatchStatus`(Java enum)는 `PENDING, CONFIRMED, DELETED` 세 값을 갖지만, `matches.status`
+  DB 컬럼은 `V1__baseline.sql`부터 `enum('CONFIRMED','PENDING')`으로만 정의돼 있었다. `V6__create_match_deletion_logs.sql`이
+  매치 소프트삭제(삭제 로그 테이블) 기능을 추가하면서 `MatchDeleteService`가 `status`를 `DELETED`로
+  갱신하도록 했는데, DB enum 컬럼을 넓히는 걸 빠뜨려 `rule_type`(V3) 때와 같은 유형의 스키마 드리프트가 재발했다.
+- **영향**: 매치 삭제 기능이 운영에서 항상 500으로 실패.
+- **조치**: `V7__widen_match_status_enum.sql` 추가 — `matches.status`를
+  `enum('CONFIRMED','PENDING','DELETED')`로 확장.
+
 ### deploy.yml의 backend/frontend/infra 배포 job이 EC2에 동시 접속 (해결됨)
 
 - **발견 경위**: 배포 장애(스키마 드리프트로 인한 부팅 크래시, 별도 기록) 조사 중 `deploy.yml` 구조를 보다가 발견.
