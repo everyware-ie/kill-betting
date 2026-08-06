@@ -3,7 +3,7 @@ title: 매치 결과 승인(확정) FRD
 product: kill-betting
 type: frd
 status: approved
-updated: 2026-07-15
+updated: 2026-08-06
 related: [kill-betting-core, session, match-upload]
 code_repo: https://github.com/everyware-ie/kill-betting
 ---
@@ -38,7 +38,7 @@ code_repo: https://github.com/everyware-ie/kill-betting
 | C3 | `PENDING` 매치만 confirm 가능, 이미 `CONFIRMED`면 재확정 불가 | `Match.confirm` / `findValidMatch` |
 | C4 | 킬/데미지/어시스트는 0 이상이어야 함 | `MatchResult` 검증 |
 | C5 | 팀 킬 수 = 이번 매치 팀원 킬의 합 → 팀 누적킬(totalKills)에 가산. 플레이어 개인 누적킬에도 동일하게 가산 | `Match.accumulateKills` |
-| C6 | **룰 적용**: `CHICKEN_BONUS` — 치킨(1등) 달성 시 팀 점수 +value. `SURVIVAL_PENALTY` — Top10 미달성 플레이어 수(failedTop10Count) × value 만큼 팀 점수 차감. 세션에 설정된 활성(enabled) 규칙만 순회 적용. ⚠️ **[kill-betting#93](https://github.com/everyware-ie/kill-betting/pull/93)(리뷰 대기, 미머지)**에서 인원수 무관 팀 1회 감점 옵션 `TEAM_SURVIVAL_PENALTY` 추가 예정 — 기존 `SURVIVAL_PENALTY`와 택일, 머지되면 이 규칙 갱신 | `Rule.calculateScore`, `Match.applyRules` |
+| C6 | **룰 적용**: `CHICKEN_BONUS` — 치킨(1등) 달성 시 팀 점수 +value. `SURVIVAL_PENALTY` — Top10 미달성 플레이어 수(failedTop10Count) × value 만큼 팀 점수 차감. `TEAM_SURVIVAL_PENALTY` — 팀원 **전원**이 Top10 미달성이어야 팀 점수 -value 1회 차감(1명이라도 Top10 성공하면 감점 없음), `SURVIVAL_PENALTY`와 택일 ([kill-betting#93](https://github.com/everyware-ie/kill-betting/pull/93), 머지됨. 발동 조건은 [개정](#개정-2026-08-06) 참고). 세션에 설정된 활성(enabled) 규칙만 순회 적용 | `Rule.calculateScore`, `Match.applyRules` |
 | C7 | 확정 시 세션에 목표 킬 수(targetKills)가 설정돼 있고 해당 팀의 유효 점수(킬+룰+보정)가 그 이상이면 그 팀 승리로 세션 **자동 종료** | `MatchConfirmService.checkKillLimit` |
 | C8 | 확정 후 결과 수정 불가 — 조정이 필요하면 Host의 [점수 보정](score-adjustment.md)만 사용 가능 | FDD 정책·코드 일치 확인 |
 
@@ -65,3 +65,12 @@ code_repo: https://github.com/everyware-ie/kill-betting
 ## 8. 구현 노트 링크
 
 kill-betting `docs/product/features/match-confirm.md` (스텁, 필요 시 생성)
+
+## 개정 (2026-08-06)
+
+C6: `TEAM_SURVIVAL_PENALTY` 발동 조건 정정
+
+- 원래: TOP10 실패자가 1명이라도 있으면 팀 전체 -value 1회 감점 (`.claude/domain/glossary.md`, `docs/common/tech-debt.md` 2026-07-21 PR #93 기록 기준)
+- 확정: 팀원 **전원**이 TOP10 실패해야 -value 1회 감점. 1명이라도 TOP10 성공하면 감점 없음
+- 사유·출처: 원 기능 도입(PR #93) 당시 결정이 실제 의도와 반대로 문서화·구현됨. 2026-08-06 담당자(호스트)가 대화 중 발견해 확정
+- 관련: [decision](../../decisions/2026-08-06-team-survival-penalty-condition-fix.md), 구현 PR (jieung/fix/team-survival-penalty-condition)

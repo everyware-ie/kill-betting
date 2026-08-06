@@ -203,6 +203,24 @@ class MatchConfirmServiceTest {
     }
 
     @Test
+    void TEAM_SURVIVAL_PENALTY는_한_명이라도_TOP10에_성공하면_적용되지_않는다() {
+        User user = TestFixtures.user(USER_ID);
+        Session session = TestFixtures.session(SESSION_ID, user);
+        TeamPlayer playerTwo = TestFixtures.player(team, "PlayerTwo");
+        Rule teamPenalty = TestFixtures.rule(session, RuleType.TEAM_SURVIVAL_PENALTY, 3);
+
+        given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
+        given(teamRepository.existsBySessionIdAndLeader_Id(SESSION_ID, USER_ID)).willReturn(true);
+        given(teamPlayerRepository.findByTeam_Id(TEAM_ID)).willReturn(List.of(player, playerTwo));
+        given(matchResultRepository.saveAll(any())).willAnswer(inv -> inv.getArgument(0));
+        given(ruleRepository.findByRuleSetSessionIdAndEnabled(SESSION_ID, true)).willReturn(List.of(teamPenalty));
+
+        matchConfirmService.confirm(MATCH_ID, USER_ID, oneFailedOneSurvivedPlayersRequest());
+
+        assertThat(team.getRuleScore()).isEqualTo(0);
+    }
+
+    @Test
     void 확정_성공시_매치_상태가_CONFIRMED로_변경된다() {
         given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(pendingMatch));
         given(teamRepository.existsBySessionIdAndLeader_Id(SESSION_ID, USER_ID)).willReturn(true);
@@ -243,6 +261,14 @@ class MatchConfirmServiceTest {
                 List.of(
                         new PlayerResult("PlayerOne", 2, 100, 0, false),
                         new PlayerResult("PlayerTwo", 1, 80, 0, false)
+                ), false);
+    }
+
+    private ConfirmRequest oneFailedOneSurvivedPlayersRequest() {
+        return new ConfirmRequest("에란겔", 8, "25:30",
+                List.of(
+                        new PlayerResult("PlayerOne", 2, 100, 0, false),
+                        new PlayerResult("PlayerTwo", 1, 200, 0, true)
                 ), false);
     }
 }

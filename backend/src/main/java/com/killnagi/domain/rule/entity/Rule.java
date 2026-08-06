@@ -59,14 +59,14 @@ public class Rule {
         return this.ruleType == type;
     }
 
-    public int calculateScore(boolean isChicken, long failedTop10Count) {
+    public int calculateScore(boolean isChicken, long failedTop10Count, boolean allTeamMembersFailedTop10) {
         if (isType(RuleType.CHICKEN_BONUS) && isChicken) {
             return value;
         }
         if (isType(RuleType.SURVIVAL_PENALTY) && failedTop10Count > 0) {
             return -(int) failedTop10Count * value;
         }
-        if (isType(RuleType.TEAM_SURVIVAL_PENALTY) && failedTop10Count > 0) {
+        if (isType(RuleType.TEAM_SURVIVAL_PENALTY) && allTeamMembersFailedTop10) {
             return -value;
         }
         return 0;

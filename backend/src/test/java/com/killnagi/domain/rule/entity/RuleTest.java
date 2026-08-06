@@ -26,7 +26,7 @@ class RuleTest {
         void 치킨을_달성하면_value만큼_보너스를_준다() {
             Rule rule = rule(RuleType.CHICKEN_BONUS, 5);
 
-            int score = rule.calculateScore(true, 0);
+            int score = rule.calculateScore(true, 0, false);
 
             assertThat(score).isEqualTo(5);
         }
@@ -36,7 +36,7 @@ class RuleTest {
         void 치킨을_달성하지_못하면_0점이다() {
             Rule rule = rule(RuleType.CHICKEN_BONUS, 5);
 
-            int score = rule.calculateScore(false, 3);
+            int score = rule.calculateScore(false, 3, false);
 
             assertThat(score).isZero();
         }
@@ -51,7 +51,7 @@ class RuleTest {
         void TOP10_실패_인원_수만큼_value를_곱해_감점한다() {
             Rule rule = rule(RuleType.SURVIVAL_PENALTY, 2);
 
-            int score = rule.calculateScore(false, 3);
+            int score = rule.calculateScore(false, 3, false);
 
             assertThat(score).isEqualTo(-6);
         }
@@ -61,7 +61,7 @@ class RuleTest {
         void TOP10_실패자가_없으면_0점이다() {
             Rule rule = rule(RuleType.SURVIVAL_PENALTY, 2);
 
-            int score = rule.calculateScore(false, 0);
+            int score = rule.calculateScore(false, 0, false);
 
             assertThat(score).isZero();
         }
@@ -72,13 +72,23 @@ class RuleTest {
     class TeamSurvivalPenalty {
 
         @Test
-        @DisplayName("TOP10 실패자가 1명이라도 있으면 인원 수와 무관하게 value만큼 1회 감점한다")
-        void TOP10_실패자가_1명이라도_있으면_value만큼_1회_감점한다() {
+        @DisplayName("팀원 전원이 TOP10에 실패하면 인원 수와 무관하게 value만큼 1회 감점한다")
+        void 팀원_전원이_TOP10에_실패하면_value만큼_1회_감점한다() {
             Rule rule = rule(RuleType.TEAM_SURVIVAL_PENALTY, 3);
 
-            int score = rule.calculateScore(false, 4);
+            int score = rule.calculateScore(false, 4, true);
 
             assertThat(score).isEqualTo(-3);
+        }
+
+        @Test
+        @DisplayName("한 명이라도 TOP10에 성공하면 감점하지 않는다")
+        void 한_명이라도_TOP10에_성공하면_감점하지_않는다() {
+            Rule rule = rule(RuleType.TEAM_SURVIVAL_PENALTY, 3);
+
+            int score = rule.calculateScore(false, 1, false);
+
+            assertThat(score).isZero();
         }
 
         @Test
@@ -86,7 +96,7 @@ class RuleTest {
         void TOP10_실패자가_없으면_0점이다() {
             Rule rule = rule(RuleType.TEAM_SURVIVAL_PENALTY, 3);
 
-            int score = rule.calculateScore(false, 0);
+            int score = rule.calculateScore(false, 0, false);
 
             assertThat(score).isZero();
         }

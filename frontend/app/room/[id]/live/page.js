@@ -25,12 +25,11 @@ import RoleGuideModal from '@/components/ui/RoleGuideModal';
 /**
  * 한 매치에서 팀에 적용되는 생존 패널티 감점(양수).
  * PER_PLAYER: TOP10 실패 인원 수 × value
- * TEAM_ONCE : TOP10 실패자가 1명이라도 있으면 value 1회
+ * TEAM_ONCE : 팀원 전원이 TOP10에 실패해야 value 1회 (1명이라도 성공하면 0)
  */
-function matchSurvivalPenalty(rule, failedCount) {
-  if (failedCount <= 0) return 0;
-  if (rule.penaltyMode === 'PER_PLAYER') return failedCount * rule.survivalPenalty;
-  if (rule.penaltyMode === 'TEAM_ONCE') return rule.teamSurvivalPenalty;
+function matchSurvivalPenalty(rule, failedCount, allFailed) {
+  if (rule.penaltyMode === 'PER_PLAYER') return failedCount > 0 ? failedCount * rule.survivalPenalty : 0;
+  if (rule.penaltyMode === 'TEAM_ONCE') return allFailed ? rule.teamSurvivalPenalty : 0;
   return 0;
 }
 
@@ -42,7 +41,9 @@ function calcTeamScore(teamId, matches, rule, adjustments = []) {
     const hasChicken = teamResults.some((r) => r.isChicken);
     if (rule.chickenBonusOn && hasChicken) bonus += rule.chickenBonus;
     kills += teamResults.reduce((s, r) => s + r.kills, 0);
-    penalty += matchSurvivalPenalty(rule, teamResults.filter((r) => !r.isTop10).length);
+    const failedCount = teamResults.filter((r) => !r.isTop10).length;
+    const allFailed = failedCount === teamResults.length;
+    penalty += matchSurvivalPenalty(rule, failedCount, allFailed);
   }
   const adj = adjustments
     .filter((a) => a.teamId === teamId)
@@ -105,6 +106,7 @@ function TeamResultModal({ room, teamId, matchNumber, sessionId, onConfirmed, on
     }))
   );
   const [claimsChicken, setClaimsChicken] = useState(false);
+  const [teamAllFailedTop10, setTeamAllFailedTop10] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [ocrFile, setOcrFile] = useState(null);
   const [ocrPreview, setOcrPreview] = useState(null);
@@ -194,14 +196,21 @@ function TeamResultModal({ room, teamId, matchNumber, sessionId, onConfirmed, on
 
   const previewKills = results.reduce((s, r) => s + r.kills, 0);
   const previewBonus = claimsChicken && rule.chickenBonusOn ? rule.chickenBonus : 0;
-  const previewFailedCount = results.filter((r) => !r.isTop10).length;
-  const previewPenalty = matchSurvivalPenalty(rule, previewFailedCount);
+  const previewFailedCount = rule.penaltyMode === 'TEAM_ONCE'
+    ? (teamAllFailedTop10 ? results.length : 0)
+    : results.filter((r) => !r.isTop10).length;
+  const previewAllFailed = rule.penaltyMode === 'TEAM_ONCE' ? teamAllFailedTop10 : false;
+  const previewPenalty = matchSurvivalPenalty(rule, previewFailedCount, previewAllFailed);
   const previewTotal = previewKills + previewBonus - previewPenalty;
 
   const handleSubmit = async () => {
     if (!matchId) { setOcrError('먼저 스크린샷을 업로드하고 분석을 완료해주세요'); return; }
     setSubmitting(true);
-    const playerResults = results.map((r) => ({ nickname: r.nick, kills: r.kills, damage: r.damage || 0, assists: r.assists || 0, isTop10: r.isTop10 || false }));
+    // TEAM_ONCE: 개인별 토글 대신 팀 단위 토글 하나로 입력받으므로, 제출 시 전원에 동일하게 반영한다
+    const playerResults = results.map((r) => ({
+      nickname: r.nick, kills: r.kills, damage: r.damage || 0, assists: r.assists || 0,
+      isTop10: rule.penaltyMode === 'TEAM_ONCE' ? !teamAllFailedTop10 : (r.isTop10 || false),
+    }));
     const confirmRes = await RoomAPI.confirmMatch(matchId, { playerResults, isChicken: claimsChicken, mapName: ocrMapName, placement: ocrPlacement, playTime: ocrPlayTime });
     setSubmitting(false);
     if (!confirmRes.success) { setOcrError(confirmRes.error || '매치 확정에 실패했습니다'); return; }
@@ -341,12 +350,27 @@ function TeamResultModal({ room, teamId, matchNumber, sessionId, onConfirmed, on
             )}
           </div>
 
+          {/* 팀 생존 패널티(TEAM_ONCE) 여부 — 치킨 보너스와 동일하게 팀 단위 토글 하나로 입력 */}
+          {rule.penaltyMode === 'TEAM_ONCE' && (
+            <div style={{ background: 'var(--kn-surface-2)', border: '1px solid var(--kn-border)', borderRadius: 'var(--kn-r-lg)', padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
+              <Icon name="alert" size={20} color="var(--kn-danger)" />
+              <span style={{ fontSize: 13, fontWeight: 600 }}>우리 팀({team.name}) 전원이 TOP10에 실패했나요?</span>
+              <ToggleMini on={teamAllFailedTop10} onChange={() => setTeamAllFailedTop10((v) => !v)} />
+              {teamAllFailedTop10 && (
+                <span style={{ fontSize: 12, color: 'var(--kn-danger)' }}>−{rule.teamSurvivalPenalty} 패널티</span>
+              )}
+            </div>
+          )}
+
           {/* 플레이어별 입력 */}
           <div style={{ overflowX: 'auto', marginBottom: 16 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--kn-border)' }}>
-                  {['닉네임', '킬', '데미지', '어시스트', '개인 등수 10등 이내'].map((h) => (
+                  {(rule.penaltyMode === 'TEAM_ONCE'
+                    ? ['닉네임', '킬', '데미지', '어시스트']
+                    : ['닉네임', '킬', '데미지', '어시스트', '개인 등수 10등 이내']
+                  ).map((h) => (
                     <th key={h} style={{ padding: '8px 10px', textAlign: 'left', color: 'var(--kn-text-muted)', fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
@@ -379,7 +403,9 @@ function TeamResultModal({ room, teamId, matchNumber, sessionId, onConfirmed, on
                           <button onClick={() => setR(r.nick, 'assists', (r.assists||0) + 1)} style={btnStyle}>+</button>
                         </div>
                       </td>
-                      <td style={{ padding: '6px 10px', textAlign: 'center' }}><ToggleMini on={r.isTop10} onChange={() => setR(r.nick, 'isTop10', !r.isTop10)} /></td>
+                      {rule.penaltyMode !== 'TEAM_ONCE' && (
+                        <td style={{ padding: '6px 10px', textAlign: 'center' }}><ToggleMini on={r.isTop10} onChange={() => setR(r.nick, 'isTop10', !r.isTop10)} /></td>
+                      )}
                     </tr>
                   );
                 })}
