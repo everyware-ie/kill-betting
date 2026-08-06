@@ -23,7 +23,7 @@
 | **TotalScore**  | 총점    | 세션 내 모든 Match 점수의 합산 |
 | **ChickenBonus** | 치킨 보너스 | 치킨(1위) 달성 시 팀에 +value 보너스 (RuleType) |
 | **SurvivalPenalty** | 생존 패널티(인당) | TOP10 진입 실패자 **인원 수 × value** 만큼 팀 감점 (RuleType) |
-| **TeamSurvivalPenalty** | 팀 생존 패널티 | TOP10 실패자가 **1명이라도** 있으면 팀 전체 **-value (1회)** 감점. SurvivalPenalty와 **택일** (RuleType) |
+| **TeamSurvivalPenalty** | 팀 생존 패널티 | 팀원 **전원**이 TOP10 진입에 실패해야 팀 전체 **-value (1회)** 감점. 1명이라도 TOP10에 성공하면 감점 없음. SurvivalPenalty와 **택일** (RuleType) |
 | **Admin**       | 어드민   | 개발자·서비스 운영자용 읽기 전용 운영 지표 대시보드 (호스트용 세션 운영 메뉴와 별개) |
 | **ActiveUser**  | 활성 유저 | 지정된 최근 기간(예: 7일/30일) 내에 세션에 참여한 유저 |
 | **Retention**   | 리텐션   | 신규 가입 유저가 이후 다시 서비스를 사용하는 비율. W1 = 가입 후 7일 내 세션 1회 이상 참여 비율 |

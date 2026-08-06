@@ -88,3 +88,10 @@
 - `spring.jpa.defer-datasource-initialization: true` 제거 (Flyway와 결합 시 순환 의존 발생, 더 이상 필요 없는 설정)
 - 누락돼있던 `favorite_nicknames`, `hidden_sessions`, `sessions.last_match_at`, `sessions.deleted_at` 반영 및 `rules.rule_type` enum에 `TEAM_SURVIVAL_PENALTY` 반영
 - 임시 MySQL 컨테이너에 빈 스키마로 실제 부팅시켜 `V1~V5` + JPA + Security까지 정상 기동 검증
+
+### TEAM_SURVIVAL_PENALTY 발동 조건 정정 (2026-08-06)
+
+- 2026-07-21 PR #93 도입 당시 "TOP10 실패자가 1명이라도 있으면 -1회"로 문서화·구현됐던 것이 실제 의도(팀원 전원 실패해야 -1회)와 반대였음을 담당자가 확인
+- `Rule.calculateScore`: `TEAM_SURVIVAL_PENALTY` 조건을 `failedTop10Count > 0` → 팀원 전원이 TOP10 실패(`allTeamMembersFailedTop10`)로 변경. `Match`에서 `matchResults` 전원의 top10 실패 여부를 계산해 전달
+- FE 확정 모달: `penaltyMode === 'TEAM_ONCE'`일 때 팀원별 개별 토글 대신 치킨 보너스와 동일한 팀 단위 토글 1개로 입력 단순화 (`frontend/app/room/[id]/live/page.js`)
+- `.claude/domain/glossary.md`·`docs/specs/frd/match-confirm.md`(C6 개정)도 함께 정정 — 상세: [decision](../decisions/2026-08-06-team-survival-penalty-condition-fix.md)

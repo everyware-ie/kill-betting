@@ -2,7 +2,7 @@
 title: kill-betting Decisions Index
 product: kill-betting
 type: decision
-updated: 2026-07-22
+updated: 2026-08-06
 ---
 
 # 의사결정 목록
@@ -14,5 +14,6 @@ updated: 2026-07-22
 | 2026-07-22 | [매치 히스토리 팀별 분리 & 삭제 기능 도입](2026-07-22-match-history-v2.md) | decided | [2026-07-22](../meetings/2026-07-22/synthesis.md) |
 | 2026-07-22 | [팀 구성 권한 위임 & 닉네임 즐겨찾기](2026-07-22-team-setup-delegation.md) | decided | [2026-07-22](../meetings/2026-07-22/synthesis.md) |
 | 2026-07-22 | [대기중 세션의 "내 세션 목록" 노출](2026-07-22-session-list-visibility.md) | decided | [2026-07-22](../meetings/2026-07-22/synthesis.md) |
+| 2026-08-06 | [팀 생존 패널티(TEAM_SURVIVAL_PENALTY) 발동 조건 정정](2026-08-06-team-survival-penalty-condition-fix.md) | decided | - |
 
 상태: `proposed` / `decided` / `deferred` / `rejected` (decided 이후 변경은 개정 append)
