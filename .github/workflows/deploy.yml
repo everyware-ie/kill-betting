@@ -128,7 +128,7 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "docker-compose.yml,monitoring/,.env"
+          source: "docker-compose.yml,.env"
           target: /home/ubuntu/kill-betting/
 
       - name: Deploy via SSH
@@ -149,7 +149,7 @@ jobs:
 
             docker pull ghcr.io/everyware-ie/kill-betting-backend:${{ github.sha }}
 
-            BACKEND_IMAGE_TAG=${{ github.sha }} docker compose up -d --no-build backend prometheus loki grafana
+            BACKEND_IMAGE_TAG=${{ github.sha }} docker compose up -d --no-build backend
 
             docker image prune -a -f --filter "until=720h"
 
@@ -170,7 +170,7 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "docker-compose.yml,monitoring/"
+          source: "docker-compose.yml"
           target: /home/ubuntu/kill-betting/
 
       - name: Deploy via SSH
@@ -189,7 +189,7 @@ jobs:
 
             docker pull ghcr.io/everyware-ie/kill-betting-frontend:${{ github.sha }}
 
-            FRONTEND_IMAGE_TAG=${{ github.sha }} docker compose up -d --no-build frontend prometheus loki grafana
+            FRONTEND_IMAGE_TAG=${{ github.sha }} docker compose up -d --no-build frontend
 
             docker image prune -a -f --filter "until=720h"
 
