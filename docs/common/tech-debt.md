@@ -59,6 +59,14 @@
 - **후속 발견 2**: 위 수정 후 실제 MySQL 컨테이너에 앱을 직접 부팅시켜 재검증하는 과정(H2 테스트는 Flyway를 꺼놔서 이 클래스의 문제를 못 잡음)에서 `sessions` 테이블에 `last_match_at`(InactivityTimeout), `deleted_at`(SoftDelete) 컬럼도 운영에 없는 것을 추가로 발견 — 테이블 유무만 대조하고 컬럼 단위까지 안 본 게 원인. 전체 11개 엔티티를 컬럼 단위로 재대조해 이 두 개 외엔 드리프트 없음을 확인했고, `V5`로 추가.
 - **검증**: 임시 MySQL 8 컨테이너에 빈 스키마 상태로 `./gradlew bootRun --spring.profiles.active=prod`를 직접 실행해 `V1~V5` 마이그레이션 + JPA 검증 + Spring Security까지 전부 통과하고 `Started KillnagiApplication`까지 확인.
 
+### `SessionParticipantRegistry`의 세션 엔트리가 무한히 쌓임 (해결됨)
+
+- **발견 경위**: EC2 메모리 부족(스왑 과다) 조사 중, 사용자가 "메모리 누수나 비효율적인 사용이 있는지" 확인 요청. 코드 전수 검토(`ConcurrentHashMap`/캐시류 사용처 grep) 중 발견.
+- **원인**: `SessionParticipantRegistry.sessionParticipants`(`Map<Long, Set<Long>>`, WebSocket으로 세션에 접속 중인 유저 목록)는 `join()` 시 세션ID를 키로 하는 엔트리를 생성하지만, `leave()`는 그 안의 유저만 제거할 뿐 안이 비어도 세션ID 엔트리 자체는 절대 제거하지 않았음. 세션 종료/삭제 시에도 이 레지스트리를 정리하는 훅이 없어, 서비스 시작 이후 WebSocket으로 한 번이라도 접속됐던 모든 세션이 빈 엔트리로 JVM 재시작 전까지 영구히 남는 구조.
+- **영향**: 엔트리 하나가 작아(세션ID 1개 + 빈 Set) 현재 트래픽 규모(재시작 후 3일간 세션 1건)에서는 체감 크기가 아니었지만(수백 바이트~수 KB 수준), 무한 증가·영구 미회수라는 점에서 전형적인 메모리 누수 패턴이었음.
+- **조치**: `leave()`/`removeParticipant()`를 `sessionParticipants.computeIfPresent(...)`로 바꿔, 유저 제거 후 해당 세션의 참가자 Set이 비면 세션ID 엔트리 자체도 함께 제거하도록 수정. 원자적 처리(compute)로 경쟁 상태도 방지.
+- **검증**: `SessionParticipantRegistryTest` 신규 작성(TDD) — "마지막 참가자가 나가면 세션 엔트리 자체가 제거된다" 케이스로 Red 확인 후 수정, Green 전환.
+
 ---
 
 ## PR 변경 이력

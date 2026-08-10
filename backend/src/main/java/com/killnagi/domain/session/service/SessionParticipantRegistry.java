@@ -20,11 +20,14 @@ public class SessionParticipantRegistry {
     }
 
     // 연결 해제 시 제거, 브로드캐스트 대상 sessionId 반환
+    // 세션의 마지막 참가자가 나가면 세션 엔트리 자체를 제거한다 (빈 엔트리가 무한히 쌓이는 것 방지)
     public Long leave(String wsSessionId) {
         WsInfo info = wsSessionMap.remove(wsSessionId);
         if (info == null) return null;
-        Set<Long> participants = sessionParticipants.get(info.sessionId());
-        if (participants != null) participants.remove(info.userId());
+        sessionParticipants.computeIfPresent(info.sessionId(), (sessionId, participants) -> {
+            participants.remove(info.userId());
+            return participants.isEmpty() ? null : participants;
+        });
         return info.sessionId();
     }
 
@@ -39,8 +42,10 @@ public class SessionParticipantRegistry {
 
     // 테스트용: wsSessionId 없이 직접 제거
     public void removeParticipant(Long sessionId, Long userId) {
-        Set<Long> participants = sessionParticipants.get(sessionId);
-        if (participants != null) participants.remove(userId);
+        sessionParticipants.computeIfPresent(sessionId, (id, participants) -> {
+            participants.remove(userId);
+            return participants.isEmpty() ? null : participants;
+        });
         wsSessionMap.entrySet().removeIf(e ->
                 e.getValue().sessionId().equals(sessionId) && e.getValue().userId().equals(userId));
     }
