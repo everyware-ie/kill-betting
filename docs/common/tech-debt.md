@@ -59,6 +59,16 @@
 - **후속 발견 2**: 위 수정 후 실제 MySQL 컨테이너에 앱을 직접 부팅시켜 재검증하는 과정(H2 테스트는 Flyway를 꺼놔서 이 클래스의 문제를 못 잡음)에서 `sessions` 테이블에 `last_match_at`(InactivityTimeout), `deleted_at`(SoftDelete) 컬럼도 운영에 없는 것을 추가로 발견 — 테이블 유무만 대조하고 컬럼 단위까지 안 본 게 원인. 전체 11개 엔티티를 컬럼 단위로 재대조해 이 두 개 외엔 드리프트 없음을 확인했고, `V5`로 추가.
 - **검증**: 임시 MySQL 8 컨테이너에 빈 스키마 상태로 `./gradlew bootRun --spring.profiles.active=prod`를 직접 실행해 `V1~V5` 마이그레이션 + JPA 검증 + Spring Security까지 전부 통과하고 `Started KillnagiApplication`까지 확인.
 
+### 모니터링 스택이 EC2 메모리를 과점 + Prometheus/Loki 데이터가 재시작마다 휘발 (해결됨)
+
+- **발견 경위**: 사용자가 "운영 서버가 체감상 많이 느리다"고 보고. `docker stats`·`free -h` 확인 결과 스왑 796MiB/2GiB 사용 중(911MiB짜리 EC2에서). 이어서 Grafana 대시보드가 "No data"인 것도 별도로 보고됨.
+- **원인 1 (속도 저하)**: `docker-compose.yml`에 backend·frontend·redis 외에 prometheus·loki·grafana까지 한 EC2에 전부 얹혀 있는데, `deploy.yml`의 `deploy-backend`/`deploy-frontend` job이 **매 앱 배포마다** `docker compose up -d ... prometheus loki grafana`로 모니터링까지 항상 같이 띄웠음. `docker stats` 기준 grafana(194.6MiB, 21%)+loki(73.4MiB)+prometheus(20.4MiB) 합이 backend(132.7MiB)보다 큰 상태로, 911MiB 인스턴스에서 상시 스왑을 유발.
+- **원인 2 ("No data")**: `prometheus` 서비스는 설정 파일만 볼륨 마운트돼 있고 TSDB 저장 경로(`/prometheus`)는, `loki`는 저장 경로(`/loki`) 자체가 전혀 영구 볼륨에 물려있지 않았음. 컨테이너가 재시작(원인 1의 메모리 압박으로 인한 OOM-kill 포함)될 때마다 그동안 쌓인 메트릭·로그가 전부 사라짐. `restart: on-failure:3`이라 3회 재시작에 실패하면 죽은 채로 방치되어, 그 시점부터는 스크레이핑 자체가 끊김.
+- **조치**:
+  - `deploy.yml`: `deploy-backend`/`deploy-frontend`가 각자 `backend`/`frontend` 컨테이너만 올리도록 수정(`prometheus loki grafana` 제거), 모니터링 기동은 `deploy-infra`(docker-compose.yml·monitoring/ 변경 시 또는 수동 `workflow_dispatch`)로만 분리. 더 이상 쓰지 않는 `monitoring/` 설정 scp 스텝도 정리.
+  - `docker-compose.yml`: `prometheus`에 `prometheus-data:/prometheus`, `loki`에 `loki-data:/loki` 영구 볼륨 추가.
+- **참고**: 이번 조치는 "재시작해도 데이터가 안 날아가게" 하는 것이지 "메모리를 덜 쓰게" 하는 게 아니다 — 이 PR이 머지되면 `docker-compose.yml`이 바뀌었으므로 `deploy-infra`가 자동으로 한 번 더 실행돼 모니터링 3종이 다시 켜진다. 911MiB 인스턴스에서 모니터링까지 상시로 켜두는 게 맞는지는 별도 판단 필요(인스턴스 업그레이드 또는 모니터링을 필요할 때만 켜는 운영으로 갈지).
+
 ### `SessionParticipantRegistry`의 세션 엔트리가 무한히 쌓임 (해결됨)
 
 - **발견 경위**: EC2 메모리 부족(스왑 과다) 조사 중, 사용자가 "메모리 누수나 비효율적인 사용이 있는지" 확인 요청. 코드 전수 검토(`ConcurrentHashMap`/캐시류 사용처 grep) 중 발견.
