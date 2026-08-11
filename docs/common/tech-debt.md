@@ -69,6 +69,14 @@
   - `docker-compose.yml`: `prometheus`에 `prometheus-data:/prometheus`, `loki`에 `loki-data:/loki` 영구 볼륨 추가.
 - **참고**: 이번 조치는 "재시작해도 데이터가 안 날아가게" 하는 것이지 "메모리를 덜 쓰게" 하는 게 아니다 — 이 PR이 머지되면 `docker-compose.yml`이 바뀌었으므로 `deploy-infra`가 자동으로 한 번 더 실행돼 모니터링 3종이 다시 켜진다. 911MiB 인스턴스에서 모니터링까지 상시로 켜두는 게 맞는지는 별도 판단 필요(인스턴스 업그레이드 또는 모니터링을 필요할 때만 켜는 운영으로 갈지).
 
+### `SessionParticipantRegistry`의 세션 엔트리가 무한히 쌓임 (해결됨)
+
+- **발견 경위**: EC2 메모리 부족(스왑 과다) 조사 중, 사용자가 "메모리 누수나 비효율적인 사용이 있는지" 확인 요청. 코드 전수 검토(`ConcurrentHashMap`/캐시류 사용처 grep) 중 발견.
+- **원인**: `SessionParticipantRegistry.sessionParticipants`(`Map<Long, Set<Long>>`, WebSocket으로 세션에 접속 중인 유저 목록)는 `join()` 시 세션ID를 키로 하는 엔트리를 생성하지만, `leave()`는 그 안의 유저만 제거할 뿐 안이 비어도 세션ID 엔트리 자체는 절대 제거하지 않았음. 세션 종료/삭제 시에도 이 레지스트리를 정리하는 훅이 없어, 서비스 시작 이후 WebSocket으로 한 번이라도 접속됐던 모든 세션이 빈 엔트리로 JVM 재시작 전까지 영구히 남는 구조.
+- **영향**: 엔트리 하나가 작아(세션ID 1개 + 빈 Set) 현재 트래픽 규모(재시작 후 3일간 세션 1건)에서는 체감 크기가 아니었지만(수백 바이트~수 KB 수준), 무한 증가·영구 미회수라는 점에서 전형적인 메모리 누수 패턴이었음.
+- **조치**: `leave()`/`removeParticipant()`를 `sessionParticipants.computeIfPresent(...)`로 바꿔, 유저 제거 후 해당 세션의 참가자 Set이 비면 세션ID 엔트리 자체도 함께 제거하도록 수정. 원자적 처리(compute)로 경쟁 상태도 방지.
+- **검증**: `SessionParticipantRegistryTest` 신규 작성(TDD) — "마지막 참가자가 나가면 세션 엔트리 자체가 제거된다" 케이스로 Red 확인 후 수정, Green 전환.
+
 ---
 
 ## PR 변경 이력
